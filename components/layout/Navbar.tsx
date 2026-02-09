@@ -11,7 +11,7 @@ const NAV = [
   { href: "/contact", label: "문의" },
 ];
 
-export function SimpleNav() {
+export function Navbar() {
   const pathname = usePathname();
 
   return (
