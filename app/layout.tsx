@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
-import { MinimalNav } from "@/components/layout/minimalNav";
+import { SimpleNav } from "@/components/layout/SimpleNav";
 
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
@@ -89,7 +89,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <MinimalNav />
+        <SimpleNav />
         <main className="md:ml-[120px] min-h-screen">
           {children}
         </main>
