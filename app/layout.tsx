@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
-import { MinimalNav } from "@/components/layout/MinimalNav";
+import { MinimalNav } from "@/components/layout/minimalNav";
 
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
