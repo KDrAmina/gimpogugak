@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "문의 및 오시는 길 | 김포국악원 (Contact)",
@@ -9,6 +10,12 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   const addressQuery = "경기도 김포시 모담공원로 170-14";
   const encodedAddress = encodeURIComponent(addressQuery);
+  
+  // 링크 모음 (수정됨)
+  const naverMapLink = `https://map.naver.com/v5/search/${encodedAddress}`;
+  // 👇 여기가 수정되었습니다 (구글 공식 검색 링크)
+  const googleMapLink = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  const kakaoMapLink = `https://map.kakao.com/link/search/${encodedAddress}`;
 
   return (
     <section className="mx-auto max-w-2xl px-6 py-12 pb-24">
@@ -24,34 +31,46 @@ export default function ContactPage() {
         </p>
       </div>
 
-      {/* 1. 지도 (Google Maps Embed) */}
+      {/* 1. 약도 이미지 (메인: 네이버 지도 연결) */}
       <div className="mb-12">
-        <div className="relative w-full h-[300px] sm:h-[400px] bg-[#111]/5 rounded-xl overflow-hidden border border-[#111]/10">
-          <iframe
-            src={`https://maps.google.com/maps?q=${encodedAddress}&t=&z=17&ie=UTF8&iwloc=&output=embed&hl=ko`}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            className="absolute inset-0"
-            title="김포국악원 지도"
+        <a 
+          href={naverMapLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative block w-full aspect-video sm:h-[400px] bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm group"
+        >
+          <Image
+            src="/gimpogugak_map.png"
+            alt="김포국악원 약도"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 800px"
+            priority
           />
-        </div>
+          
+          {/* 상단 안내 배지 */}
+          <div className="absolute top-4 left-0 w-full flex justify-center z-10 px-4">
+            <span className="bg-black/70 backdrop-blur-sm text-white text-xs sm:text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              👆 사진을 누르면 <span className="text-[#03C75A] font-bold">네이버 지도</span>로 연결됩니다
+            </span>
+          </div>
 
-        {/* 네이버/카카오 지도 버튼 */}
+          {/* 호버 효과 */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+        </a>
+
+        {/* 2. 추가 지도 버튼 (구글 vs 카카오) */}
         <div className="flex gap-3 mt-4">
           <a
-            href={`https://map.naver.com/v5/search/${encodedAddress}`}
+            href={googleMapLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 py-3 text-center text-sm font-bold text-white bg-[#03C75A] rounded-lg hover:bg-[#02b150] transition-colors shadow-sm"
+            className="flex-1 py-3 text-center text-sm font-bold text-[#4285F4] bg-white border border-[#4285F4] rounded-lg hover:bg-[#4285F4] hover:text-white transition-colors shadow-sm"
           >
-            네이버 지도로 보기
+            Google 지도로 보기
           </a>
           <a
-            href={`https://map.kakao.com/link/search/${encodedAddress}`}
+            href={kakaoMapLink}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 py-3 text-center text-sm font-bold text-[#371D1E] bg-[#FAE100] rounded-lg hover:bg-[#ebd300] transition-colors shadow-sm"
@@ -61,7 +80,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* 2. 정보 그리드 */}
+      {/* 3. 정보 그리드 */}
       <div className="grid gap-8 sm:grid-cols-2">
         <div className="space-y-8">
           <InfoItem label="Address">
