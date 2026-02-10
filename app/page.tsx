@@ -11,11 +11,13 @@ export default function HomePage() {
         김포국악원
       </h1>
 
-      {/* [성능 팁] 
-         shadow-md와 grayscale(필터)은 브라우저가 그리는 데 시간이 걸립니다.
-         점수가 그래도 안 오르면 className에서 'shadow-md'와 'grayscale ...'을 지워보세요.
+      {/* 🚀 [최적화 수정] 
+         1. shadow-md (그림자) -> 제거 (렌더링 부하)
+         2. grayscale (흑백) -> 제거 (필터 연산 부하)
+         3. transition (애니메이션) -> 제거 (지연 원인)
+         오직 'rounded-lg'와 'overflow-hidden'만 남겨서 가볍게 만듭니다.
       */}
-      <figure className="mt-8 rounded-lg shadow-md overflow-hidden transition-all duration-300">
+      <figure className="mt-8 rounded-lg overflow-hidden"> 
         <Image
           src={HERO_IMAGE}
           alt="한옥 처마와 자연, 김포국악원"
@@ -23,7 +25,7 @@ export default function HomePage() {
           width={1000}
           height={563}
           className="w-full aspect-video object-cover"
-          // 👇 [수정됨] 패딩(px-6 = 약 48px)을 뺀 크기를 정확히 알려줍니다.
+          /* 여백(48px) 제외하고 정확한 사이즈 요청 */
           sizes="(max-width: 672px) calc(100vw - 48px), 672px"
         />
       </figure>
