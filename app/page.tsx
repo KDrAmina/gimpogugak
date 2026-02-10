@@ -15,11 +15,12 @@ export default function HomePage() {
         <Image
           src={HERO_IMAGE}
           alt="한옥 처마와 자연, 김포국악원"
+          priority={true}
           width={1000}
           height={563}
           className="w-full aspect-video object-cover"
           sizes="(max-width: 672px) 100vw, 672px"
-          priority
+      
         />
       </figure>
 
