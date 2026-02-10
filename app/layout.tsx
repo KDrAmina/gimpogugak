@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
@@ -144,6 +145,9 @@ export default function RootLayout({
         <main className="md:ml-[120px] min-h-screen">
           {children}
         </main>
+
+        {/* 👇 [추가됨] 방문자 통계 수집기 (성능 영향 없음) */}
+        <Analytics />
       </body>
     </html>
   );
