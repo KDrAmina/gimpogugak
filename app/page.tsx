@@ -91,7 +91,7 @@ export default function HomePage() {
             alt="교육기부 진로체험 인증기관 (교육부)"
             width={150}
             height={100}
-            className="h-12 w-auto object-contain sm:h-10"
+            className="h-13 w-auto object-contain sm:h-10"
           />
         </div>
       </section>
