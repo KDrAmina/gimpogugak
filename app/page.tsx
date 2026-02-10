@@ -1,8 +1,20 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1535189043414-47a3c49a0bed?q=80&w=1000&auto=format&fit=crop";
+
+export const metadata: Metadata = {
+  title: "김포국악원 | 한국의 전통, 대한의 소리",
+  description:
+    "황해도무형문화재 제3호 놀량사거리 이수자 원장과 성악 전공 부원장이 함께하는 김포 국악 교육원. 민요, 장구, 진로체험, 김포신문 칼럼 연재.",
+  openGraph: {
+    title: "김포국악원 | 한국의 전통, 대한의 소리",
+    description: "경기 김포시 국악 교육. 무형문화재 이수자 직강, 교육부 진로체험 인증기관.",
+    type: "website",
+  },
+};
 
 export default function HomePage() {
   return (
@@ -26,40 +38,40 @@ export default function HomePage() {
       <div className="mt-10 space-y-6 font-sans text-[#111] leading-relaxed">
         <p>
           &quot;국악은 어렵고 낯설다&quot;는 편견, 우리도 잘 압니다.
-          <p></p>
           하지만 실제로 만나보면 국악만큼 우리 목소리와 마음에 자연스럽게 스며드는 음악도 없습니다.
         </p>
         <p>
           김포국악원은{" "}
-          <p></p>
           <Link href="/Song-Ri-Gyel" className="text-[#111] underline hover:no-underline">
             황해도무형문화재 제3호 놀량사거리 이수자이신 원장님
           </Link>
-          과 성악을 전공한 부원장님이 함께 운영하는 공간입니다.
+          과{" "}
+          <Link href="/Park-Jun-Yeol" className="text-[#111] underline hover:no-underline">
+            성악을 전공한 부원장님
+          </Link>
+          이 함께 운영하는 공간입니다.
           두 분의 전문성이 만나 전통의 깊이와 현대 음악교육의 체계가 조화를 이루고 있습니다.
         </p>
         <p>
           저희 국악원은 교육부 인증 진로체험기관으로 선정되어 청소년들에게 살아있는 진로교육을 제공하고 있으며,
-          매년 다양한 문화예술 지원사업을 통해 지역사회와 함께 성장하고 있습니다. 
-          <p></p>
+          매년 다양한 문화예술 지원사업을 통해 지역사회와 함께 성장하고 있습니다.{" "}
           크라운해태 전국대회, 서도소리경연대회 등에서 원생들이 꾸준히 수상하며 실력을 인정받고 있고,
           매년 정기공연을 통해 배움의 기쁨을 무대 위에서 나누고 있습니다.
         </p>
         <p>
-          특히 부원장님은{" "}
+          특히 부원장님은 김포신문에 &apos;
           <a
             href="https://www.igimpo.com/news/articleView.html?idxno=90054"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#111] underline hover:no-underline"
           >
-            김포신문
+            두 개의 목소리가 만나는 음악 시간
           </a>
-          에 &apos;두 개의 목소리가 만나는 음악 시간&apos;이라는 칼럼을 연재하며, 노래를 어려워하는 청소년들이 성악과 민요를 자유롭게 넘나들며 자신만의 목소리를 찾아가는 과정을 함께하고 있습니다.
+          &apos;이라는 칼럼을 연재하며, 노래를 어려워하는 청소년들이 성악과 민요를 자유롭게 넘나들며 자신만의 목소리를 찾아가는 과정을 함께하고 있습니다.
         </p>
         <p>
           민요, 장구, 단체반, 대취타 체험까지.
-          <p></p>
           나이와 실력에 관계없이 누구나 편안하게 시작할 수 있습니다.
           공연과 섭외 문의도 언제든 환영합니다.
         </p>
@@ -84,14 +96,14 @@ export default function HomePage() {
             alt="김포문화재단"
             width={100}
             height={20}
-            className="h-5 w-auto object-contain sm:h-10"
+            className="h-5 w-auto object-contain sm:h-8"
           />
           <Image
             src="/badge-education.png"
             alt="교육기부 진로체험 인증기관 (교육부)"
             width={150}
             height={100}
-            className="h-12.5 w-auto object-contain sm:h-10"
+            className="h-10 w-auto object-contain sm:h-14"
           />
         </div>
       </section>

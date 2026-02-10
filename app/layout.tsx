@@ -70,23 +70,33 @@ export const metadata: Metadata = {
     ],
   },
   robots: { index: true, follow: true },
+  alternates: { canonical: siteUrl },
+  other: {
+    "geo.region": "KR-41",
+    "ICBM": "37.6153, 126.7159",
+  },
 };
 
-// 4. GEO 데이터 (AI 봇을 위한 디지털 명함 - JSON-LD)
+// 4. GEO + SEO 데이터 (검색엔진·AI 인용용 JSON-LD)
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "EducationalOrganization", // "교육 기관"이라고 명시
+  "@type": "EducationalOrganization",
   "name": "김포국악원",
-  "alternateName": "Gimpo Gugak Center",
+  "alternateName": ["Gimpo Gugak Center", "김포 국악원"],
   "url": siteUrl,
-  "description": "황해도무형문화재 제3호 놀량사거리 이수자 원장이 직접 지도하는 김포 국악 교육 전문 기관",
+  "description": "황해도무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 함께 운영하는 김포 국악 교육 전문 기관. 민요, 장구, 진로체험, 공연 운영.",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "모담공원로 170-14",
     "addressLocality": "김포시",
     "addressRegion": "경기도",
-    "postalCode": "10076", // (우편번호는 필요시 수정)
+    "postalCode": "10076",
     "addressCountry": "KR"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 37.6153,
+    "longitude": 126.7159
   },
   "contactPoint": {
     "@type": "ContactPoint",
@@ -98,7 +108,8 @@ const jsonLd = {
   "sameAs": [
     "https://blog.naver.com/gimpogugak",
     "https://instagram.com/seodo_music"
-  ]
+  ],
+  "knowsAbout": ["서도민요", "경기민요", "놀량사거리", "장구", "국악교육", "진로체험"]
 };
 
 export default function RootLayout({
@@ -113,6 +124,21 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "김포국악원",
+              alternateName: "Gimpo Gugak Center",
+              url: siteUrl,
+              description: "경기 김포시 국악 교육원. 황해도무형문화재 제3호 놀량사거리 이수자 직강, 민요·장구·진로체험.",
+              inLanguage: "ko-KR",
+              publisher: { "@type": "Organization", name: "김포국악원", url: siteUrl },
+            }),
+          }}
         />
         <Navbar />
         <main className="md:ml-[120px] min-h-screen">
