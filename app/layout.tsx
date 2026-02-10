@@ -1,21 +1,32 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // 👈 Viewport 추가
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 
+// 1. 폰트 최적화: 사용할 두께만 딱 지정해서 파일 크기 줄이기
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
+  weight: ["400", "700", "900"], // 사용할 두께만 지정 (Light, Bold, Black)
   variable: "--font-noto-serif",
   display: "swap",
 });
 
 const notoSans = Noto_Sans_KR({
   subsets: ["latin"],
+  weight: ["400", "500", "700"], // 사용할 두께만 지정 (Regular, Medium, Bold)
   variable: "--font-noto-sans",
   display: "swap",
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
+
+// 2. 뷰포트 & 테마 컬러 설정 (모바일 점수 핵심!)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -84,7 +95,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable}`}>
-      <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111]">
+      <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111] antialiased">
+        {/* antialiased 추가: 폰트를 더 선명하게 렌더링 */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
