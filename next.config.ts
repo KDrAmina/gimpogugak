@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 1. 결과물 압축하기 (기본값 true지만 확실하게!)
-  compress: true,
-  
-  // 2. 이미지 최적화 (아까 했던 설정 유지)
+  compress: true, // 결과물 압축
+  swcMinify: true, // 코드 최소화
   images: {
+    formats: ['image/avif', 'image/webp'], // 최신 이미지 포맷 우선 사용
     remotePatterns: [
       {
         protocol: 'https',
@@ -18,11 +17,8 @@ const nextConfig = {
       },
     ],
   },
-  
-  // 3. 실험적 기능: CSS 최적화 (선택 사항)
-  // 이걸 켜면 "사용하지 않는 CSS" 경고가 줄어들 수 있습니다.
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns'], // 혹시 쓰는 라이브러리 있으면 최적화
+    optimizePackageImports: ['lucide-react', 'date-fns'], // 라이브러리 최적화
   },
 };
 
