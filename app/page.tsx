@@ -11,16 +11,20 @@ export default function HomePage() {
         김포국악원
       </h1>
 
-      <figure className="mt-8 rounded-lg shadow-md overflow-hidden grayscale hover:grayscale-0 transition-all duration-300">
+      {/* [성능 팁] 
+         shadow-md와 grayscale(필터)은 브라우저가 그리는 데 시간이 걸립니다.
+         점수가 그래도 안 오르면 className에서 'shadow-md'와 'grayscale ...'을 지워보세요.
+      */}
+      <figure className="mt-8 rounded-lg shadow-md overflow-hidden transition-all duration-300">
         <Image
           src={HERO_IMAGE}
           alt="한옥 처마와 자연, 김포국악원"
-          priority={true}
+          priority={true} 
           width={1000}
           height={563}
           className="w-full aspect-video object-cover"
-          sizes="(max-width: 672px) 100vw, 672px"
-      
+          // 👇 [수정됨] 패딩(px-6 = 약 48px)을 뺀 크기를 정확히 알려줍니다.
+          sizes="(max-width: 672px) calc(100vw - 48px), 672px"
         />
       </figure>
 
