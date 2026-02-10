@@ -4,7 +4,7 @@ import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 
-// 1. 폰트 최적화 (성능 100점 유지)
+// 1. 폰트 최적화
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
   weight: ["400", "700", "900"],
@@ -21,14 +21,14 @@ const notoSans = Noto_Sans_KR({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
 
-// 2. 뷰포트 설정 (접근성 100점 유지 - 확대 제한 없음)
+// 2. 뷰포트 설정
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#ffffff",
 };
 
-// 3. SEO 메타데이터 (사람과 검색엔진을 위한 정보)
+// 3. SEO 메타데이터 + ⭐[네이버 인증 추가]⭐
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -53,7 +53,12 @@ export const metadata: Metadata = {
     "김포 학원",
     "김포학원",
   ],
-  // 카카오톡/페이스북 공유 시 뜨는 카드 설정
+  // 👇 여기가 네이버 인증 코드 들어가는 곳입니다!
+  verification: {
+    other: {
+      "naver-site-verification": "6c40f80aacb11e514a73265d9c91cd94ad53424b",
+    },
+  },
   openGraph: {
     type: "website",
     locale: "ko_KR",
@@ -63,7 +68,7 @@ export const metadata: Metadata = {
     url: siteUrl,
     images: [
       {
-        url: "/logo.png", // (나중에 로고 이미지 경로 확인 필요)
+        url: "/logo.png",
         width: 800,
         height: 400,
         alt: "김포국악원 전경",
@@ -78,14 +83,14 @@ export const metadata: Metadata = {
   },
 };
 
-// 4. GEO + SEO 데이터 (검색엔진·AI 인용용 JSON-LD)
+// 4. GEO + SEO 데이터 (JSON-LD)
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "EducationalOrganization",
   "name": "김포국악원",
   "alternateName": ["Gimpo Gugak Center", "김포 국악원"],
   "url": siteUrl,
-  "description": "황해도무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 함께 운영하는 김포 국악 교육 전문 기관. 민요, 장구, 진로체험, 공연 운영.",
+  "description": "황해도무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 함께 운영하는 김포 국악 교육 전문 기관.",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "모담공원로 170-14",
@@ -121,7 +126,6 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable}`}>
       <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111] antialiased">
-        {/* 👇 봇에게 건네는 명함 (JSON-LD) 삽입 */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -135,7 +139,7 @@ export default function RootLayout({
               name: "김포국악원",
               alternateName: "Gimpo Gugak Center",
               url: siteUrl,
-              description: "경기 김포시 국악 교육원. 황해도무형문화재 제3호 놀량사거리 이수자 직강, 민요·장구·진로체험.",
+              description: "경기 김포시 국악 교육원. 황해도무형문화재 제3호 놀량사거리 이수자 직강.",
               inLanguage: "ko-KR",
               publisher: { "@type": "Organization", name: "김포국악원", url: siteUrl },
             }),
@@ -145,8 +149,6 @@ export default function RootLayout({
         <main className="md:ml-[120px] min-h-screen">
           {children}
         </main>
-
-        {/* 👇 [추가됨] 방문자 통계 수집기 (성능 영향 없음) */}
         <Analytics />
       </body>
     </html>
