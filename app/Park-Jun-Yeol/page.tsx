@@ -62,8 +62,16 @@ export default function ProfilePage() {
           <p className="text-lg text-gray-900 font-medium">
             김포국악원 부원장 / 황해도무형문화재 제3호 놀량사거리 전수자
           </p>
-          <p className="mt-2 text-sm text-gray-500">
-            1985년 03월 03일 · 010-2239-1840 · amina7@naver.com
+          <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-500">
+            <a
+              href="amina7@naver.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-900 transition-colors inline-flex items-center gap-0.5"
+            >
+              Email <span aria-hidden>↗</span>
+            </a>
+            <span className="text-gray-300" aria-hidden>·</span>
           </p>
         </div>
       </div>
