@@ -1,9 +1,11 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  compress: true, // 결과물 압축
-  swcMinify: true, // 코드 최소화
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  compress: true, // 결과물 압축 (이건 유지!)
+  // swcMinify: true,  <-- ❌ 이건 지웠습니다! (Next.js 16부터는 자동임)
+  
   images: {
-    formats: ['image/avif', 'image/webp'], // 최신 이미지 포맷 우선 사용
+    formats: ['image/avif', 'image/webp'], // 최신 이미지 포맷 사용
     remotePatterns: [
       {
         protocol: 'https',
@@ -18,7 +20,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns'], // 라이브러리 최적화
+    optimizePackageImports: ['lucide-react', 'date-fns'], // 라이브러리 가볍게
   },
 };
 
