@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+// 👇 외부 이미지 주소
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1535189043414-47a3c49a0bed?q=80&w=1000&auto=format&fit=crop";
 
@@ -23,15 +24,17 @@ export default function HomePage() {
         한국의 전통, 대한의 소리
       </h1>
 
-      <figure className="mt-8 rounded-lg overflow-hidden">
+      <figure className="mt-8 rounded-lg overflow-hidden bg-gray-100"> 
+        {/* 👆 bg-gray-100 추가: 이미지 로딩될 때 아주 잠깐 회색 배경 보여줘서 시각적 안정감 줌 */}
         <Image
           src={HERO_IMAGE}
           alt="한옥 처마와 자연, 김포국악원"
-          priority={true}
+          priority={true} // 👈 아주 잘하셨습니다! (가장 중요)
           width={1000}
           height={563}
           className="w-full aspect-video object-cover"
-          sizes="(max-width: 672px) calc(100vw - 48px), 672px"
+          // 👇 sizes 속성을 조금 더 현실적으로 조정 (모바일/PC 구분)
+          sizes="(max-width: 768px) 100vw, 800px"
         />
       </figure>
 
@@ -42,11 +45,11 @@ export default function HomePage() {
         </p>
         <p>
           김포국악원은{" "}
-          <Link href="/Song-Ri-Gyel" className="text-[#111] underline hover:no-underline">
+          <Link href="/Song-Ri-Gyel" className="text-[#111] underline hover:no-underline font-medium">
             황해도무형문화재 제3호 놀량사거리 이수자이신 원장님
           </Link>
           과{" "}
-          <Link href="/Park-Jun-Yeol" className="text-[#111] underline hover:no-underline">
+          <Link href="/Park-Jun-Yeol" className="text-[#111] underline hover:no-underline font-medium">
             성악을 전공한 부원장님
           </Link>
           이 함께 운영하는 공간입니다.
@@ -75,35 +78,36 @@ export default function HomePage() {
           나이와 실력에 관계없이 누구나 편안하게 시작할 수 있습니다.
           공연과 섭외 문의도 언제든 환영합니다.
         </p>
-        <p>
+        <p className="font-medium text-lg pt-4">
           전통을 제대로, 그리고 따뜻하게 배우고 싶으신가요?
-          김포국악원에서 시작해보세요.
+          <br className="sm:hidden" /> 김포국악원에서 시작해보세요.
         </p>
       </div>
 
-      {/* 로고 3종 - 작게 일렬, 아래에 시작해보세요 가운데 */}
-      <section className="mt-14 flex flex-col items-center" aria-label="인증 및 파트너 로고">
-        <div className="flex flex-wrap items-center justify-center gap-6">
+      {/* 하단 인증 배지 섹션 */}
+      <section className="mt-16 flex flex-col items-center border-t border-gray-100 pt-10" aria-label="인증 및 파트너 로고">
+        <p className="text-xs text-gray-400 mb-6 uppercase tracking-widest">Authorized By</p>
+        <div className="flex flex-wrap items-center justify-center gap-8 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
           <Image
             src="/badge-10th.png"
             alt="김포국악원 10주년 (SINCE 2015)"
             width={140}
             height={52}
-            className="h-8 w-auto object-contain sm:h-12"
+            className="h-8 w-auto object-contain sm:h-10"
           />
           <Image
             src="/badge-foundation.png"
             alt="김포문화재단"
             width={100}
             height={20}
-            className="h-5 w-auto object-contain sm:h-8"
+            className="h-5 w-auto object-contain sm:h-6"
           />
           <Image
             src="/badge-education.png"
             alt="교육기부 진로체험 인증기관 (교육부)"
             width={150}
             height={100}
-            className="h-10 w-auto object-contain sm:h-14"
+            className="h-10 w-auto object-contain sm:h-12"
           />
         </div>
       </section>
@@ -116,10 +120,10 @@ export default function HomePage() {
               href="https://instagram.com/seodo_music"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-gray-500 hover:text-black transition-colors inline-flex items-center gap-1"
+              className="text-sm text-gray-500 hover:text-black transition-colors inline-flex items-center gap-1 group"
             >
               Instagram (@seodo_music)
-              <span className="text-[10px] opacity-70" aria-hidden>↗</span>
+              <span className="text-[10px] opacity-70 group-hover:translate-x-0.5 transition-transform" aria-hidden>↗</span>
             </a>
           </li>
           <li>
@@ -127,10 +131,10 @@ export default function HomePage() {
               href="https://blog.naver.com/gimpogugak"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-gray-500 hover:text-black transition-colors inline-flex items-center gap-1"
+              className="text-sm text-gray-500 hover:text-black transition-colors inline-flex items-center gap-1 group"
             >
               Naver Blog
-              <span className="text-[10px] opacity-70" aria-hidden>↗</span>
+              <span className="text-[10px] opacity-70 group-hover:translate-x-0.5 transition-transform" aria-hidden>↗</span>
             </a>
           </li>
         </ul>
