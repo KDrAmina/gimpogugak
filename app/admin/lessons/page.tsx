@@ -119,9 +119,11 @@ export default function AdminLessonsPage() {
           created_at,
           profiles!inner (
             name,
-            email
+            email,
+            role
           )
         `)
+        .eq("profiles.role", "user")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -215,7 +217,8 @@ export default function AdminLessonsPage() {
             category,
             user_id,
             profiles (
-              name
+              name,
+              role
             )
           )
         `)
@@ -236,27 +239,29 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      const formatted = historyData.map((item: any) => {
-        const studentName = item.lessons?.profiles?.name || "Unknown";
-        const category = item.lessons?.category || "성인개인";
-        
-        console.log("✓ History item:", {
-          date: item.completed_date,
-          name: studentName,
-          category: category
+      const formatted = historyData
+        .filter((item: any) => item.lessons?.profiles?.role === "user")
+        .map((item: any) => {
+          const studentName = item.lessons?.profiles?.name || "Unknown";
+          const category = item.lessons?.category || "성인개인";
+          
+          console.log("✓ History item:", {
+            date: item.completed_date,
+            name: studentName,
+            category: category
+          });
+
+          return {
+            id: item.id,
+            lesson_id: item.lesson_id,
+            session_number: item.session_number,
+            completed_date: item.completed_date,
+            student_name: studentName,
+            category: category,
+          };
         });
 
-        return {
-          id: item.id,
-          lesson_id: item.lesson_id,
-          session_number: item.session_number,
-          completed_date: item.completed_date,
-          student_name: studentName,
-          category: category,
-        };
-      });
-
-      console.log("✅ Successfully loaded", formatted.length, "history records");
+      console.log("✅ Successfully loaded", formatted.length, "history records (students only)");
       console.log("First 3 records:", formatted.slice(0, 3));
       
       setLessonHistory(formatted);

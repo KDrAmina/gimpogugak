@@ -123,7 +123,7 @@ export function Navbar() {
       return (
         <button
           onClick={handleLogout}
-          className="px-2.5 py-1 text-xs text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors font-medium"
+          className="px-2.5 py-1 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors font-medium"
         >
           Logout
         </button>
@@ -133,7 +133,7 @@ export function Navbar() {
     return (
       <Link
         href="/login"
-        className="text-xs text-blue-600 hover:text-blue-700 transition-colors font-medium"
+        className="text-sm text-blue-600 hover:text-blue-700 transition-colors font-medium"
       >
         로그인
       </Link>
