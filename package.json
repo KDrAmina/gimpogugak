@@ -32,9 +32,7 @@
     "typescript": "^5"
   },
   "browserslist": [
-    "chrome 91",
-    "firefox 90",
-    "safari 15",
-    "edge 91"
+    "defaults",
+    "not ie 11"
   ]
 }
