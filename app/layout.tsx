@@ -1,15 +1,16 @@
-import Analytics from "../components/Analytics"; // 👈 방금 만든 파일 가져오기
+import Analytics from "../components/Analytics";
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 
-// 1. 폰트 최적화
+// 1. 폰트 최적화 — 실제 사용하는 weight만 로드
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
-  weight: ["400", "700", "900"],
+  weight: ["400", "700"],       // 👈 900 제거 (미사용 weight 줄여 CSS 절감)
   variable: "--font-noto-serif",
   display: "swap",
+  preload: true,
 });
 
 const notoSans = Noto_Sans_KR({
@@ -17,6 +18,7 @@ const notoSans = Noto_Sans_KR({
   weight: ["400", "500", "700"],
   variable: "--font-noto-sans",
   display: "swap",
+  preload: true,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
@@ -53,7 +55,6 @@ export const metadata: Metadata = {
     "김포 학원",
     "김포학원",
   ],
-  // 👇 네이버 인증 코드
   verification: {
     other: {
       "naver-site-verification": "6c40f80aacb11e514a73265d9c91cd94ad53424b",
@@ -150,7 +151,6 @@ export default function RootLayout({
           {children}
         </main>
         
-        {/* 👇 수정됨: 복잡한 코드 없이 깔끔하게 태그만! */}
         <Analytics />
       </body>
     </html>

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
-// 1. 기본 Next.js 설정 (이미지, CSS 최적화 등)
+// 1. 기본 Next.js 설정
 const nextConfig: NextConfig = {
   compress: true,
   
@@ -22,11 +22,11 @@ const nextConfig: NextConfig = {
   
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    inlineCss: true, // 👈 App Router용 CSS 인라인 (렌더링 차단 해결)
+    inlineCss: true,
   },
 };
 
-// 2. 번들 분석기 설정 래핑 (환경변수 ANALYZE가 true일 때만 작동)
+// 2. 번들 분석기 설정 래핑
 const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
