@@ -29,7 +29,8 @@ export default function HomePage() {
         <Image
           src={HERO_IMAGE}
           alt="한옥 처마와 자연, 김포국악원"
-          priority={true} // 👈 아주 잘하셨습니다! (가장 중요)
+          priority
+          fetchPriority="high" // 👈 아주 잘하셨습니다! (가장 중요)
           width={1000}
           height={563}
           className="w-full aspect-video object-cover"

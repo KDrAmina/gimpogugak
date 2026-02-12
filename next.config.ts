@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
   
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    optimizeCss: true, // 👈 CSS 렌더링 차단 해결 (critters)
+    inlineCss: true, // 👈 App Router용 CSS 인라인 (렌더링 차단 해결)
   },
 };
 
