@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  compress: true, // 결과물 압축 (이건 유지!)
-  // swcMinify: true,  <-- ❌ 이건 지웠습니다! (Next.js 16부터는 자동임)
+  compress: true, // 결과물 압축 (유지)
   
   images: {
     formats: ['image/avif', 'image/webp'], // 최신 이미지 포맷 사용
@@ -10,7 +9,6 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'zvwukvwtunqfptanctuc.supabase.co',
-        port: '',
         pathname: '/storage/v1/object/public/**',
       },
       {
@@ -19,8 +17,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns'], // 라이브러리 가볍게
+    optimizePackageImports: ['lucide-react', 'date-fns'], // 기존 설정 유지
+    optimizeCss: true, // 👈 [추가됨] 렌더링 차단 CSS 해결 (critters 필요)
   },
 };
 
