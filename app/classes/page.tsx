@@ -73,7 +73,7 @@ export default function ClassesPage() {
               인기 프로그램
             </span>
             <h3 className="text-lg font-bold text-[#111] mb-2">
-              역사와 소리 & 만들기
+              역사와 소리 & 장구 만들기
             </h3>
             <p className="text-xs text-[#999] mb-3 font-medium">대상: 전연령 (유치원 ~ 성인)</p>
             <p className="text-sm text-[#666] mb-4 leading-relaxed">
