@@ -5,16 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { useRouter } from 'next/navigation' // 👈 이동 기능 추가
-import { Metadata } from 'next' // 👈 맨 위에 이거 추가
 
-// 👇 이 코드를 컴포넌트(export default function...) 위에 붙여넣으세요
-export const metadata: Metadata = {
-  title: '로그인 테스트 (비공개)',
-  robots: {
-    index: false, // 구글아, 이 페이지는 검색에 띄우지 마!
-    follow: false, // 이 페이지에 있는 링크도 따라가지 마!
-  },
-}
 // Supabase 키 입력
 const supabase = createClient(
   'https://zvwukvwtunqfptanctuc.supabase.co',

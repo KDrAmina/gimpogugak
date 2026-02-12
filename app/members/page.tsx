@@ -3,15 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: '회원 전용 (비공개)',
-  robots: {
-    index: false,
-    follow: false,
-  },
-}
 // Supabase 설정 (아까랑 똑같이 키 넣어주세요!)
 const supabase = createClient(
   'https://zvwukvwtunqfptanctuc.supabase.co',
