@@ -1,4 +1,4 @@
-import { Analytics } from "@vercel/analytics/react";
+import Analytics from "../components/Analytics"; // 👈 방금 만든 파일 가져오기
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
@@ -28,7 +28,7 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-// 3. SEO 메타데이터 + ⭐[네이버 인증 추가]⭐
+// 3. SEO 메타데이터
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     "김포 학원",
     "김포학원",
   ],
-  // 👇 여기가 네이버 인증 코드 들어가는 곳입니다!
+  // 👇 네이버 인증 코드
   verification: {
     other: {
       "naver-site-verification": "6c40f80aacb11e514a73265d9c91cd94ad53424b",
@@ -150,15 +150,8 @@ export default function RootLayout({
           {children}
         </main>
         
-        {/* 👇 수정된 부분: 주인장 접속 제외 필터 적용 */}
-        <Analytics 
-          beforeSend={(event) => {
-            if (typeof window !== 'undefined' && window.localStorage.getItem('va-disable')) {
-              return null;
-            }
-            return event;
-          }}
-        />
+        {/* 👇 수정됨: 복잡한 코드 없이 깔끔하게 태그만! */}
+        <Analytics />
       </body>
     </html>
   );
