@@ -23,10 +23,12 @@ const notoSans = Noto_Sans_KR({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
 
-// 2. 뷰포트 설정
+// 2. 뷰포트 설정 (App-like: 줌 비활성화)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#ffffff",
 };
 
