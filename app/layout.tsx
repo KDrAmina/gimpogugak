@@ -149,7 +149,16 @@ export default function RootLayout({
         <main className="md:ml-[120px] min-h-screen">
           {children}
         </main>
-        <Analytics />
+        
+        {/* 👇 수정된 부분: 주인장 접속 제외 필터 적용 */}
+        <Analytics 
+          beforeSend={(event) => {
+            if (typeof window !== 'undefined' && window.localStorage.getItem('va-disable')) {
+              return null;
+            }
+            return event;
+          }}
+        />
       </body>
     </html>
   );
