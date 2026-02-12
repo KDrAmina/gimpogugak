@@ -90,21 +90,21 @@ export default function HomePage() {
         <p className="text-xs text-gray-500 mb-6 uppercase tracking-widest">Authorized By</p>
         <div className="flex flex-wrap items-center justify-center gap-8 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
           <Image
-            src="/badge-10th.png"
+            src="/badge-10th.webp"
             alt="김포국악원 10주년 (SINCE 2015)"
             width={140}
             height={52}
             className="h-8 w-auto object-contain sm:h-10"
           />
           <Image
-            src="/badge-foundation.png"
+            src="/badge-foundation.webp"
             alt="김포문화재단"
             width={100}
             height={20}
             className="h-5 w-auto object-contain sm:h-6"
           />
           <Image
-            src="/badge-education.png"
+            src="/badge-education.webp"
             alt="교육기부 진로체험 인증기관 (교육부)"
             width={150}
             height={100}
