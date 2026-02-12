@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzer from '@next/bundle-analyzer';
 
+// 1. 기본 Next.js 설정 (이미지, CSS 최적화 등)
 const nextConfig: NextConfig = {
-  compress: true, // 결과물 압축 (유지)
+  compress: true,
   
   images: {
-    formats: ['image/avif', 'image/webp'], // 최신 이미지 포맷 사용
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -19,9 +21,15 @@ const nextConfig: NextConfig = {
   },
   
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns'], // 기존 설정 유지
-    optimizeCss: true, // 👈 [추가됨] 렌더링 차단 CSS 해결 (critters 필요)
+    optimizePackageImports: ['lucide-react', 'date-fns'],
+    optimizeCss: true, // 👈 CSS 렌더링 차단 해결 (critters)
   },
 };
 
-export default nextConfig;
+// 2. 번들 분석기 설정 래핑 (환경변수 ANALYZE가 true일 때만 작동)
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+// 3. 최종 내보내기
+export default bundleAnalyzer(nextConfig);

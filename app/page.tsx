@@ -4,7 +4,7 @@ import Link from "next/link";
 
 // 👇 외부 이미지 주소
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1535189043414-47a3c49a0bed?q=80&w=1000&auto=format&fit=crop";
+  "/main_image.webp";
 
 export const metadata: Metadata = {
   title: "김포국악원 | 한국의 전통, 대한의 소리",
@@ -86,7 +86,7 @@ export default function HomePage() {
 
       {/* 하단 인증 배지 섹션 */}
       <section className="mt-16 flex flex-col items-center border-t border-gray-100 pt-10" aria-label="인증 및 파트너 로고">
-        <p className="text-xs text-gray-400 mb-6 uppercase tracking-widest">Authorized By</p>
+        <p className="text-xs text-gray-500 mb-6 uppercase tracking-widest">Authorized By</p>
         <div className="flex flex-wrap items-center justify-center gap-8 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
           <Image
             src="/badge-10th.png"
