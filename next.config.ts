@@ -3,7 +3,7 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 
 // 1. 기본 Next.js 설정
 const nextConfig: NextConfig = {
-  compress: true,
+  compress: true, // 압축 유지 (Good)
   
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
   
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    inlineCss: true,
+    // ❌ inlineCss: true  <-- 이거 지웠습니다! (이게 87점의 원인)
   },
 };
 
