@@ -8,8 +8,8 @@ import { useRouter } from 'next/navigation'
 
 // ⚠️ 본인의 Supabase 키를 여기에 넣으셨죠? 그대로 두시면 됩니다!
 const supabase = createClient(
-  '여기에_URL',
-  '여기에_ANON_KEY'
+  'https://zvwukvwtunqfptanctuc.supabase.co',
+  'sb_publishable_C_P-C1Bj_brh2ni-7L1RJA_BmQwJNyk'
 )
 
 export default function TestLoginPage() {
