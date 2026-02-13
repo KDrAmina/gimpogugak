@@ -16,6 +16,26 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Auto-format phone number with hyphens
+  function formatPhoneNumber(value: string): string {
+    const numbers = value.replace(/[^\d]/g, "");
+    
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else if (numbers.length <= 10) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+    } else {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    }
+  }
+
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatPhoneNumber(e.target.value);
+    setPhone(formatted);
+  }
+
   useEffect(() => {
     checkUser();
   }, []);
@@ -99,50 +119,130 @@ export default function LoginPage() {
       return;
     }
 
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedName || !trimmedPhone) {
+      setMessage("이름과 연락처를 정확히 입력해주세요.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Step 1: Sign up user
+      console.log("🔄 Starting signup process:", {
+        email: email,
+        name: trimmedName,
+        phone: trimmedPhone
+      });
+
+      // Step 1: Sign up user with Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            name,
-            phone,
-          },
-        },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error("❌ Auth signup error:", authError);
+        throw authError;
+      }
 
-      if (authData.user) {
-        // Step 2: Create profile with pending status
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: authData.user.id,
-          email: authData.user.email,
-          name,
-          phone,
+      if (!authData.user) {
+        console.error("❌ No user returned from signup");
+        throw new Error("회원가입 중 오류가 발생했습니다.");
+      }
+
+      const userId = authData.user.id;
+      console.log("✅ Auth user created:", userId);
+
+      // Step 2: Wait a moment for the database trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: FORCE UPDATE profile with phone and name
+      console.log("🔄 Force updating profile with phone:", {
+        userId: userId,
+        name: trimmedName,
+        phone: trimmedPhone
+      });
+
+      const { data: updateData, error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          name: trimmedName,
+          phone: trimmedPhone,
           role: "user",
           status: "pending",
-        });
+        })
+        .eq("id", userId)
+        .select();
 
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-          // Continue even if profile creation fails - it might already exist
+      if (updateError) {
+        console.error("❌ Profile update error:", updateError);
+        
+        // If update failed, try insert (profile might not exist yet)
+        console.log("⚠️ Update failed, trying insert...");
+        
+        const { data: insertData, error: insertError } = await supabase
+          .from("profiles")
+          .insert({
+            id: userId,
+            email: authData.user.email || email,
+            name: trimmedName,
+            phone: trimmedPhone,
+            role: "user",
+            status: "pending",
+          })
+          .select();
+
+        if (insertError) {
+          console.error("❌ Profile insert error:", insertError);
+          console.error("Error details:", {
+            code: insertError.code,
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint
+          });
+          
+          setMessage("회원 정보 저장 중 오류가 발생했습니다. 관리자에게 문의해주세요.");
+          setLoading(false);
+          return;
         }
 
-        setMessage(
-          "회원가입이 완료되었습니다. 원장님의 승인을 기다려주세요."
-        );
-
-        // Redirect to waiting page after 2 seconds
-        setTimeout(() => {
-          router.push("/waiting");
-        }, 2000);
+        console.log("✅ Profile inserted:", insertData);
+      } else {
+        console.log("✅ Profile updated:", updateData);
       }
-    } catch (error: any) {
-      console.error("Signup error:", error);
+
+      // Step 4: Verify the phone number was saved
+      const { data: verifyData } = await supabase
+        .from("profiles")
+        .select("id, email, name, phone, role, status")
+        .eq("id", userId)
+        .single();
+
+      console.log("🔍 Verification - Profile data:", verifyData);
+
+      if (verifyData && verifyData.phone === trimmedPhone) {
+        console.log("✅ Phone number successfully saved!");
+      } else {
+        console.warn("⚠️ Phone number might not be saved correctly:", {
+          expected: trimmedPhone,
+          actual: verifyData?.phone
+        });
+      }
+
       setMessage(
-        error.message.includes("already registered")
+        "회원가입이 완료되었습니다. 원장님의 승인을 기다려주세요."
+      );
+
+      // Redirect to waiting page after 2 seconds
+      setTimeout(() => {
+        router.push("/waiting");
+      }, 2000);
+
+    } catch (error: any) {
+      console.error("❌ Signup error:", error);
+      setMessage(
+        error.message.includes("already registered") || error.message.includes("already been registered")
           ? "이미 등록된 이메일입니다."
           : "회원가입 중 오류가 발생했습니다."
       );
@@ -273,11 +373,15 @@ export default function LoginPage() {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={handlePhoneChange}
                   required
+                  maxLength={13}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="010-1234-5678"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  숫자만 입력하시면 자동으로 하이픈이 추가됩니다
+                </p>
               </div>
 
               <div>

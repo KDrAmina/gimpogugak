@@ -51,7 +51,8 @@ export default function AdminDashboardPage() {
       const { count, error } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .eq("role", "user");
 
       if (error) throw error;
       setPendingCount(count || 0);

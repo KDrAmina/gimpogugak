@@ -27,10 +27,12 @@ export default function ApprovalsPage() {
         .from("profiles")
         .select("*")
         .eq("status", "pending")
+        .eq("role", "user")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       setProfiles(data || []);
+      console.log("✅ Loaded", data?.length || 0, "pending students (excluding admin)");
     } catch (error) {
       console.error("Error fetching pending profiles:", error);
       alert("신청 목록을 불러오는 중 오류가 발생했습니다.");

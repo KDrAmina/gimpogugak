@@ -923,13 +923,6 @@ export default function AdminLessonsPage() {
                                   ↩️
                                 </button>
                               )}
-                              <button
-                                onClick={() => handleEndLesson(lesson.id)}
-                                className="px-2 py-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-xs"
-                                title="수업 종료"
-                              >
-                                ⏸️
-                              </button>
                             </div>
                           )}
                         </td>

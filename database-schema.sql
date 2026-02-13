@@ -1,3 +1,24 @@
+-- Profiles Table Schema for Supabase
+-- Run this SQL in your Supabase SQL Editor
+
+-- Profiles Table (User Information)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT UNIQUE,
+  name TEXT NOT NULL,
+  phone TEXT,
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'rejected')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for profiles
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_phone ON profiles(phone);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_status ON profiles(status);
+
 -- Lessons Table Schema for Supabase
 -- Run this SQL in your Supabase SQL Editor
 

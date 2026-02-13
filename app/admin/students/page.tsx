@@ -9,6 +9,8 @@ type ActiveStudent = {
   name: string | null;
   phone: string | null;
   created_at: string;
+  lesson_status?: 'active' | 'ended' | 'none';
+  lesson_id?: string;
 };
 
 export default function AdminStudentsPage() {
@@ -31,19 +33,88 @@ export default function AdminStudentsPage() {
 
   async function fetchActiveStudents() {
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .eq("status", "active")
+        .eq("role", "user")
         .order("name", { ascending: true });
 
-      if (error) throw error;
-      setStudents(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch lesson status for each student
+      const { data: lessonsData } = await supabase
+        .from("lessons")
+        .select("id, user_id, is_active");
+
+      const lessonMap = new Map(
+        lessonsData?.map(l => [l.user_id, { id: l.id, is_active: l.is_active }]) || []
+      );
+
+      const studentsWithLessons = (profilesData || []).map(student => {
+        const lesson = lessonMap.get(student.id);
+        return {
+          ...student,
+          lesson_id: lesson?.id,
+          lesson_status: lesson 
+            ? (lesson.is_active ? 'active' as const : 'ended' as const)
+            : 'none' as const
+        };
+      });
+
+      setStudents(studentsWithLessons);
+      console.log("✅ Loaded", studentsWithLessons.length, "active students (excluding admin)");
     } catch (error) {
       console.error("Error fetching active students:", error);
       alert("수강생 목록을 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleEndLesson(studentName: string, lessonId?: string) {
+    if (!lessonId) {
+      alert("수업 정보를 찾을 수 없습니다.");
+      console.error("Missing lessonId for student:", studentName);
+      return;
+    }
+
+    const confirmMsg = `정말 수업을 종료하시겠습니까?\n\n수강생: ${studentName}\n\n⚠️ 종료 후에는 수업관리의 '종료된 인원' 탭으로 이동합니다.`;
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      console.log("🔄 Ending lesson:", { studentName, lessonId });
+
+      const { data, error } = await supabase
+        .from("lessons")
+        .update({ 
+          is_active: false
+        })
+        .eq("id", lessonId)
+        .select();
+
+      if (error) {
+        console.error("❌ Supabase update error:", error);
+        throw error;
+      }
+
+      console.log("✅ Lesson ended successfully:", data);
+      alert("✅ 수업이 종료되었습니다.");
+      
+      // Refresh list
+      await fetchActiveStudents();
+    } catch (error: any) {
+      console.error("❌ End lesson error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      alert(`수업 종료 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
     }
   }
 
@@ -316,6 +387,9 @@ export default function AdminStudentsPage() {
                           )}
                         </div>
                       </th>
+                      <th className="px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        수업 상태
+                      </th>
                       <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         작업
                       </th>
@@ -354,6 +428,22 @@ export default function AdminStudentsPage() {
                             )}
                           </div>
                         </td>
+                        <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center">
+                          {student.lesson_status === 'active' ? (
+                            <button
+                              onClick={() => handleEndLesson(student.name || "회원", student.lesson_id)}
+                              disabled={!student.lesson_id}
+                              className="px-2 py-1 text-xs text-red-600 border border-red-500 rounded hover:bg-red-50 transition-colors font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="수업 종료"
+                            >
+                              종료
+                            </button>
+                          ) : student.lesson_status === 'ended' ? (
+                            <span className="text-xs text-gray-500">종료됨</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">대기중</span>
+                          )}
+                        </td>
                         <td className="px-3 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-1 md:gap-2">
                             <button
@@ -361,20 +451,20 @@ export default function AdminStudentsPage() {
                                 sendKakao(student.phone, student.name)
                               }
                               disabled={!student.phone}
-                              className="px-2 md:px-3 py-1.5 bg-yellow-400 text-gray-900 rounded hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+                              className="px-2 md:px-3 py-1.5 bg-yellow-400 text-gray-900 rounded hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-bold whitespace-nowrap"
                               title="카톡 전송"
                             >
-                              💬<span className="hidden sm:inline"> 카톡</span>
+                              카톡
                             </button>
                             <button
                               onClick={() =>
                                 sendTuitionKakao(student.phone, student.name)
                               }
                               disabled={!student.phone}
-                              className="px-2 md:px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-medium"
+                              className="px-2 md:px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-medium whitespace-nowrap"
                               title="수강료 안내"
                             >
-                              💰<span className="hidden sm:inline"> 수강료</span>
+                              수강료
                             </button>
                           </div>
                         </td>
