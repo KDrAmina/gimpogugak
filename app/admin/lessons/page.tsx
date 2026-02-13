@@ -384,30 +384,6 @@ export default function AdminLessonsPage() {
     }
   }
 
-  async function handleEndLesson(lessonId: string) {
-    const lesson = lessons.find(l => l.id === lessonId);
-    if (!lesson) return;
-
-    if (!confirm(`${lesson.student_name}님의 수업을 종료하시겠습니까?\n\n종료된 수업은 [종료된 인원] 탭에서 확인할 수 있습니다.`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("lessons")
-        .update({ is_active: false })
-        .eq("id", lessonId);
-
-      if (error) throw error;
-
-      await Promise.all([loadLessons(), loadUnassignedUsers()]);
-      alert("✅ 수업이 종료되었습니다.");
-    } catch (error) {
-      console.error("End lesson error:", error);
-      alert("수업 종료 중 오류가 발생했습니다.");
-    }
-  }
-
   async function handleRestoreLesson(lessonId: string) {
     const lesson = lessons.find(l => l.id === lessonId);
     if (!lesson) return;
@@ -436,7 +412,7 @@ export default function AdminLessonsPage() {
     const lesson = lessons.find(l => l.id === lessonId);
     if (!lesson) return;
 
-    const confirmMsg = `정말 삭제하시겠습니까?\n\n수강생: ${lesson.student_name}\n\n⚠️ 데이터가 완전히 사라집니다.\n기록을 남기려면 '수업 종료'를 이용해 주세요.`;
+    const confirmMsg = `정말 삭제하시겠습니까?\n\n수강생: ${lesson.student_name}\n\n⚠️ 데이터가 완전히 사라집니다.\n기록을 남기려면 [회원관리]에서 '수업 종료'를 이용해 주세요.`;
     
     if (!confirm(confirmMsg)) {
       return;
@@ -899,12 +875,6 @@ export default function AdminLessonsPage() {
                               >
                                 🔄
                               </button>
-                              <button
-                                onClick={() => handleEndLesson(lesson.id)}
-                                className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-xs font-medium"
-                              >
-                                종료
-                              </button>
                             </div>
                           ) : (
                             <div className="flex justify-end gap-1">
@@ -995,12 +965,6 @@ export default function AdminLessonsPage() {
                           >
                             🔄 갱신
                           </button>
-                          <button
-                            onClick={() => handleEndLesson(lesson.id)}
-                            className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs font-medium"
-                          >
-                            종료
-                          </button>
                         </>
                       ) : (
                         <>
@@ -1018,12 +982,6 @@ export default function AdminLessonsPage() {
                               ↩️ 취소
                             </button>
                           )}
-                          <button
-                            onClick={() => handleEndLesson(lesson.id)}
-                            className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-xs"
-                          >
-                            ⏸️
-                          </button>
                         </>
                       )}
                     </div>
@@ -1348,8 +1306,8 @@ export default function AdminLessonsPage() {
             <li>• 갱신 필요 시 "💬" 버튼으로 메시지를 클립보드에 복사할 수 있습니다</li>
             <li>• "🔄 갱신" 버튼으로 진도를 0/4로 초기화하고 새 결제일을 기록합니다</li>
             <li>• "↩️ 취소" 버튼으로 직전 수업을 취소할 수 있습니다</li>
-            <li>• "⏸️" 버튼으로 수업을 종료하면 [종료된 인원]에서 확인할 수 있습니다</li>
             <li>• 수강료 금액을 클릭하면 바로 수정할 수 있습니다</li>
+            <li>• 수업 종료는 [회원관리] 페이지에서 할 수 있습니다</li>
           </ul>
         </div>
       </div>
