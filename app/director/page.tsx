@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ProfilePhoto } from "../Song-Ri-Gyel/ProfilePhoto";
 
 export const metadata: Metadata = {
   title: "원장 소개 | 김포국악원 (Gimpo Gugak Center)",
@@ -40,14 +41,43 @@ export default function DirectorPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
+      {/* 프로필 사진 + 헤더 (사진, 이름, SNS 링크) */}
+      <div className="mb-16 flex flex-col items-center gap-4">
+        <ProfilePhoto />
+        <div className="min-w-0 text-center w-full">
+          <h1 className="font-serif text-4xl font-bold tracking-tight text-[#111] mb-2">
+            송리결{" "}
+            <span className="text-lg font-normal text-gray-400 ml-2 tracking-normal">
+              Song Ri-Gyel
+            </span>
+          </h1>
+          <p className="text-lg text-gray-900 font-medium">
+            황해도무형문화재 제3호 놀량사거리 이수자
+          </p>
+          <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-500">
+            <a
+              href="https://instagram.com/seodo_music"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-900 transition-colors inline-flex items-center gap-0.5"
+            >
+              Instagram <span aria-hidden>↗</span>
+            </a>
+            <span className="text-gray-300" aria-hidden>·</span>
+            <a
+              href="https://blog.naver.com/gimpogugak"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-900 transition-colors inline-flex items-center gap-0.5"
+            >
+              Blog <span aria-hidden>↗</span>
+            </a>
+          </p>
+        </div>
+      </div>
+
       <div className="mb-12">
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-[#111] mb-2">
-          송리결
-        </h1>
-        <p className="text-lg text-[#666] font-medium">
-          황해도무형문화재 제3호 놀량사거리 이수자
-        </p>
-        <p className="mt-4 text-[#666] leading-relaxed">
+        <p className="text-[#666] leading-relaxed">
           백석예술대학교 국악과를 졸업하고 10년 이상 현장에서 민요를 가르쳐왔습니다.
           <br />
           전통의 깊이를 잃지 않으면서도, 누구나 쉽고 즐겁게 우리 소리를 즐길 수 있도록 지도합니다.
