@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { CHANGELOG, CURRENT_VERSION } from "@/lib/changelog";
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -155,24 +157,75 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* System Info */}
-      <div className="mt-8 bg-gray-100 rounded-lg p-6">
+      {/* System Info (clickable → Changelog modal) */}
+      <button
+        type="button"
+        onClick={() => setChangelogOpen(true)}
+        className="mt-8 w-full text-left bg-gray-100 rounded-lg p-6 hover:bg-gray-200 transition-colors cursor-pointer"
+      >
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
           시스템 정보
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
           <div>
-            <span className="font-medium">버전:</span> v1.0.0
+            <span className="font-medium">버전:</span> v{CURRENT_VERSION}
           </div>
           <div>
-            <span className="font-medium">마지막 업데이트:</span> 2026-02-12
+            <span className="font-medium">마지막 업데이트:</span>{" "}
+            {CHANGELOG[0]?.date ?? "—"}
           </div>
           <div>
             <span className="font-medium">서버 상태:</span>{" "}
             <span className="text-green-600 font-medium">정상</span>
           </div>
         </div>
-      </div>
+        <p className="mt-2 text-xs text-gray-500">클릭하여 업데이트 내역 보기</p>
+      </button>
+
+      {/* Changelog Modal */}
+      {changelogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setChangelogOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="업데이트 내역"
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-900">업데이트 내역</h2>
+              <button
+                type="button"
+                onClick={() => setChangelogOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 space-y-6">
+              {CHANGELOG.map((entry) => (
+                <div key={entry.version} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-bold text-blue-600">
+                      v{entry.version}
+                    </span>
+                    <span className="text-xs text-gray-500">{entry.date}</span>
+                  </div>
+                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                    {entry.changes.map((change, i) => (
+                      <li key={i}>{change}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ const GUEST_NAV = [
 const STUDENT_NAV = [
   { href: "/notices", label: "공지사항" },
   { href: "/my-lessons", label: "내 수업" },
+  { href: "/my-info", label: "내 정보" },
 ];
 
 const ADMIN_NAV = [
@@ -123,7 +124,9 @@ export function Navbar() {
       return (
         <button
           onClick={handleLogout}
-          className="px-2.5 py-1 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors font-medium"
+          className={`text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors font-medium ${
+            isMobile ? "text-xs sm:text-sm py-2 px-2 rounded" : "px-2.5 py-1 rounded-full text-sm"
+          }`}
         >
           Logout
         </button>
@@ -133,7 +136,9 @@ export function Navbar() {
     return (
       <Link
         href="/login"
-        className="text-sm text-blue-600 hover:text-blue-700 transition-colors font-medium"
+        className={`text-blue-600 hover:text-blue-700 transition-colors font-medium ${
+          isMobile ? "text-xs sm:text-sm py-2 px-2" : "text-sm"
+        }`}
       >
         로그인
       </Link>
@@ -162,7 +167,7 @@ export function Navbar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`text-sm transition-colors ${
+                  className={`block text-left text-sm transition-colors ${
                     isActive
                       ? "text-[#111111] font-medium"
                       : "text-[#666666] hover:text-[#111111]"
@@ -173,42 +178,45 @@ export function Navbar() {
               </li>
             );
           })}
-          {/* Auth button below menu items */}
-          <li className="mt-2">
+          {/* Auth button: separated with gap, left-aligned */}
+          <li className="mt-8 pt-4 border-t border-[#111111]/10">
             <AuthButton />
           </li>
         </ul>
       </div>
 
-      {/* Mobile: horizontal nav */}
-      <div className="flex md:hidden flex-wrap items-center gap-x-6 gap-y-2 px-6 pt-8 pb-6 border-b border-[#111111]/10">
-        <Link href="/" className="hover:opacity-90 transition-opacity shrink-0">
+      {/* Mobile: horizontal row layout */}
+      <div className="flex md:hidden flex-col px-4 sm:px-6 pt-6 pb-4 border-b border-[#111111]/10">
+        <Link href="/" className="hover:opacity-90 transition-opacity shrink-0 mb-4">
           <Image
             src="/logo.png"
             alt="GIMPO GUGAK CENTER 김포국악원"
             width={120}
             height={40}
-            className="h-8 w-auto object-contain"
+            className="h-7 sm:h-8 w-auto object-contain"
           />
         </Link>
-        {NAV.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`text-sm transition-colors ${
-                isActive
-                  ? "text-[#111111] font-medium"
-                  : "text-[#666666] hover:text-[#111111]"
-              }`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-        {/* Auth button next to menu items */}
-        <AuthButton isMobile={true} />
+        <nav className="flex flex-row flex-wrap items-center gap-x-3 gap-y-2">
+          {NAV.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-xs sm:text-sm py-2 px-1 transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "text-[#111111] font-medium"
+                    : "text-[#666666] hover:text-[#111111]"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <div className="ml-auto">
+            <AuthButton isMobile={true} />
+          </div>
+        </nav>
       </div>
     </nav>
   );

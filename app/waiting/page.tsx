@@ -148,7 +148,7 @@ export default function WaitingPage() {
               <p className="font-medium text-gray-700">
                 📞 010-5948-1843
                 <br />
-                📧 gimpo1234@naver.com
+                📧 gimpogugak@gmail.com
               </p>
             </div>
 

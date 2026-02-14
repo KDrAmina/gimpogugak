@@ -7,10 +7,10 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -34,6 +34,13 @@ export default function LoginPage() {
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     const formatted = formatPhoneNumber(e.target.value);
     setPhone(formatted);
+  }
+
+  function handlePinChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value.replace(/\s/g, "");
+    if (value.length <= 15) {
+      setPin(value);
+    }
   }
 
   useEffect(() => {
@@ -69,40 +76,79 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
+    if (!phone || !pin) {
+      setMessage("전화번호와 비밀번호를 입력해주세요.");
+      setLoading(false);
+      return;
+    }
+
+    if (pin.length < 4) {
+      setMessage("비밀번호는 4자리 이상이어야 합니다.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Step 0: Format phone to 010-XXXX-XXXX before query
+      const formattedPhone = formatPhoneNumber(phone.trim());
+      console.log("🔄 Login attempt with phone:", formattedPhone);
+
+      // Step 1: Get email by phone (RPC bypasses RLS for anonymous users)
+      const { data: userEmail, error: emailError } = await supabase.rpc(
+        "get_email_by_phone",
+        { phone_input: formattedPhone }
+      );
+
+      const email =
+        typeof userEmail === "string"
+          ? userEmail
+          : Array.isArray(userEmail) && userEmail[0]
+            ? userEmail[0].email ?? userEmail[0]
+            : userEmail?.email ?? null;
+
+      if (emailError || !email) {
+        console.error("Profile lookup error:", emailError);
+        setMessage("등록되지 않은 전화번호입니다.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("✅ Found email for phone");
+
+      // Step 2: Login with email and password
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password: pin,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Auth error:", error);
+        setMessage("비밀번호가 올바르지 않습니다.");
+        setLoading(false);
+        return;
+      }
 
       if (data.user) {
-        // Check user status and role
+        console.log("✅ Login successful");
+
+        // Step 3: Fetch profile for redirect (user is now authenticated)
         const { data: profile } = await supabase
           .from("profiles")
           .select("status, role")
           .eq("id", data.user.id)
           .single();
 
-        // Redirect based on role
         if (profile?.role === "admin") {
           router.push("/admin");
         } else if (profile?.status === "pending") {
           router.push("/waiting");
-        } else if (profile?.status === "active") {
-          router.push("/");
         } else {
           router.push("/");
         }
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      setMessage(
-        error.message === "Invalid login credentials"
-          ? "이메일 또는 비밀번호가 올바르지 않습니다."
-          : "로그인 중 오류가 발생했습니다."
-      );
+      setMessage("로그인 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -113,14 +159,21 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
-    if (!name || !phone) {
-      setMessage("이름과 연락처를 입력해주세요.");
+    if (!name || !phone || !pin) {
+      setMessage("모든 필수 항목을 입력해주세요.");
+      setLoading(false);
+      return;
+    }
+
+    if (pin.length < 4) {
+      setMessage("비밀번호는 4자리 이상이어야 합니다.");
       setLoading(false);
       return;
     }
 
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
+    const trimmedEmail = email.trim();
 
     if (!trimmedName || !trimmedPhone) {
       setMessage("이름과 연락처를 정확히 입력해주세요.");
@@ -128,17 +181,40 @@ export default function LoginPage() {
       return;
     }
 
+    // Check if phone already exists
+    try {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("phone", trimmedPhone)
+        .single();
+
+      if (existingProfile) {
+        setMessage("이미 등록된 전화번호입니다.");
+        setLoading(false);
+        return;
+      }
+    } catch (error: any) {
+      // PGRST116 means no matching row, which is good (phone not registered)
+      if (error.code !== "PGRST116") {
+        console.error("Phone check error:", error);
+      }
+    }
+
     try {
       console.log("🔄 Starting signup process:", {
-        email: email,
         name: trimmedName,
-        phone: trimmedPhone
+        phone: trimmedPhone,
+        email: trimmedEmail
       });
 
-      // Step 1: Sign up user with Auth
+      // Generate a unique email if not provided
+      const signupEmail = trimmedEmail || `${trimmedPhone.replace(/[^0-9]/g, "")}@gimpo-gugak.kr`;
+
+      // Step 1: Sign up user with Auth using 4-digit PIN
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+        email: signupEmail,
+        password: pin,
       });
 
       if (authError) {
@@ -185,7 +261,7 @@ export default function LoginPage() {
           .from("profiles")
           .insert({
             id: userId,
-            email: authData.user.email || email,
+            email: signupEmail,
             name: trimmedName,
             phone: trimmedPhone,
             role: "user",
@@ -315,30 +391,36 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  이메일
+                  전화번호
                 </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
                   required
+                  maxLength={13}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="example@email.com"
+                  placeholder="010-1234-5678"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  비밀번호
+                  비밀번호 (4자리 이상)
                 </label>
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={pin}
+                  onChange={handlePinChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="••••••••"
+                  minLength={4}
+                  maxLength={15}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg tracking-wide"
+                  placeholder="••••"
                 />
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  회원가입 시 설정한 비밀번호를 입력하세요 (4자리 이상, 공백 제외)
+                </p>
               </div>
 
               <button
@@ -380,37 +462,43 @@ export default function LoginPage() {
                   placeholder="010-1234-5678"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  숫자만 입력하시면 자동으로 하이픈이 추가됩니다
+                  로그인 시 전화번호를 사용합니다
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  이메일 <span className="text-red-500">*</span>
+                  이메일 (선택사항)
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="example@email.com"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  입력하지 않으면 자동으로 생성됩니다
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  비밀번호 <span className="text-red-500">*</span>
+                  비밀번호 (4자리 이상) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={pin}
+                  onChange={handlePinChange}
                   required
-                  minLength={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="6자 이상"
+                  minLength={4}
+                  maxLength={15}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg tracking-wide"
+                  placeholder="••••"
                 />
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  로그인 시 사용할 비밀번호 (4자리 이상, 공백 제외)
+                </p>
               </div>
 
               <button
@@ -422,7 +510,7 @@ export default function LoginPage() {
               </button>
 
               <p className="text-xs text-gray-500 text-center">
-                신청 후 원장님의 승인이 필요합니다.
+                신청 후 원장님의 승인을 기다려주세요
               </p>
             </form>
           )}
