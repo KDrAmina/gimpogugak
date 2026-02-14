@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.08",
+    date: "2026-02-17",
+    changes: [
+      "수강료 안내 발송 방식을 카카오톡에서 일반 문자(SMS)로 변경",
+    ],
+  },
+  {
     version: "1.0.2",
     date: "2026-02-16",
     changes: [

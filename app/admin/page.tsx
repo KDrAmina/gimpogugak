@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { CHANGELOG, CURRENT_VERSION } from "@/lib/changelog";
-import { getTuitionPaymentMessage, getKakaoTalkUrl } from "@/lib/messages";
+import { getTuitionPaymentMessage, getSmsUrl } from "@/lib/messages";
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -182,7 +182,7 @@ export default function AdminDashboardPage() {
             💰 수강료 입금 대기
           </h3>
           <p className="text-sm text-amber-800 mb-4">
-            4회차 수업을 완료하여 수강료 입금이 필요한 수강생입니다. 이름을 클릭하면 메시지가 복사되고 카카오톡이 열립니다.
+            4회차 수업을 완료하여 수강료 입금이 필요한 수강생입니다. 이름을 클릭하면 메시지가 복사되고 문자 앱이 열립니다.
           </p>
           <ul className="space-y-2">
             {tuitionDueList.map((item) => (
@@ -196,11 +196,11 @@ export default function AdminDashboardPage() {
                     const message = getTuitionPaymentMessage(item.student_name, item.category);
                     try {
                       await navigator.clipboard.writeText(message);
-                      const url = getKakaoTalkUrl(item.phone);
+                      const url = getSmsUrl(item.phone, message);
                       if (url) {
-                        window.open(url, "_blank");
+                        window.location.href = url;
                       }
-                      alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${item.student_name}\n\n카카오톡에서 붙여넣기 하세요.`);
+                      alert("메시지가 복사되었습니다. 문자 입력창에 붙여넣기 해주세요.");
                     } catch (e) {
                       alert("메시지 복사 중 오류가 발생했습니다.");
                     }

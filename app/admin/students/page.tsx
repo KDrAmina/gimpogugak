@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getPersonalGreeting, getTuitionReminderMessage, getKakaoTalkUrl } from "@/lib/messages";
+import { getPersonalGreeting, getTuitionReminderMessage, getKakaoTalkUrl, getSmsUrl } from "@/lib/messages";
 
 type ActiveStudent = {
   id: string;
@@ -139,7 +139,7 @@ export default function AdminStudentsPage() {
     }
   }
 
-  async function sendTuitionKakao(phone: string | null, name: string | null) {
+  async function sendTuitionSms(phone: string | null, name: string | null) {
     if (!phone) {
       alert("연락처 정보가 없습니다.");
       return;
@@ -147,12 +147,12 @@ export default function AdminStudentsPage() {
 
     const studentName = name || "회원";
     const message = getTuitionReminderMessage(studentName);
-    const url = getKakaoTalkUrl(phone);
 
     try {
       await navigator.clipboard.writeText(message);
-      if (url) window.open(url, "_blank");
-      alert(`✅ 수강료 안내 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${studentName}\n\n카카오톡 앱에서 붙여넣기 하세요.`);
+      const url = getSmsUrl(phone, message);
+      if (url) window.location.href = url;
+      alert("메시지가 복사되었습니다. 문자 입력창에 붙여넣기 해주세요.");
     } catch (error) {
       console.error("Clipboard copy error:", error);
       alert("메시지 복사 중 오류가 발생했습니다.");
@@ -250,7 +250,7 @@ export default function AdminStudentsPage() {
     setSequentialSending(true);
   }
 
-  async function sendCurrentKakao() {
+  async function sendCurrentMessage() {
     if (currentSendIndex >= sendingList.length) {
       return;
     }
@@ -258,12 +258,18 @@ export default function AdminStudentsPage() {
     const student = sendingList[currentSendIndex];
     const studentName = student.name || "회원";
     const personalizedMessage = customMessage.replace(/\[이름\]/g, studentName);
-    const url = getKakaoTalkUrl(student.phone);
 
     try {
       await navigator.clipboard.writeText(personalizedMessage);
-      if (url) window.open(url, "_blank");
-      alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${studentName}\n\n카카오톡 앱에서 붙여넣기 하세요.`);
+      if (messageType === "tuition") {
+        const url = getSmsUrl(student.phone, personalizedMessage);
+        if (url) window.location.href = url;
+        alert("메시지가 복사되었습니다. 문자 입력창에 붙여넣기 해주세요.");
+      } else {
+        const url = getKakaoTalkUrl(student.phone);
+        if (url) window.open(url, "_blank");
+        alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${studentName}\n\n카카오톡 앱에서 붙여넣기 하세요.`);
+      }
     } catch (error) {
       console.error("Clipboard copy error:", error);
       alert("메시지 복사 중 오류가 발생했습니다.");
@@ -435,13 +441,13 @@ export default function AdminStudentsPage() {
                             </button>
                             <button
                               onClick={() =>
-                                sendTuitionKakao(student.phone, student.name)
+                                sendTuitionSms(student.phone, student.name)
                               }
                               disabled={!student.phone}
-                              className="px-2 md:px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-medium whitespace-nowrap"
-                              title="수강료 안내"
+                              className="px-2 md:px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-medium whitespace-nowrap"
+                              title="수강료 문자 발송"
                             >
-                              수강료
+                              ✉️ 문자
                             </button>
                           </div>
                         </td>
@@ -469,9 +475,9 @@ export default function AdminStudentsPage() {
                       </button>
                       <button
                         onClick={() => startSequentialSMS('tuition')}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
                       >
-                        💰 개별 수강료 안내
+                        ✉️ 개별 수강료 문자 발송
                       </button>
                       <button
                         onClick={() => setSelectedIds(new Set())}
@@ -541,7 +547,7 @@ export default function AdminStudentsPage() {
                       <strong>💡 사용 방법:</strong><br />
                       1. 메시지 작성 후 "발송 시작" 클릭<br />
                       2. 각 수강생마다 메시지가 클립보드에 복사됨<br />
-                      3. 카카오톡에서 붙여넣기 하여 전송<br />
+                      3. {messageType === "tuition" ? "문자 앱" : "카카오톡"}에서 붙여넣기 하여 전송<br />
                       4. "다음" 버튼으로 다음 사람에게 진행
                     </p>
                   </div>
@@ -573,10 +579,10 @@ export default function AdminStudentsPage() {
                   {/* Header */}
                   <div className="mb-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">
-                      💬 카카오톡 발송 중
+                      {messageType === "tuition" ? "✉️ 수강료 문자 발송 중" : "💬 카카오톡 발송 중"}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      메시지를 확인하고 카카오톡으로 전송하세요
+                      메시지를 확인하고 {messageType === "tuition" ? "문자 앱" : "카카오톡"}으로 전송하세요
                     </p>
                   </div>
 
@@ -634,8 +640,8 @@ export default function AdminStudentsPage() {
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                     <p className="text-sm text-green-800">
                       <strong>✅ 단계:</strong><br />
-                      1. "카톡 전송 및 다음" 클릭 → 메시지가 클립보드에 복사됨<br />
-                      2. 카카오톡 앱으로 이동하여 대상자에게 붙여넣기<br />
+                      1. "{messageType === "tuition" ? "문자 전송 및 다음" : "카톡 전송 및 다음"}" 클릭 → 메시지가 클립보드에 복사됨<br />
+                      2. {messageType === "tuition" ? "문자 앱" : "카카오톡 앱"}으로 이동하여 대상자에게 붙여넣기<br />
                       3. 전송 후 다음 사람으로 자동 진행
                     </p>
                   </div>
@@ -644,12 +650,16 @@ export default function AdminStudentsPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
-                        sendCurrentKakao();
+                        sendCurrentMessage();
                         handleNextKakao();
                       }}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all font-bold shadow-md"
+                      className={`flex-1 px-4 py-3 rounded-lg transition-all font-bold shadow-md ${
+                        messageType === "tuition"
+                          ? "bg-blue-600 text-white hover:bg-blue-700"
+                          : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600"
+                      }`}
                     >
-                      💬 카톡 전송 및 다음
+                      {messageType === "tuition" ? "✉️ 문자 전송 및 다음" : "💬 카톡 전송 및 다음"}
                     </button>
                     <button
                       onClick={cancelSequentialSending}

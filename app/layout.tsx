@@ -1,4 +1,5 @@
 import Analytics from "../components/Analytics";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
@@ -154,6 +155,7 @@ export default function RootLayout({
         </main>
         
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

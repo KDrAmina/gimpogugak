@@ -28,3 +28,11 @@ export function getKakaoTalkUrl(phone: string | null): string | null {
   if (clean.length < 10) return null;
   return `https://qr.kakao.com/talk/p/${clean}`;
 }
+
+/** SMS URI - opens default SMS app with pre-filled body */
+export function getSmsUrl(phone: string | null, body: string): string | null {
+  if (!phone) return null;
+  const clean = phone.replace(/[^0-9]/g, "");
+  if (clean.length < 10) return null;
+  return `sms:${clean}?body=${encodeURIComponent(body)}`;
+}
