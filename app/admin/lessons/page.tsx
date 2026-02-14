@@ -11,7 +11,7 @@ type Lesson = {
   user_id: string;
   student_name: string;
   student_email: string;
-  category: LessonCategory;
+  category: string; // Changed to string to support multiple categories (comma-separated)
   current_session: number;
   tuition_amount: number;
   payment_date: string | null;
@@ -51,6 +51,14 @@ export default function AdminLessonsPage() {
   // Tuition editing
   const [editingTuition, setEditingTuition] = useState<string | null>(null);
   const [tuitionValue, setTuitionValue] = useState(0);
+  
+  // Category editing
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [categoryValue, setCategoryValue] = useState<string[]>([]);
+  
+  // Payment date editing
+  const [editingPaymentDate, setEditingPaymentDate] = useState<string | null>(null);
+  const [paymentDateValue, setPaymentDateValue] = useState("");
   
   // Date detail modal
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -384,6 +392,62 @@ export default function AdminLessonsPage() {
     }
   }
 
+  async function handleSaveCategory(lessonId: string) {
+    if (categoryValue.length === 0) {
+      alert("최소 1개의 카테고리를 선택해주세요.");
+      return;
+    }
+
+    try {
+      const categoryString = categoryValue.join(", ");
+      
+      const { error } = await supabase
+        .from("lessons")
+        .update({ category: categoryString })
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      await loadLessons();
+      setEditingCategory(null);
+      alert("✅ 카테고리가 수정되었습니다.");
+    } catch (error) {
+      console.error("Save category error:", error);
+      alert("카테고리 수정 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function handleSavePaymentDate(lessonId: string) {
+    if (!paymentDateValue) {
+      alert("결제일을 입력해주세요.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("lessons")
+        .update({ payment_date: paymentDateValue })
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      await loadLessons();
+      setEditingPaymentDate(null);
+      alert("✅ 결제일이 수정되었습니다.");
+    } catch (error) {
+      console.error("Save payment date error:", error);
+      alert("결제일 수정 중 오류가 발생했습니다.");
+    }
+  }
+
+  function toggleCategorySelection(category: LessonCategory) {
+    setCategoryValue(prev => 
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  }
+
   async function handleRestoreLesson(lessonId: string) {
     const lesson = lessons.find(l => l.id === lessonId);
     if (!lesson) return;
@@ -558,7 +622,12 @@ export default function AdminLessonsPage() {
 
   // Filter and sort
   const filteredLessons = displayLessons
-    .filter(lesson => selectedCategory === "전체" || lesson.category === selectedCategory)
+    .filter(lesson => {
+      if (selectedCategory === "전체") return true;
+      // Split comma-separated categories and check if selected category is included
+      const categories = lesson.category.split(", ").map(c => c.trim());
+      return categories.includes(selectedCategory);
+    })
     .sort((a, b) => {
       if (sortBy === "remaining") {
         return (4 - a.current_session) - (4 - b.current_session);
@@ -781,9 +850,50 @@ export default function AdminLessonsPage() {
                           <div className="text-sm font-medium text-gray-900">{lesson.student_name}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                            {lesson.category}
-                          </span>
+                          {editingCategory === lesson.id ? (
+                            <div className="flex flex-col gap-2">
+                              {CATEGORIES.map(cat => (
+                                <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={categoryValue.includes(cat)}
+                                    onChange={() => toggleCategorySelection(cat)}
+                                    className="w-4 h-4 text-blue-600 rounded"
+                                  />
+                                  <span className="text-xs">{cat}</span>
+                                </label>
+                              ))}
+                              <div className="flex gap-1 mt-1">
+                                <button
+                                  onClick={() => handleSaveCategory(lesson.id)}
+                                  className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={() => setEditingCategory(null)}
+                                  className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setEditingCategory(lesson.id);
+                                setCategoryValue(lesson.category.split(", ").filter(c => c));
+                              }}
+                              className="flex flex-wrap gap-1 cursor-pointer hover:opacity-70"
+                              title="클릭하여 편집"
+                            >
+                              {lesson.category.split(", ").map((cat, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                                  {cat}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -841,9 +951,41 @@ export default function AdminLessonsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {lesson.payment_date
-                            ? new Date(lesson.payment_date).toLocaleDateString("ko-KR")
-                            : "-"}
+                          {editingPaymentDate === lesson.id ? (
+                            <div className="flex gap-1 items-center">
+                              <input
+                                type="date"
+                                value={paymentDateValue}
+                                onChange={(e) => setPaymentDateValue(e.target.value)}
+                                className="px-2 py-1 border border-gray-300 rounded text-xs"
+                              />
+                              <button
+                                onClick={() => handleSavePaymentDate(lesson.id)}
+                                className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() => setEditingPaymentDate(null)}
+                                className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setEditingPaymentDate(lesson.id);
+                                setPaymentDateValue(lesson.payment_date || new Date().toISOString().split('T')[0]);
+                              }}
+                              className="cursor-pointer hover:text-blue-600 hover:underline"
+                              title="클릭하여 편집"
+                            >
+                              {lesson.payment_date
+                                ? new Date(lesson.payment_date).toLocaleDateString("ko-KR")
+                                : "-"}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           {activeFilter === "inactive" ? (
@@ -912,11 +1054,51 @@ export default function AdminLessonsPage() {
                 return (
                   <div key={lesson.id} className={`p-4 ${needsRenewal ? "bg-red-50" : ""}`}>
                     <div className="flex items-start justify-between mb-3">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-bold text-gray-900">{lesson.student_name}</h3>
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                          {lesson.category}
-                        </span>
+                        {editingCategory === lesson.id ? (
+                          <div className="mt-2 space-y-1">
+                            {CATEGORIES.map(cat => (
+                              <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={categoryValue.includes(cat)}
+                                  onChange={() => toggleCategorySelection(cat)}
+                                  className="w-4 h-4 text-blue-600 rounded"
+                                />
+                                <span className="text-xs">{cat}</span>
+                              </label>
+                            ))}
+                            <div className="flex gap-1 mt-2">
+                              <button
+                                onClick={() => handleSaveCategory(lesson.id)}
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                              >
+                                저장
+                              </button>
+                              <button
+                                onClick={() => setEditingCategory(null)}
+                                className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => {
+                              setEditingCategory(lesson.id);
+                              setCategoryValue(lesson.category.split(", ").filter(c => c));
+                            }}
+                            className="mt-1 flex flex-wrap gap-1 cursor-pointer"
+                          >
+                            {lesson.category.split(", ").map((cat, idx) => (
+                              <span key={idx} className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <span className={`text-lg font-bold ${
                         needsRenewal ? "text-red-600" :
@@ -930,9 +1112,39 @@ export default function AdminLessonsPage() {
                       {lesson.tuition_amount > 0 && (
                         <p>💰 수강료: {lesson.tuition_amount.toLocaleString()}원</p>
                       )}
-                      {lesson.payment_date && (
-                        <p>💳 결제: {new Date(lesson.payment_date).toLocaleDateString("ko-KR")}</p>
-                      )}
+                      {editingPaymentDate === lesson.id ? (
+                        <div className="flex items-center gap-2">
+                          <span>💳 결제:</span>
+                          <input
+                            type="date"
+                            value={paymentDateValue}
+                            onChange={(e) => setPaymentDateValue(e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-xs flex-1"
+                          />
+                          <button
+                            onClick={() => handleSavePaymentDate(lesson.id)}
+                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setEditingPaymentDate(null)}
+                            className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : lesson.payment_date ? (
+                        <p
+                          onClick={() => {
+                            setEditingPaymentDate(lesson.id);
+                            setPaymentDateValue(lesson.payment_date || new Date().toISOString().split('T')[0]);
+                          }}
+                          className="cursor-pointer hover:text-blue-600"
+                        >
+                          💳 결제: {new Date(lesson.payment_date).toLocaleDateString("ko-KR")}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
