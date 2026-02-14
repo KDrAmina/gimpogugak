@@ -10,6 +10,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.16",
+    date: "2026-02-18",
+    changes: [
+      "소개 페이지 디자인 개편 (텍스트 카드 → 프로필 이미지 포함 카드 형식으로 변경)",
+    ],
+  },
+  {
+    version: "1.15",
+    date: "2026-02-18",
+    changes: [
+      "소개 페이지 디자인 수정 (이모티콘 제거, 텍스트 중심의 심플한 디자인 적용)",
+    ],
+  },
+  {
+    version: "1.14",
+    date: "2026-02-18",
+    changes: [
+      "상단 로고 크기 확대",
+      "소개 메뉴 드롭다운 제거 및 선택 페이지 (원장/부원장/언론) 구현",
+    ],
+  },
+  {
     version: "1.13",
     date: "2026-02-18",
     changes: [
