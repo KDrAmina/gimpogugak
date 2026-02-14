@@ -65,6 +65,11 @@ export default function AdminLessonsPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedDateLessons, setSelectedDateLessons] = useState<LessonHistoryItem[]>([]);
   
+  // Add lesson by date modal (when clicking empty calendar cell)
+  const [showAddLessonByDateModal, setShowAddLessonByDateModal] = useState(false);
+  const [selectedDateForAdd, setSelectedDateForAdd] = useState<string>("");
+  const [selectedLessonForAdd, setSelectedLessonForAdd] = useState<Lesson | null>(null);
+  
   const router = useRouter();
   const supabase = createClient();
 
@@ -597,22 +602,70 @@ export default function AdminLessonsPage() {
     }
   }
 
-  // Handle date click for detail modal
+  // Handle date click: detail modal (has lessons) or add lesson modal (empty)
   function handleDateClick(dateStr: string, sessions: LessonHistoryItem[]) {
-    if (sessions.length === 0) return;
-    
-    setSelectedDate(dateStr);
-    setSelectedDateLessons(sessions);
-    setShowDetailModal(true);
-    
-    console.log("📅 Opening detail for date:", dateStr);
-    console.log("Sessions on this date:", sessions);
+    if (sessions.length > 0) {
+      setSelectedDate(dateStr);
+      setSelectedDateLessons(sessions);
+      setShowDetailModal(true);
+    } else {
+      setSelectedDateForAdd(dateStr);
+      setSelectedLessonForAdd(null);
+      setShowAddLessonByDateModal(true);
+    }
   }
 
   function closeDetailModal() {
     setShowDetailModal(false);
     setSelectedDate("");
     setSelectedDateLessons([]);
+  }
+
+  function closeAddLessonByDateModal() {
+    setShowAddLessonByDateModal(false);
+    setSelectedDateForAdd("");
+    setSelectedLessonForAdd(null);
+  }
+
+  async function handleConfirmLessonByDate() {
+    if (!selectedLessonForAdd || !selectedDateForAdd) {
+      alert("수강생을 선택해주세요.");
+      return;
+    }
+
+    const lesson = selectedLessonForAdd;
+    if (lesson.current_session >= 4) {
+      alert("이미 4회차가 완료된 수강생입니다. 수강료 갱신 후 진행해주세요.");
+      return;
+    }
+
+    try {
+      const newSession = lesson.current_session + 1;
+
+      const { error } = await supabase
+        .from("lessons")
+        .update({ current_session: newSession })
+        .eq("id", lesson.id);
+
+      if (error) throw error;
+
+      const { error: historyError } = await supabase
+        .from("lesson_history")
+        .insert({
+          lesson_id: lesson.id,
+          session_number: newSession,
+          completed_date: selectedDateForAdd,
+        });
+
+      if (historyError) throw historyError;
+
+      await Promise.all([loadLessons(), loadLessonHistory()]);
+      closeAddLessonByDateModal();
+      alert(`✅ ${lesson.student_name}님의 수업이 ${selectedDateForAdd}로 기록되었습니다.`);
+    } catch (error: any) {
+      console.error("Add lesson by date error:", error);
+      alert("수업 기록 중 오류가 발생했습니다.");
+    }
   }
 
   // Filter by active/inactive
@@ -1217,41 +1270,48 @@ export default function AdminLessonsPage() {
               {Array(calendarData.firstDay).fill(null).map((_, i) => (
                 <div key={`empty-${i}`} className="aspect-square"></div>
               ))}
-              {calendarData.days.map((day) => (
-                <button
-                  key={day.date}
-                  onClick={() => handleDateClick(day.dateStr, day.sessions)}
-                  disabled={day.sessions.length === 0}
-                  className={`aspect-square border rounded-lg p-1 transition-all ${
-                    day.sessions.length > 0 
-                      ? "bg-blue-600 border-blue-700 cursor-pointer hover:bg-blue-700 hover:shadow-lg" 
-                      : "border-gray-200 cursor-default"
-                  }`}
-                >
-                  <p className={`text-xs font-bold mb-1 ${
-                    day.sessions.length > 0 ? "text-white" : "text-gray-700"
-                  }`}>
-                    {day.date}
-                  </p>
-                  <div className="space-y-0.5">
-                    {day.sessions.slice(0, 2).map((session) => (
-                      <div
-                        key={session.id}
-                        className="bg-white text-blue-900 text-[9px] px-1 py-0.5 rounded truncate font-medium"
-                        title={`${session.student_name} (${session.category})`}
-                      >
-                        {session.student_name}
-                      </div>
-                    ))}
-                    {day.sessions.length > 2 && (
-                      <p className="text-[8px] text-white font-bold">+{day.sessions.length - 2}</p>
-                    )}
-                  </div>
-                </button>
-              ))}
+              {calendarData.days.map((day) => {
+                const hasFourthSession = day.sessions.some((s) => s.session_number % 4 === 0);
+                const bgColor = hasFourthSession
+                  ? "bg-orange-500 border-orange-600 hover:bg-orange-600"
+                  : day.sessions.length > 0
+                    ? "bg-blue-600 border-blue-700 hover:bg-blue-700"
+                    : "border-gray-200 hover:bg-gray-100";
+                return (
+                  <button
+                    key={day.date}
+                    onClick={() => handleDateClick(day.dateStr, day.sessions)}
+                    className={`aspect-square border rounded-lg p-1 transition-all cursor-pointer hover:shadow-lg ${bgColor}`}
+                  >
+                    <p className={`text-xs font-bold mb-1 ${
+                      day.sessions.length > 0 ? "text-white" : "text-gray-700"
+                    }`}>
+                      {day.date}
+                    </p>
+                    <div className="space-y-0.5">
+                      {day.sessions.slice(0, 2).map((session) => (
+                        <div
+                          key={session.id}
+                          className={`text-[9px] px-1 py-0.5 rounded truncate font-medium ${
+                            session.session_number % 4 === 0
+                              ? "bg-amber-200 text-amber-900"
+                              : "bg-white text-blue-900"
+                          }`}
+                          title={`${session.student_name} (${session.category}) ${session.session_number}회차`}
+                        >
+                          {session.student_name}
+                        </div>
+                      ))}
+                      {day.sessions.length > 2 && (
+                        <p className="text-[8px] text-white font-bold">+{day.sessions.length - 2}</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <p className="text-xs text-gray-500 mt-4">
-              💡 파란색으로 표시된 날짜를 클릭하면 상세 정보를 볼 수 있습니다.
+              💡 날짜 클릭: 수업 있음 → 상세 보기 / 수업 없음 → 수업 추가. 주황색 = 4회차 완료(수강료 입금 대기).
             </p>
           </div>
         )}
@@ -1321,6 +1381,64 @@ export default function AdminLessonsPage() {
                   className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold shadow-lg"
                 >
                   닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Lesson by Date Modal (click empty calendar cell) */}
+        {showAddLessonByDateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                📅 {selectedDateForAdd ? new Date(selectedDateForAdd).toLocaleDateString("ko-KR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }) : ""} 수업 추가
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                수강생을 선택하고 확인하면 해당 날짜로 수업이 기록됩니다.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">수강생 선택</label>
+                <select
+                  value={selectedLessonForAdd?.id ?? ""}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedLessonForAdd(id ? lessons.find((l) => l.id === id) ?? null : null);
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- 수강생 선택 --</option>
+                  {lessons
+                    .filter((l) => l.is_active && l.current_session < 4)
+                    .map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.student_name} ({l.category}) - {l.current_session}/4회
+                      </option>
+                    ))}
+                </select>
+                {lessons.filter((l) => l.is_active && l.current_session < 4).length === 0 && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    수업 추가 가능한 수강생이 없습니다. (4회차 완료 또는 수업 중인 회원만)
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={closeAddLessonByDateModal}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleConfirmLessonByDate}
+                  disabled={!selectedLessonForAdd}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  수업 확인
                 </button>
               </div>
             </div>

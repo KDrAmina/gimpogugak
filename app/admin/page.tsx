@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { CHANGELOG, CURRENT_VERSION } from "@/lib/changelog";
+import { getTuitionPaymentMessage, getKakaoTalkUrl } from "@/lib/messages";
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [tuitionDueList, setTuitionDueList] = useState<{ id: string; student_name: string; category: string; phone: string | null }[]>([]);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -38,8 +40,7 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      // Fetch pending approval count
-      await fetchPendingCount();
+      await Promise.all([fetchPendingCount(), fetchTuitionDue()]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -60,6 +61,37 @@ export default function AdminDashboardPage() {
       setPendingCount(count || 0);
     } catch (error) {
       console.error("Error fetching pending count:", error);
+    }
+  }
+
+  async function fetchTuitionDue() {
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select(`
+          id,
+          current_session,
+          category,
+          profiles!inner (name, role, phone)
+        `)
+        .eq("is_active", true)
+        .eq("profiles.role", "user");
+
+      if (error) throw error;
+
+      const due = (data || []).filter(
+        (l: any) => l.current_session > 0 && l.current_session % 4 === 0
+      ).map((l: any) => ({
+        id: l.id,
+        student_name: l.profiles?.name || "Unknown",
+        category: l.category,
+        phone: l.profiles?.phone ?? null,
+      }));
+
+      setTuitionDueList(due);
+    } catch (error) {
+      console.error("Error fetching tuition due:", error);
+      setTuitionDueList([]);
     }
   }
 
@@ -93,7 +125,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Status Widgets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Widget 1: Pending Approvals */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
@@ -141,21 +173,51 @@ export default function AdminDashboardPage() {
           </p>
           <p className="mt-2 text-xs text-gray-500">현재 시각 기준</p>
         </div>
-
-        {/* Widget 4: Admin Guide */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-blue-900">관리자 메뉴</h3>
-            <div className="text-3xl">📋</div>
-          </div>
-          <p className="text-sm text-blue-800 leading-relaxed">
-            회원승인 → 회원관리 → 수업관리 → 공지사항
-          </p>
-          <p className="mt-2 text-xs text-blue-600">
-            상단 메뉴에서 각 기능에 접근하세요.
-          </p>
-        </div>
       </div>
+
+      {/* Tuition Payment Due */}
+      {tuitionDueList.length > 0 && (
+        <div className="mt-6 bg-amber-50 rounded-xl shadow-sm border border-amber-200 p-6">
+          <h3 className="text-lg font-bold text-amber-900 mb-3">
+            💰 수강료 입금 대기
+          </h3>
+          <p className="text-sm text-amber-800 mb-4">
+            4회차 수업을 완료하여 수강료 입금이 필요한 수강생입니다. 이름을 클릭하면 메시지가 복사되고 카카오톡이 열립니다.
+          </p>
+          <ul className="space-y-2">
+            {tuitionDueList.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-amber-200"
+              >
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const message = getTuitionPaymentMessage(item.student_name, item.category);
+                    try {
+                      await navigator.clipboard.writeText(message);
+                      const url = getKakaoTalkUrl(item.phone);
+                      if (url) {
+                        window.open(url, "_blank");
+                      }
+                      alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${item.student_name}\n\n카카오톡에서 붙여넣기 하세요.`);
+                    } catch (e) {
+                      alert("메시지 복사 중 오류가 발생했습니다.");
+                    }
+                  }}
+                  disabled={!item.phone}
+                  className="font-medium text-gray-900 hover:text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:no-underline text-left"
+                >
+                  {item.student_name}
+                </button>
+                <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                  {item.category}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* System Info (clickable → Changelog modal) */}
       <button

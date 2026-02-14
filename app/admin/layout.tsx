@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const ADMIN_NAV = [
+  { href: "/admin", label: "Home" },
   { href: "/admin/approvals", label: "회원승인" },
   { href: "/admin/students", label: "회원관리" },
   { href: "/admin/lessons", label: "수업관리" },
@@ -87,7 +88,7 @@ export default function AdminLayout({
             {/* Left: Menu Items */}
             <nav className="flex items-center gap-1 lg:gap-2 flex-1">
               {ADMIN_NAV.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === "/admin" ? pathname === "/admin" : pathname === item.href;
                 return (
                   <Link
                     key={item.href}

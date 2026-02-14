@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getPersonalGreeting, getTuitionReminderMessage, getKakaoTalkUrl } from "@/lib/messages";
 
 type ActiveStudent = {
   id: string;
@@ -124,17 +125,13 @@ export default function AdminStudentsPage() {
       return;
     }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, "");
     const studentName = name || "회원";
-    const kakaoMessage = `안녕하세요 ${studentName}님, 김포국악원입니다. `;
+    const message = getPersonalGreeting(studentName);
+    const url = getKakaoTalkUrl(phone);
 
     try {
-      // Copy message to clipboard
-      await navigator.clipboard.writeText(kakaoMessage);
-      
-      // Open KakaoTalk
-      window.open(`https://open.kakao.com/o/${cleanPhone}`, '_blank');
-      
+      await navigator.clipboard.writeText(message);
+      if (url) window.open(url, "_blank");
       alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${studentName}\n\n카카오톡 앱에서 붙여넣기 하세요.`);
     } catch (error) {
       console.error("Clipboard copy error:", error);
@@ -148,22 +145,13 @@ export default function AdminStudentsPage() {
       return;
     }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, "");
     const studentName = name || "회원";
-    const currentMonth = new Date().toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-    });
-
-    const reminderMessage = `안녕하세요 ${studentName}님, 김포국악원입니다.\n\n${currentMonth} 수강료 납부를 안내드립니다.\n\n문의사항이 있으시면 언제든 연락 주세요.\n감사합니다.`;
+    const message = getTuitionReminderMessage(studentName);
+    const url = getKakaoTalkUrl(phone);
 
     try {
-      // Copy message to clipboard
-      await navigator.clipboard.writeText(reminderMessage);
-      
-      // Open KakaoTalk
-      window.open(`https://open.kakao.com/o/${cleanPhone}`, '_blank');
-      
+      await navigator.clipboard.writeText(message);
+      if (url) window.open(url, "_blank");
       alert(`✅ 수강료 안내 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${studentName}\n\n카카오톡 앱에서 붙여넣기 하세요.`);
     } catch (error) {
       console.error("Clipboard copy error:", error);
@@ -269,23 +257,12 @@ export default function AdminStudentsPage() {
 
     const student = sendingList[currentSendIndex];
     const studentName = student.name || "회원";
-    
-    // Replace [이름] placeholder with actual name
     const personalizedMessage = customMessage.replace(/\[이름\]/g, studentName);
+    const url = getKakaoTalkUrl(student.phone);
 
     try {
-      // Copy to clipboard
       await navigator.clipboard.writeText(personalizedMessage);
-      
-      // Open KakaoTalk
-      // Method 1: Use KakaoTalk share picker (requires Kakao SDK)
-      // Method 2: Open KakaoTalk directly with phone number
-      const cleanPhone = student.phone!.replace(/[^0-9]/g, "");
-      
-      // Try to open KakaoTalk (this may vary by device)
-      window.open(`https://open.kakao.com/o/${cleanPhone}`, '_blank');
-      
-      // Show success message
+      if (url) window.open(url, "_blank");
       alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n수신자: ${studentName}\n\n카카오톡 앱에서 붙여넣기 하세요.`);
     } catch (error) {
       console.error("Clipboard copy error:", error);
