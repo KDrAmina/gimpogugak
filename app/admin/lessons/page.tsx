@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getTodayKST } from "@/lib/date-utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type LessonCategory = "성인단체" | "성인개인" | "어린이개인" | "어린이단체";
 
@@ -48,6 +49,7 @@ export default function AdminLessonsPage() {
   const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
   const [lessonHistory, setLessonHistory] = useState<LessonHistoryItem[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [viewDate, setViewDate] = useState(() => new Date());
   
   // Tuition editing
   const [editingTuition, setEditingTuition] = useState<string | null>(null);
@@ -89,6 +91,10 @@ export default function AdminLessonsPage() {
     checkAdminAccess();
   }, []);
 
+  useEffect(() => {
+    if (showCalendar) loadLessonHistory();
+  }, [viewDate, showCalendar]);
+
   async function checkAdminAccess() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -109,7 +115,7 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      await Promise.all([loadLessons(), loadUnassignedUsers(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadUnassignedUsers()]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -204,22 +210,25 @@ export default function AdminLessonsPage() {
 
   async function loadLessonHistory() {
     try {
-      console.log("🔄 Loading lesson history...");
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const endDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       // First, check if table exists by trying a simple query
-      const { data: testData, error: testError } = await supabase
+      const { error: testError } = await supabase
         .from("lesson_history")
         .select("id")
         .limit(1);
 
       if (testError) {
         console.error("❌ lesson_history table not found or not accessible:", testError.message);
-        console.error("⚠️ Please run the SQL in SETUP_DATABASE.md to create the table");
         setLessonHistory([]);
         return;
       }
 
-      // Fetch lesson history with nested joins
+      // Fetch lesson history for the visible month (date range filter)
       const { data: historyData, error } = await supabase
         .from("lesson_history")
         .select(`
@@ -236,8 +245,9 @@ export default function AdminLessonsPage() {
             )
           )
         `)
-        .order("completed_date", { ascending: false })
-        .limit(200);
+        .gte("completed_date", startDate)
+        .lte("completed_date", endDate)
+        .order("completed_date", { ascending: false });
 
       if (error) {
         console.error("❌ Lesson history query error:", error);
@@ -258,13 +268,6 @@ export default function AdminLessonsPage() {
         .map((item: any) => {
           const studentName = item.lessons?.profiles?.name || "Unknown";
           const category = item.lessons?.category || "성인개인";
-          
-          console.log("✓ History item:", {
-            date: item.completed_date,
-            name: studentName,
-            category: category
-          });
-
           return {
             id: item.id,
             lesson_id: item.lesson_id,
@@ -275,9 +278,6 @@ export default function AdminLessonsPage() {
           };
         });
 
-      console.log("✅ Successfully loaded", formatted.length, "history records (students only)");
-      console.log("First 3 records:", formatted.slice(0, 3));
-      
       setLessonHistory(formatted);
     } catch (error: any) {
       console.error("❌ Unexpected error loading lesson history:", error);
@@ -734,53 +734,44 @@ export default function AdminLessonsPage() {
 
   // Calendar helpers
   const getCalendarData = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
+    const currentMonth = viewDate.getMonth();
+    const currentYear = viewDate.getFullYear();
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    
-    console.log("📅 Building calendar for:", `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`);
-    console.log("Available history items:", lessonHistory.length);
-    console.log("History dates:", lessonHistory.map(h => h.completed_date));
-    
+
     const days = [];
     for (let i = 1; i <= lastDay.getDate(); i++) {
-      // Create date string in YYYY-MM-DD format
       const year = currentYear;
-      const month = String(currentMonth + 1).padStart(2, '0');
-      const day = String(i).padStart(2, '0');
+      const month = String(currentMonth + 1).padStart(2, "0");
+      const day = String(i).padStart(2, "0");
       const dateStr = `${year}-${month}-${day}`;
-      
-      const sessionsOnThisDay = lessonHistory.filter(h => {
-        const match = h.completed_date === dateStr;
-        if (match) {
-          console.log(`✅ Match found for ${dateStr}:`, h.student_name, h.category);
-        }
-        return match;
-      });
-      
-      days.push({
-        date: i,
-        dateStr,
-        sessions: sessionsOnThisDay,
-      });
+      const sessionsOnThisDay = lessonHistory.filter((h) => h.completed_date === dateStr);
+      days.push({ date: i, dateStr, sessions: sessionsOnThisDay });
     }
-    
-    const daysWithLessons = days.filter(d => d.sessions.length > 0);
-    console.log("Days with lessons:", daysWithLessons.length);
-    if (daysWithLessons.length > 0) {
-      console.log("Lesson dates:", daysWithLessons.map(d => ({ date: d.dateStr, count: d.sessions.length })));
-    }
-    
-    return { 
-      days, 
-      month: currentMonth, 
-      year: currentYear, 
-      firstDay: firstDay.getDay() 
+
+    return {
+      days,
+      month: currentMonth,
+      year: currentYear,
+      firstDay: firstDay.getDay(),
     };
   };
+
+  const handlePrevMonth = () => {
+    setViewDate((d) => {
+      const next = new Date(d);
+      next.setMonth(next.getMonth() - 1);
+      return next;
+    });
+  };
+  const handleNextMonth = () => {
+    setViewDate((d) => {
+      const next = new Date(d);
+      next.setMonth(next.getMonth() + 1);
+      return next;
+    });
+  };
+  const handleToday = () => setViewDate(new Date());
 
   if (loading) {
     return (
@@ -1304,9 +1295,33 @@ export default function AdminLessonsPage() {
         {/* Calendar View */}
         {showCalendar && calendarData && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              📅 수업 캘린더 - {calendarData.year}년 {calendarData.month + 1}월
-            </h2>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                  aria-label="이전 달"
+                >
+                  <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
+                </button>
+                <h2 className="text-xl font-bold text-gray-900 min-w-[180px] text-center">
+                  📅 {calendarData.year}년 {calendarData.month + 1}월
+                </h2>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                  aria-label="다음 달"
+                >
+                  <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+                </button>
+              </div>
+              <button
+                onClick={handleToday}
+                className="px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors font-medium text-sm"
+              >
+                오늘
+              </button>
+            </div>
             <div className="grid grid-cols-7 gap-2">
               {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
                 <div key={day} className="text-center text-xs font-bold text-gray-500 py-2">{day}</div>

@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.24",
+    date: "2026-02-18",
+    changes: [
+      "캘린더 월 이동 기능(이전달/다음달) 추가 및 월 변경 시 출석 데이터 연동",
+    ],
+  },
+  {
     version: "1.23",
     date: "2026-02-18",
     changes: [
