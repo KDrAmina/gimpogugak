@@ -11,25 +11,24 @@ export const metadata: Metadata = {
 const CARDS = [
   {
     href: "/intro/director",
-    main: "송리결 원장 소개",
+    main: "송리결 원장",
     sub: "황해도무형문화재 제3호 놀량사거리 이수자",
     image: "/Song-Ri-Gyeol-profile.jpg",
     imageAlt: "송리결 원장",
   },
   {
     href: "/intro/vice-director",
-    main: "박준열 부원장 소개",
+    main: "박준열 부원장",
     sub: "한양대 성악 전공 / 김포신문 칼럼 연재",
     image: "/Park-Jun-Yeol-profile.png",
     imageAlt: "박준열 부원장",
   },
   {
-    href: "https://www.igimpo.com",
+    href: "/intro/media",
     main: "언론 보도",
     sub: "김포신문 기사 및 활동 내역",
     image: null,
     imageAlt: "",
-    external: true,
   },
 ];
 
@@ -94,11 +93,7 @@ export default function IntroPage() {
             </>
           );
 
-          return card.external ? (
-            <a key={card.href} href={card.href} target="_blank" rel="noopener noreferrer" className={cardBase}>
-              {content}
-            </a>
-          ) : (
+          return (
             <Link key={card.href} href={card.href} className={cardBase}>
               {content}
             </Link>

@@ -10,6 +10,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.18",
+    date: "2026-02-18",
+    changes: [
+      "언론 보도 목록에 김포문화재단 게시물 링크 추가",
+    ],
+  },
+  {
+    version: "1.17",
+    date: "2026-02-18",
+    changes: [
+      "언론 보도 목록 페이지 생성 (도트 리더 디자인) 및 칼럼 섹션 분리",
+    ],
+  },
+  {
     version: "1.16",
     date: "2026-02-18",
     changes: [
