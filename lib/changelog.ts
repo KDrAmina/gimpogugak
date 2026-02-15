@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.25",
+    date: "2026-02-18",
+    changes: [
+      "캘린더 날짜별 다중 수업 등록 기능 추가 (하루에 여러 명의 학생 추가 가능하도록 수정)",
+    ],
+  },
+  {
     version: "1.24",
     date: "2026-02-18",
     changes: [

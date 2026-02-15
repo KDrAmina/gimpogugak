@@ -95,6 +95,13 @@ export default function AdminLessonsPage() {
     if (showCalendar) loadLessonHistory();
   }, [viewDate, showCalendar]);
 
+  // Sync Daily Schedule modal list when lessonHistory updates (e.g. after adding a lesson)
+  useEffect(() => {
+    if (showDetailModal && selectedDate) {
+      setSelectedDateLessons(lessonHistory.filter((h) => h.completed_date === selectedDate));
+    }
+  }, [lessonHistory, showDetailModal, selectedDate]);
+
   async function checkAdminAccess() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -663,6 +670,12 @@ export default function AdminLessonsPage() {
     setShowAddLessonByDateModal(false);
     setSelectedDateForAdd("");
     setSelectedLessonForAdd(null);
+  }
+
+  function openAddLessonFromDailySchedule() {
+    setSelectedDateForAdd(selectedDate);
+    setSelectedLessonForAdd(null);
+    setShowAddLessonByDateModal(true);
   }
 
   async function handleConfirmLessonByDate() {
@@ -1348,7 +1361,12 @@ export default function AdminLessonsPage() {
                       {day.date}
                     </p>
                     <div className="space-y-0.5">
-                      {day.sessions.slice(0, 2).map((session) => (
+                      {day.sessions.length >= 3 && (
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-white/90 text-blue-800 text-[8px] font-bold">
+                          {day.sessions.length}명
+                        </span>
+                      )}
+                      {day.sessions.slice(0, day.sessions.length >= 3 ? 1 : 2).map((session) => (
                         <div
                           key={session.id}
                           className={`text-[9px] px-1 py-0.5 rounded truncate font-medium ${
@@ -1356,13 +1374,13 @@ export default function AdminLessonsPage() {
                               ? "bg-amber-200 text-amber-900"
                               : "bg-white text-blue-900"
                           }`}
-                          title={`${session.student_name} (${session.category}) ${session.session_number}회차`}
+                          title={day.sessions.map((s) => `${s.student_name} (${s.session_number}회차)`).join(", ")}
                         >
                           {session.student_name}
                         </div>
                       ))}
                       {day.sessions.length > 2 && (
-                        <p className="text-[8px] text-white font-bold">+{day.sessions.length - 2}</p>
+                        <p className="text-[8px] text-white font-bold">+{day.sessions.length - (day.sessions.length >= 3 ? 1 : 2)}</p>
                       )}
                     </div>
                   </button>
@@ -1370,12 +1388,12 @@ export default function AdminLessonsPage() {
               })}
             </div>
             <p className="text-xs text-gray-500 mt-4">
-              💡 날짜 클릭: 수업 있음 → 상세 보기 / 수업 없음 → 수업 추가. 주황색 = 4회차 완료(수강료 입금 대기).
+              💡 날짜 클릭: 수업 있음 → 일정 보기(+ 추가 가능) / 수업 없음 → 수업 추가. 주황색 = 4회차 완료.
             </p>
           </div>
         )}
 
-        {/* Date Detail Modal */}
+        {/* Daily Schedule Modal (date with lessons) */}
         {showDetailModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 flex flex-col max-h-[85vh]">
@@ -1387,7 +1405,7 @@ export default function AdminLessonsPage() {
                     month: 'long', 
                     day: 'numeric',
                     weekday: 'short'
-                  }) : ''} 수업 현황
+                  }) : ''} 일정
                 </h2>
                 <button
                   onClick={closeDetailModal}
@@ -1397,7 +1415,7 @@ export default function AdminLessonsPage() {
                 </button>
               </div>
 
-              {/* Scrollable Student List - Max 4 visible */}
+              {/* Scrollable Student List */}
               <div className="overflow-y-auto flex-1 mb-4 pr-2 modal-scroll" style={{ maxHeight: '400px' }}>
                 <div className="space-y-3">
                   {selectedDateLessons.length === 0 ? (
@@ -1405,7 +1423,7 @@ export default function AdminLessonsPage() {
                       이 날짜에 수업이 없습니다.
                     </p>
                   ) : (
-                    selectedDateLessons.map((session, index) => (
+                    selectedDateLessons.map((session) => (
                       <div
                         key={session.id}
                         className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 hover:shadow-md transition-shadow"
@@ -1429,10 +1447,20 @@ export default function AdminLessonsPage() {
                 </div>
               </div>
 
+              {/* Add Lesson Button */}
+              <div className="flex-shrink-0 mb-4">
+                <button
+                  onClick={openAddLessonFromDailySchedule}
+                  className="w-full py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50 hover:border-blue-400 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">+</span> 수업 추가
+                </button>
+              </div>
+
               {/* Footer - Fixed */}
               <div className="flex-shrink-0 pt-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center mb-4">
-                  총 {selectedDateLessons.length}건의 수업이 진행되었습니다.
+                  총 {selectedDateLessons.length}건의 수업
                 </p>
 
                 <button
@@ -1446,9 +1474,9 @@ export default function AdminLessonsPage() {
           </div>
         )}
 
-        {/* Add Lesson by Date Modal (click empty calendar cell) */}
+        {/* Add Lesson by Date Modal (empty cell or + from Daily Schedule) */}
         {showAddLessonByDateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-2">
                 📅 {selectedDateForAdd ? new Date(selectedDateForAdd).toLocaleDateString("ko-KR", {
