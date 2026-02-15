@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.23",
+    date: "2026-02-18",
+    changes: [
+      "수강생 등록 시 카테고리(수업) 중복 선택 기능 추가 (예: 성인단체 + 성인개인 동시 수강)",
+      "관리자 대시보드 총 수강료 합계 표시",
+    ],
+  },
+  {
     version: "1.18",
     date: "2026-02-18",
     changes: [

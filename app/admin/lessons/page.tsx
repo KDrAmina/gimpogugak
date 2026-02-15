@@ -73,10 +73,10 @@ export default function AdminLessonsPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  // New lesson form - SIMPLIFIED STATE
+  // New lesson form - SIMPLIFIED STATE (categories: multi-select)
   const [newLesson, setNewLesson] = useState({
     user_id: "",
-    category: "성인개인" as LessonCategory,
+    categories: [] as LessonCategory[],
     tuition_amount: 0,
     payment_date: new Date().toISOString().split('T')[0],
   });
@@ -507,16 +507,21 @@ export default function AdminLessonsPage() {
       return;
     }
 
+    if (newLesson.categories.length === 0) {
+      alert("최소 1개의 카테고리를 선택해주세요.");
+      return;
+    }
+
     if (!newLesson.payment_date) {
       alert("결제일을 입력해주세요.");
       return;
     }
 
     try {
-      // CRITICAL: Only send fields that exist in database
+      const categoryString = newLesson.categories.join(", ");
       const lessonData = {
         user_id: newLesson.user_id,
-        category: newLesson.category,
+        category: categoryString,
         current_session: 0,
         tuition_amount: newLesson.tuition_amount || 0,
         payment_date: newLesson.payment_date,
@@ -543,7 +548,7 @@ export default function AdminLessonsPage() {
       setShowAddModal(false);
       setNewLesson({
         user_id: "",
-        category: "성인개인",
+        categories: [],
         tuition_amount: 0,
         payment_date: new Date().toISOString().split('T')[0],
       });
@@ -1538,27 +1543,33 @@ export default function AdminLessonsPage() {
                     )}
                   </div>
 
-                  {/* Step 2: Category Selection */}
+                  {/* Step 2: Category Selection (Multi-select) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      카테고리 선택 *
+                      카테고리 선택 * (복수 선택 가능)
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {CATEGORIES.map((cat) => (
                         <label
                           key={cat}
                           className={`flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                            newLesson.category === cat
+                            newLesson.categories.includes(cat)
                               ? "border-blue-500 bg-blue-50 text-blue-700"
                               : "border-gray-300 hover:border-blue-300"
                           }`}
                         >
                           <input
-                            type="radio"
-                            name="category"
+                            type="checkbox"
                             value={cat}
-                            checked={newLesson.category === cat}
-                            onChange={(e) => setNewLesson({ ...newLesson, category: e.target.value as LessonCategory })}
+                            checked={newLesson.categories.includes(cat)}
+                            onChange={() => {
+                              setNewLesson(prev => ({
+                                ...prev,
+                                categories: prev.categories.includes(cat)
+                                  ? prev.categories.filter(c => c !== cat)
+                                  : [...prev.categories, cat],
+                              }));
+                            }}
                             className="sr-only"
                           />
                           <span className="text-sm font-medium">{cat}</span>
@@ -1600,7 +1611,7 @@ export default function AdminLessonsPage() {
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={handleAddLesson}
-                      disabled={!newLesson.user_id || !newLesson.payment_date}
+                      disabled={!newLesson.user_id || newLesson.categories.length === 0 || !newLesson.payment_date}
                       className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg"
                     >
                       ✅ 등록하기
@@ -1610,7 +1621,7 @@ export default function AdminLessonsPage() {
                         setShowAddModal(false);
                         setNewLesson({
                           user_id: "",
-                          category: "성인개인",
+                          categories: [],
                           tuition_amount: 0,
                           payment_date: new Date().toISOString().split('T')[0],
                         });

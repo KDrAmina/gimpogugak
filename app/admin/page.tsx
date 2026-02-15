@@ -9,6 +9,7 @@ import { getTuitionPaymentMessage, getSmsUrl } from "@/lib/messages";
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [totalTuition, setTotalTuition] = useState<number>(0);
   const [tuitionDueList, setTuitionDueList] = useState<{ id: string; student_name: string; category: string; phone: string | null }[]>([]);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      await Promise.all([fetchPendingCount(), fetchTuitionDue()]);
+      await Promise.all([fetchPendingCount(), fetchTotalTuition(), fetchTuitionDue()]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -61,6 +62,23 @@ export default function AdminDashboardPage() {
       setPendingCount(count || 0);
     } catch (error) {
       console.error("Error fetching pending count:", error);
+    }
+  }
+
+  async function fetchTotalTuition() {
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("tuition_amount")
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      const sum = (data || []).reduce((acc, l: { tuition_amount?: number }) => acc + (l.tuition_amount || 0), 0);
+      setTotalTuition(sum);
+    } catch (error) {
+      console.error("Error fetching total tuition:", error);
+      setTotalTuition(0);
     }
   }
 
@@ -121,6 +139,19 @@ export default function AdminDashboardPage() {
         </h1>
         <p className="text-gray-600">
           김포국악원 관리 시스템 현황을 확인하세요
+        </p>
+      </div>
+
+      {/* Total Tuition Card */}
+      <div className="mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow-sm border border-emerald-200 p-6">
+        <h3 className="text-sm font-medium text-emerald-800 mb-1">
+          총 등록 수강료 (Total Tuition)
+        </h3>
+        <p className="text-3xl md:text-4xl font-bold text-emerald-900">
+          ₩ {totalTuition.toLocaleString()}
+        </p>
+        <p className="mt-1 text-xs text-emerald-700">
+          현재 등록된 모든 수강생의 수강료 합계
         </p>
       </div>
 
