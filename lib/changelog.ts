@@ -10,6 +10,34 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.35",
+    date: "2026-02-19",
+    changes: [
+      "소식 관리 UX 개선: 게시글 작성/수정 팝업(모달) 통합 및 불필요한 메뉴 제거",
+    ],
+  },
+  {
+    version: "1.34",
+    date: "2026-02-19",
+    changes: [
+      "블로그(소식) 메뉴 최상단 GNB 승격 및 라우팅 구조 개편 (/blog)",
+    ],
+  },
+  {
+    version: "1.33",
+    date: "2026-02-19",
+    changes: [
+      "블로그 상세 페이지 SEO 최적화(SSR) 및 카카오톡 공유하기(링크 복사) 버튼 추가",
+    ],
+  },
+  {
+    version: "1.32",
+    date: "2026-02-19",
+    changes: [
+      "소식/공지사항 카테고리 완벽 분리 및 게시글 삭제 시 Storage 이미지 동시 삭제(용량 최적화) 구현",
+    ],
+  },
+  {
     version: "1.31",
     date: "2026-02-18",
     changes: [

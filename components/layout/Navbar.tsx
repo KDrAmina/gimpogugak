@@ -10,6 +10,7 @@ type NavItemSimple = { href: string; label: string };
 
 const GUEST_NAV: NavItemSimple[] = [
   { href: "/intro", label: "소개" },
+  { href: "/blog", label: "블로그" },
   { href: "/classes", label: "수업" },
   { href: "/activities", label: "활동" },
   { href: "/contact", label: "문의" },
@@ -147,7 +148,7 @@ export function Navbar() {
         </div>
         <ul className="flex flex-col gap-4">
           {(NAV as NavItemSimple[]).map((item) => {
-            const isActive = pathname === item.href || (item.href === "/intro" && pathname.startsWith("/intro"));
+            const isActive = pathname === item.href || (item.href === "/intro" && pathname.startsWith("/intro")) || (item.href === "/blog" && pathname.startsWith("/blog"));
             return (
               <li key={item.href}>
                 <Link
@@ -181,7 +182,7 @@ export function Navbar() {
 
         <div className="flex flex-1 items-center justify-end gap-1 sm:gap-2 min-w-0 overflow-x-auto overflow-y-hidden">
           {(NAV as NavItemSimple[]).map((item) => {
-            const isActive = pathname === item.href || (item.href === "/intro" && pathname.startsWith("/intro"));
+            const isActive = pathname === item.href || (item.href === "/intro" && pathname.startsWith("/intro")) || (item.href === "/blog" && pathname.startsWith("/blog"));
             return (
               <Link
                 key={item.href}

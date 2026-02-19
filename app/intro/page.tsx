@@ -30,13 +30,6 @@ const CARDS = [
     image: null,
     imageAlt: "",
   },
-  {
-    href: "/intro/blog",
-    main: "국악원 소식",
-    sub: "김포국악원 블로그 및 소식",
-    image: null,
-    imageAlt: "",
-  },
 ];
 
 function NewsIcon() {
@@ -55,24 +48,6 @@ function NewsIcon() {
       <path d="M18 14h-8" />
       <path d="M15 18h-5" />
       <path d="M10 6h8v4h-8V6Z" />
-    </svg>
-  );
-}
-
-function BlogIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-8 h-8 text-[#666]"
-    >
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   );
 }
@@ -103,8 +78,6 @@ export default function IntroPage() {
                     height={80}
                     className="w-full h-full object-cover"
                   />
-                ) : card.href === "/intro/blog" ? (
-                  <BlogIcon />
                 ) : (
                   <NewsIcon />
                 )}

@@ -47,7 +47,7 @@ export default async function BlogListPage() {
       ) : (
         <div className="grid gap-6">
           {items.map((post) => {
-            const href = post.external_url || `/intro/blog/${post.id}`;
+            const href = post.external_url || `/blog/${post.id}`;
             const isExternal = !!post.external_url;
             const CardWrapper = isExternal ? "a" : Link;
             const cardProps = isExternal

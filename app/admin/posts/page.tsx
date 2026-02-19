@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 
 type Post = {
   id: string;
@@ -11,12 +12,13 @@ type Post = {
   category: string;
   tag: string;
   is_pinned: boolean;
+  thumbnail_url: string | null;
   author_id: string | null;
   created_at: string;
   updated_at: string;
 };
 
-const CATEGORIES = ["일반", "수업", "행사", "공연", "모집"];
+const NOTICE_TAGS = ["일반", "수업", "행사", "공연", "모집"];
 
 export default function AdminPostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -27,8 +29,8 @@ export default function AdminPostsPage() {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    category: "일반",
-    tag: "",
+    category: "공지사항",
+    tag: "일반",
   });
 
   const router = useRouter();
@@ -74,6 +76,7 @@ export default function AdminPostsPage() {
       const { data, error } = await supabase
         .from("posts")
         .select("*")
+        .eq("category", "공지사항")
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -112,8 +115,8 @@ export default function AdminPostsPage() {
           .update({
             title: formData.title.trim(),
             content: formData.content.trim(),
-            category: formData.category,
-            tag: formData.tag.trim() || formData.category,
+            category: "공지사항",
+            tag: formData.tag.trim() || "일반",
           })
           .eq("id", editingPost.id);
 
@@ -125,12 +128,12 @@ export default function AdminPostsPage() {
         console.log("✅ Post updated");
         alert("✅ 공지가 수정되었습니다.");
       } else {
-        // Create new post
+        // Create new post (공지사항만)
         const postData = {
           title: formData.title.trim(),
           content: formData.content.trim(),
-          category: formData.category,
-          tag: formData.tag.trim() || formData.category,
+          category: "공지사항",
+          tag: formData.tag.trim() || "일반",
           is_pinned: false,
           author_id: user?.id || null,
         };
@@ -182,10 +185,12 @@ export default function AdminPostsPage() {
     }
 
     try {
+      await deletePostStorageFiles(supabase, post.thumbnail_url, post.content);
       const { error } = await supabase
         .from("posts")
         .delete()
-        .eq("id", post.id);
+        .eq("id", post.id)
+        .eq("category", "공지사항");
 
       if (error) throw error;
 
@@ -202,8 +207,8 @@ export default function AdminPostsPage() {
     setFormData({
       title: "",
       content: "",
-      category: "일반",
-      tag: "",
+      category: "공지사항",
+      tag: "일반",
     });
     setShowWriteModal(true);
   }
@@ -213,8 +218,8 @@ export default function AdminPostsPage() {
     setFormData({
       title: post.title,
       content: post.content,
-      category: post.category,
-      tag: post.tag || "",
+      category: "공지사항",
+      tag: post.tag || "일반",
     });
     setShowWriteModal(true);
   }
@@ -225,8 +230,8 @@ export default function AdminPostsPage() {
     setFormData({
       title: "",
       content: "",
-      category: "일반",
-      tag: "",
+      category: "공지사항",
+      tag: "일반",
     });
   }
 
@@ -285,7 +290,7 @@ export default function AdminPostsPage() {
                         </span>
                       )}
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
-                        {post.category}
+                        {post.tag || post.category}
                       </span>
                       <span className="text-xs text-gray-500">
                         {new Date(post.created_at).toLocaleDateString('ko-KR')}
@@ -353,50 +358,33 @@ export default function AdminPostsPage() {
                   />
                 </div>
 
-                {/* Category */}
+                {/* 공지 유형 (태그) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    카테고리 *
+                    공지 유형
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {CATEGORIES.map((cat) => (
+                    {NOTICE_TAGS.map((tag) => (
                       <label
-                        key={cat}
+                        key={tag}
                         className={`px-3 py-2 border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.category === cat
+                          formData.tag === tag
                             ? "border-blue-500 bg-blue-50 text-blue-700"
                             : "border-gray-300 hover:border-blue-300"
                         }`}
                       >
                         <input
                           type="radio"
-                          name="category"
-                          value={cat}
-                          checked={formData.category === cat}
-                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          name="tag"
+                          value={tag}
+                          checked={formData.tag === tag}
+                          onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
                           className="sr-only"
                         />
-                        <span className="text-sm font-medium">{cat}</span>
+                        <span className="text-sm font-medium">{tag}</span>
                       </label>
                     ))}
                   </div>
-                </div>
-
-                {/* Tag (Optional) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    태그 (선택사항)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.tag}
-                    onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
-                    placeholder="예: 긴급, 중요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    입력하지 않으면 카테고리가 태그로 사용됩니다
-                  </p>
                 </div>
 
                 {/* Content */}

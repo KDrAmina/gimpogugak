@@ -36,7 +36,7 @@ export default function AdminPostsWritePage() {
 
       if (error) throw error;
       alert("✅ 소식이 등록되었습니다.");
-      router.push("/intro/blog");
+      router.push("/blog");
     } catch (err: unknown) {
       console.error("Save error:", err);
       alert("저장 중 오류가 발생했습니다.");
@@ -92,7 +92,7 @@ export default function AdminPostsWritePage() {
             {saving ? "저장 중..." : "등록"}
           </button>
           <Link
-            href="/intro/blog"
+            href="/blog"
             className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
           >
             취소
