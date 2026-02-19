@@ -64,15 +64,23 @@ body {
 .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
 .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: "아주 크게"; }
 .ql-size-small,
-.prose-blog-content .ql-size-small { font-size: 0.75em; }
+.blog-content-viewer .ql-size-small { font-size: 0.75em; }
 .ql-size-large,
-.prose-blog-content .ql-size-large { font-size: 1.5em; }
+.blog-content-viewer .ql-size-large { font-size: 1.5em; }
 .ql-size-huge,
-.prose-blog-content .ql-size-huge { font-size: 2em; }
+.blog-content-viewer .ql-size-huge { font-size: 2em; }
+
+/* Ensure viewer matches editor exactly */
+.ql-editor p {
+  margin-bottom: 0.5rem;
+}
+.ql-editor {
+  line-height: 1.7;
+}
 
 /* Quill editor & blog content: responsive images */
 .quill-editor-wrapper .ql-editor img,
-.prose-blog-content img {
+.blog-content-viewer .ql-editor img {
   display: block !important;
   max-width: 100% !important;
   height: auto !important;
@@ -80,22 +88,22 @@ body {
 
 /* 기본 정렬: 부모에 resize 스타일이 없을 때만 가운데 */
 .quill-editor-wrapper .ql-editor p:not([class*="ql-resize-style"]) img,
-.prose-blog-content p:not([class*="ql-resize-style"]) img {
+.blog-content-viewer .ql-editor p:not([class*="ql-resize-style"]) img {
   margin-left: auto;
   margin-right: auto;
 }
 
 /* quill-resize-module 정렬 스타일 (부모 블록에 적용됨) */
 .ql-resize-style-left,
-.prose-blog-content .ql-resize-style-left { float: left; margin: 0 1em 1em 0; }
+.blog-content-viewer .ql-resize-style-left { float: left; margin: 0 1em 1em 0; }
 .ql-resize-style-right,
-.prose-blog-content .ql-resize-style-right { float: right; margin: 0 0 1em 1em; }
+.blog-content-viewer .ql-resize-style-right { float: right; margin: 0 0 1em 1em; }
 .ql-resize-style-center,
-.prose-blog-content .ql-resize-style-center { display: block; margin-left: auto; margin-right: auto; text-align: center; }
+.blog-content-viewer .ql-resize-style-center { display: block; margin-left: auto; margin-right: auto; text-align: center; }
 .ql-resize-style-full,
-.prose-blog-content .ql-resize-style-full { width: 100% !important; }
+.blog-content-viewer .ql-resize-style-full { width: 100% !important; }
 .ql-resize-style-full img,
-.prose-blog-content .ql-resize-style-full img { width: 100%; }
+.blog-content-viewer .ql-resize-style-full img { width: 100%; }
 
 /* Quill font dropdown - Korean fonts (Pretendard, Noto Sans KR, Nanum Myeongjo, Mapo Aemin, Kyobo Hand, Jalnan) */
 .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="pretendard"]::before,
@@ -119,6 +127,6 @@ body {
 .ql-font-jalnan { font-family: "Jalnan", sans-serif; }
 
 /* Blog detail content - apply Korean font (globals.css loaded, .ql-font-* applies automatically) */
-.prose-blog-content {
+.blog-content-viewer {
   font-family: "Nanum Myeongjo", serif;
 }

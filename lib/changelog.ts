@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.38",
+    date: "2026-02-10",
+    changes: [
+      "블로그 에디터와 상세 페이지 간의 WYSIWYG 디자인(줄바꿈, 여백) 불일치 문제 해결",
+    ],
+  },
+  {
     version: "1.37",
     date: "2026-02-19",
     changes: [

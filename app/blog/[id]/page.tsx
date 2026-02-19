@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
 import { stripHtml } from "@/lib/html-utils";
+import "react-quill-new/dist/quill.snow.css";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -74,10 +75,13 @@ export default async function BlogDetailPage({ params }: Props) {
         <p className="text-sm text-gray-500">{formatDate(post.created_at)}</p>
       </header>
 
-      <div
-        className="prose-blog-content text-[#333] leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-semibold [&_p]:mb-4 [&_img]:max-w-full [&_img]:h-auto"
-        dangerouslySetInnerHTML={{ __html: post.content }}
-      />
+      <div className="ql-snow blog-content-viewer">
+        <div
+          className="ql-editor"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+          style={{ padding: 0 }}
+        />
+      </div>
 
       <footer className="mt-12 pt-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Link
