@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.39",
+    date: "2026-02-10",
+    changes: [
+      "에디터 줄바꿈(엔터) 누락 버그 수정 및 글자 크기 옵션을 숫자(px) 단위로 개편",
+    ],
+  },
+  {
     version: "1.38",
     date: "2026-02-10",
     changes: [

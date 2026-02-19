@@ -53,29 +53,29 @@ body {
   border-radius: 8px 8px 0 0;
 }
 
-/* Quill font size options */
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before { content: "작게"; }
-.ql-snow .ql-picker.ql-size .ql-picker-label:not([data-value])::before,
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value=""]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value=""]::before { content: "보통"; }
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before { content: "크게"; }
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: "아주 크게"; }
-.ql-size-small,
-.blog-content-viewer .ql-size-small { font-size: 0.75em; }
-.ql-size-large,
-.blog-content-viewer .ql-size-large { font-size: 1.5em; }
-.ql-size-huge,
-.blog-content-viewer .ql-size-huge { font-size: 2em; }
+/* Show numerical values in the Quill size dropdown */
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value]::before {
+  content: attr(data-value) !important;
+}
+/* Default label when no size is selected */
+.ql-snow .ql-picker.ql-size .ql-picker-label::before {
+  content: '16px' !important;
+}
 
-/* Ensure viewer matches editor exactly */
+/* Fix Quill Editor & Viewer Paragraphs/Line-breaks */
 .ql-editor p {
   margin-bottom: 0.5rem;
+  min-height: 1.5rem; /* Prevents empty paragraphs from collapsing */
+}
+.ql-editor p:empty::before,
+.ql-editor p:has(br:only-child)::before {
+  content: '\00a0'; /* Force empty lines to take up space */
+  display: inline-block;
 }
 .ql-editor {
-  line-height: 1.7;
+  line-height: 1.6;
+  white-space: pre-wrap; /* Ensure multiple spaces and wraps are respected */
 }
 
 /* Quill editor & blog content: responsive images */

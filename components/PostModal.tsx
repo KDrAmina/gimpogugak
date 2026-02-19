@@ -14,11 +14,13 @@ const DEFAULT_CATEGORY = "소식";
 
 const FONT_WHITELIST = ["pretendard", "notosans", "nanummyeongjo", "mapoaemin", "kyobohand", "jalnan"];
 
+const SIZE_WHITELIST = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"];
+
 const QUILL_MODULES = (imageHandler: () => void) => ({
   toolbar: {
     container: [
       [{ font: ["", ...FONT_WHITELIST] }],
-      [{ size: ["small", false, "large", "huge"] }],
+      [{ size: SIZE_WHITELIST }],
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic"],
       [{ align: [] }],
@@ -105,6 +107,9 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       const Font = Quill.import("formats/font");
       (Font as { whitelist: string[] }).whitelist = FONT_WHITELIST;
       Quill.register("formats/font", Font, true);
+      const SizeStyle = Quill.import("attributors/style/size");
+      (SizeStyle as { whitelist: string[] }).whitelist = SIZE_WHITELIST;
+      Quill.register(SizeStyle, true);
       setEditorReady(true);
     };
     init();
