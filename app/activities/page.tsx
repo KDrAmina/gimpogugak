@@ -2,8 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Metadata } from "next";
 import Image from "next/image";
 
-// 0. 새로고침하면 바로 반영되게 설정
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // Cache for 60 seconds (ISR)
 
 // 1. Supabase 연결
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

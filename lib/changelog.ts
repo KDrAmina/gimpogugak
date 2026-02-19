@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.41",
+    date: "2026-02-10",
+    changes: [
+      "성능 튜닝: 블로그/활동 페이지 캐싱(ISR) 적용 및 글꼴 로딩 최적화(font-display: swap)로 LCP 점수 개선",
+    ],
+  },
+  {
     version: "1.40",
     date: "2026-02-10",
     changes: [

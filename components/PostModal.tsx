@@ -12,7 +12,10 @@ const SizeStyle = Quill.import("attributors/style/size");
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 Quill.register(SizeStyle as any, true);
 
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+  loading: () => <p>에디터 로딩중...</p>,
+});
 
 const BUCKET = "public-media";
 const BLOG_CONTENT_PATH = "blog-content";

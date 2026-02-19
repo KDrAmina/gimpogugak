@@ -4,6 +4,8 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { stripHtml } from "@/lib/html-utils";
 
+export const revalidate = 60; // Cache for 60 seconds (ISR)
+
 export const metadata: Metadata = {
   title: "국악원 소식 | 김포국악원 (Gimpo Gugak Center)",
   description: "김포국악원의 소식과 블로그를 확인하세요.",
