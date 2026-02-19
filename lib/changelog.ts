@@ -10,6 +10,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.37",
+    date: "2026-02-19",
+    changes: [
+      "커스텀 웹 폰트 6종(프리텐다드, 노토산스, 나눔명조, 마포애민, 교보손글씨, 잘난체) 에디터 적용",
+    ],
+  },
+  {
+    version: "1.36",
+    date: "2026-02-19",
+    changes: [
+      "스마트 에디터 고도화: 글씨 크기 조절 옵션 추가 및 툴바 상단 고정(Sticky) 적용",
+    ],
+  },
+  {
     version: "1.35",
     date: "2026-02-19",
     changes: [

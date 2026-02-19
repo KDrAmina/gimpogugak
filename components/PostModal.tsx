@@ -12,10 +12,13 @@ const BUCKET = "public-media";
 const BLOG_CONTENT_PATH = "blog-content";
 const DEFAULT_CATEGORY = "소식";
 
+const FONT_WHITELIST = ["pretendard", "notosans", "nanummyeongjo", "mapoaemin", "kyobohand", "jalnan"];
+
 const QUILL_MODULES = (imageHandler: () => void) => ({
   toolbar: {
     container: [
-      [{ font: ["", "gowun-dodum", "nanum-myeongjo", "nanum-gothic", "jua", "gowun-batang", "nanum-pen"] }],
+      [{ font: ["", ...FONT_WHITELIST] }],
+      [{ size: ["small", false, "large", "huge"] }],
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic"],
       [{ align: [] }],
@@ -32,7 +35,7 @@ const QUILL_MODULES = (imageHandler: () => void) => ({
   },
 });
 
-const QUILL_FORMATS = ["font", "header", "bold", "italic", "align", "image", "resize-inline", "resize-block"];
+const QUILL_FORMATS = ["font", "size", "header", "bold", "italic", "align", "image", "resize-inline", "resize-block"];
 
 export type PostForEdit = {
   id: string;
@@ -100,7 +103,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       const QuillResize = (await import("quill-resize-module")).default;
       Quill.register("modules/resize", QuillResize);
       const Font = Quill.import("formats/font");
-      (Font as { whitelist: string[] }).whitelist = ["gowun-dodum", "nanum-myeongjo", "nanum-gothic", "jua", "gowun-batang", "nanum-pen"];
+      (Font as { whitelist: string[] }).whitelist = FONT_WHITELIST;
       Quill.register("formats/font", Font, true);
       setEditorReady(true);
     };
@@ -294,12 +297,12 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">내용 *</label>
               <div
-                className="quill-editor-wrapper [&_.ql-container]:min-h-[200px] [&_.ql-editor]:min-h-[180px]"
+                className="quill-editor-wrapper [&_.ql-container]:min-h-[400px] [&_.ql-editor]:min-h-[380px]"
                 onDrop={handleEditorDrop}
                 onDragOver={(e) => e.preventDefault()}
               >
                 {!editorReady ? (
-                  <div className="min-h-[200px] flex items-center justify-center border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                  <div className="min-h-[400px] flex items-center justify-center border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
                     에디터 로딩 중...
                   </div>
                 ) : (
