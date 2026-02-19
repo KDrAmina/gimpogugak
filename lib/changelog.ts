@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.40",
+    date: "2026-02-10",
+    changes: [
+      "상세 페이지 줄바꿈 강제 적용, 에디터 숫자 글자 크기 반영 및 페이지 이동 속도 개선(로딩 UI 추가)",
+    ],
+  },
+  {
     version: "1.39",
     date: "2026-02-10",
     changes: [

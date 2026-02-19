@@ -67,7 +67,7 @@ export default async function BlogDetailPage({ params }: Props) {
   }
 
   return (
-    <article className="mx-auto max-w-2xl px-6 py-12">
+    <article className="blog-detail-article mx-auto max-w-2xl px-6 py-12">
       <header className="mb-8">
         <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#111] mb-2">
           {post.title}
@@ -75,11 +75,11 @@ export default async function BlogDetailPage({ params }: Props) {
         <p className="text-sm text-gray-500">{formatDate(post.created_at)}</p>
       </header>
 
-      <div className="ql-snow blog-content-viewer">
+      <div className="ql-snow">
         <div
           className="ql-editor"
           dangerouslySetInnerHTML={{ __html: post.content }}
-          style={{ padding: 0 }}
+          style={{ padding: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
         />
       </div>
 

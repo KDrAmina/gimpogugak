@@ -3,10 +3,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
-
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+import { Quill } from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import "quill-resize-module/dist/resize.css";
+
+const SizeStyle = Quill.import("attributors/style/size");
+(SizeStyle as { whitelist: string[] }).whitelist = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+Quill.register(SizeStyle as any, true);
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const BUCKET = "public-media";
 const BLOG_CONTENT_PATH = "blog-content";
@@ -14,13 +20,11 @@ const DEFAULT_CATEGORY = "소식";
 
 const FONT_WHITELIST = ["pretendard", "notosans", "nanummyeongjo", "mapoaemin", "kyobohand", "jalnan"];
 
-const SIZE_WHITELIST = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"];
-
 const QUILL_MODULES = (imageHandler: () => void) => ({
   toolbar: {
     container: [
       [{ font: ["", ...FONT_WHITELIST] }],
-      [{ size: SIZE_WHITELIST }],
+      [{ size: ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"] }],
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic"],
       [{ align: [] }],
@@ -107,9 +111,6 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       const Font = Quill.import("formats/font");
       (Font as { whitelist: string[] }).whitelist = FONT_WHITELIST;
       Quill.register("formats/font", Font, true);
-      const SizeStyle = Quill.import("attributors/style/size");
-      (SizeStyle as { whitelist: string[] }).whitelist = SIZE_WHITELIST;
-      Quill.register(SizeStyle, true);
       setEditorReady(true);
     };
     init();

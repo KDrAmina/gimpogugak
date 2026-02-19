@@ -80,7 +80,7 @@ body {
 
 /* Quill editor & blog content: responsive images */
 .quill-editor-wrapper .ql-editor img,
-.blog-content-viewer .ql-editor img {
+.blog-detail-article .ql-editor img {
   display: block !important;
   max-width: 100% !important;
   height: auto !important;
@@ -88,22 +88,22 @@ body {
 
 /* 기본 정렬: 부모에 resize 스타일이 없을 때만 가운데 */
 .quill-editor-wrapper .ql-editor p:not([class*="ql-resize-style"]) img,
-.blog-content-viewer .ql-editor p:not([class*="ql-resize-style"]) img {
+.blog-detail-article .ql-editor p:not([class*="ql-resize-style"]) img {
   margin-left: auto;
   margin-right: auto;
 }
 
 /* quill-resize-module 정렬 스타일 (부모 블록에 적용됨) */
 .ql-resize-style-left,
-.blog-content-viewer .ql-resize-style-left { float: left; margin: 0 1em 1em 0; }
+.blog-detail-article .ql-resize-style-left { float: left; margin: 0 1em 1em 0; }
 .ql-resize-style-right,
-.blog-content-viewer .ql-resize-style-right { float: right; margin: 0 0 1em 1em; }
+.blog-detail-article .ql-resize-style-right { float: right; margin: 0 0 1em 1em; }
 .ql-resize-style-center,
-.blog-content-viewer .ql-resize-style-center { display: block; margin-left: auto; margin-right: auto; text-align: center; }
+.blog-detail-article .ql-resize-style-center { display: block; margin-left: auto; margin-right: auto; text-align: center; }
 .ql-resize-style-full,
-.blog-content-viewer .ql-resize-style-full { width: 100% !important; }
+.blog-detail-article .ql-resize-style-full { width: 100% !important; }
 .ql-resize-style-full img,
-.blog-content-viewer .ql-resize-style-full img { width: 100%; }
+.blog-detail-article .ql-resize-style-full img { width: 100%; }
 
 /* Quill font dropdown - Korean fonts (Pretendard, Noto Sans KR, Nanum Myeongjo, Mapo Aemin, Kyobo Hand, Jalnan) */
 .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="pretendard"]::before,
@@ -127,6 +127,6 @@ body {
 .ql-font-jalnan { font-family: "Jalnan", sans-serif; }
 
 /* Blog detail content - apply Korean font (globals.css loaded, .ql-font-* applies automatically) */
-.blog-content-viewer {
+.blog-detail-article {
   font-family: "Nanum Myeongjo", serif;
 }
