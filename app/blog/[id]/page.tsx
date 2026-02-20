@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
@@ -53,6 +54,60 @@ function formatDate(dateStr: string) {
   return `${y}.${m}.${day}`;
 }
 
+function BlogContactSection() {
+  const addressQuery = "경기도 김포시 모담공원로 170-14";
+  const encodedAddress = encodeURIComponent(addressQuery);
+  const naverMapLink = `https://map.naver.com/v5/search/${encodedAddress}`;
+  const googleMapLink = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  const kakaoMapLink = `https://map.kakao.com/link/search/${encodedAddress}`;
+
+  return (
+    <div className="mt-16 pt-12 border-t border-gray-200">
+      <div className="mb-4">
+        <a
+          href={naverMapLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative block w-full aspect-video sm:h-[320px] bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm group"
+        >
+          <Image
+            src="/image_b4e966.jpg"
+            alt="김포국악원 약도"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 672px"
+          />
+          <div className="absolute top-4 left-0 w-full flex justify-center z-10 px-4">
+            <span className="bg-black/70 backdrop-blur-sm text-white text-xs sm:text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              👆 사진을 누르면 <span className="text-[#03C75A] font-bold">네이버 지도</span>로 연결됩니다
+            </span>
+          </div>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+        </a>
+
+        <div className="flex gap-3 mt-4">
+          <a
+            href={googleMapLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 py-3 text-center text-sm font-bold text-[#4285F4] bg-white border border-[#4285F4] rounded-lg hover:bg-[#4285F4] hover:text-white transition-colors shadow-sm"
+          >
+            Google 지도 보기
+          </a>
+          <a
+            href={kakaoMapLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 py-3 text-center text-sm font-bold text-[#371D1E] bg-[#FAE100] rounded-lg hover:bg-[#ebd300] transition-colors shadow-sm"
+          >
+            카카오맵으로 보기
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function BlogDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
@@ -83,6 +138,8 @@ export default async function BlogDetailPage({ params }: Props) {
           style={{ padding: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
         />
       </div>
+
+      <BlogContactSection />
 
       <footer className="mt-12 pt-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Link

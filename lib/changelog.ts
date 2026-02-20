@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.55",
+    date: "2026-02-10",
+    changes: [
+      "블로그 하단에 문의(Contact) 페이지와 동일한 자동 서명 및 지도 섹션 추가",
+    ],
+  },
+  {
     version: "1.53",
     date: "2026-02-10",
     changes: [
