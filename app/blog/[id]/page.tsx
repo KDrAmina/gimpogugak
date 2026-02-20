@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createClientForBuild } from "@/lib/supabase/build";
 import { notFound } from "next/navigation";
 import { stripHtml, sanitizeHtml } from "@/lib/html-utils";
 import "react-quill-new/dist/quill.snow.css";
@@ -13,12 +14,12 @@ export const revalidate = 60;
 
 export async function generateStaticParams() {
   try {
-    const supabase = await createClient();
+    const supabase = createClientForBuild();
     const { data: posts } = await supabase
       .from("posts")
       .select("id")
       .eq("category", "소식");
-    return (posts ?? []).map((post) => ({ id: post.id }));
+    return (posts ?? []).map((post) => ({ id: String(post.id) }));
   } catch {
     return [];
   }
