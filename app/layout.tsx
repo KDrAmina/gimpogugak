@@ -1,14 +1,13 @@
 import Analytics from "../components/Analytics";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
-import { Noto_Serif_KR, Noto_Sans_KR, Gowun_Dodum, Nanum_Myeongjo, Nanum_Gothic, Jua, Gowun_Batang, Nanum_Pen_Script } from "next/font/google";
+import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 
-// 1. 폰트 최적화 — 실제 사용하는 weight만 로드
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
-  weight: ["400", "700"],       // 👈 900 제거 (미사용 weight 줄여 CSS 절감)
+  weight: ["400", "700"],
   variable: "--font-noto-serif",
   display: "swap",
   preload: true,
@@ -22,56 +21,11 @@ const notoSans = Noto_Sans_KR({
   preload: true,
 });
 
-const gowunDodum = Gowun_Dodum({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-gowun-dodum",
-  display: "swap",
-});
-
-const nanumMyeongjo = Nanum_Myeongjo({
-  subsets: ["latin"],
-  weight: ["400", "700", "800"],
-  variable: "--font-nanum-myeongjo",
-  display: "swap",
-});
-
-const nanumGothic = Nanum_Gothic({
-  subsets: ["latin"],
-  weight: ["400", "700", "800"],
-  variable: "--font-nanum-gothic",
-  display: "swap",
-});
-
-const jua = Jua({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-jua",
-  display: "swap",
-});
-
-const gowunBatang = Gowun_Batang({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-gowun-batang",
-  display: "swap",
-});
-
-const nanumPen = Nanum_Pen_Script({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-nanum-pen",
-  display: "swap",
-});
-
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
 
-// 2. 뷰포트 설정 (App-like: 줌 비활성화)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#ffffff",
 };
 
@@ -170,7 +124,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable} ${nanumGothic.variable} ${jua.variable} ${gowunBatang.variable} ${nanumPen.variable}`}>
+    <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable}`}>
       <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111] antialiased">
         <script
           type="application/ld+json"

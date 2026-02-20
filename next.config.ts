@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
   
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    // ❌ inlineCss: true  <-- 이거 지웠습니다! (이게 87점의 원인)
+    inlineCss: true,
   },
 };
 

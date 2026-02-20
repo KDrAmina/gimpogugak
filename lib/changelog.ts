@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.45",
+    date: "2026-02-10",
+    changes: [
+      "전역 폰트 로딩 최적화(next/font 적용 및 미사용 폰트 분리), 접근성 100점 달성(viewport 수정), CSS 인라인화 복구",
+    ],
+  },
+  {
     version: "1.43",
     date: "2026-02-10",
     changes: [
