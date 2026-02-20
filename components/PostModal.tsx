@@ -21,7 +21,11 @@ Quill.register(Font as any, true);
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
-  loading: () => <p>에디터 로딩중...</p>,
+  loading: () => (
+    <div className="h-64 bg-gray-50 animate-pulse flex items-center justify-center">
+      에디터 로딩 중...
+    </div>
+  ),
 });
 
 const BUCKET = "public-media";
