@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
+import { createClient } from "@/lib/supabase/server";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpogugak.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const routes: MetadataRoute.Sitemap = [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
@@ -20,6 +21,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/Park-Jun-Yeol`,
       lastModified: new Date(),
       changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
       priority: 0.9,
     },
     {
@@ -66,5 +73,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  return routes;
+  const supabase = await createClient();
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("id, updated_at, created_at")
+    .eq("category", "소식")
+    .order("updated_at", { ascending: false });
+
+  const dynamicRoutes: MetadataRoute.Sitemap = (posts ?? []).map((post) => ({
+    url: `${baseUrl}/blog/${post.id}`,
+    lastModified: post.updated_at ? new Date(post.updated_at) : new Date(post.created_at),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...dynamicRoutes];
 }

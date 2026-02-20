@@ -10,6 +10,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.52",
+    date: "2026-02-10",
+    changes: [
+      "sitemap.ts에 누락되었던 핵심 라우트(/blog 목록 페이지) 추가",
+    ],
+  },
+  {
+    version: "1.51",
+    date: "2026-02-10",
+    changes: [
+      "sitemap.ts에 Supabase 동적 블로그 게시글 데이터 연동 (SEO 최적화)",
+    ],
+  },
+  {
     version: "1.50",
     date: "2026-02-10",
     changes: [
