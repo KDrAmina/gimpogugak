@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.53",
+    date: "2026-02-10",
+    changes: [
+      "블로그 에디터 '코드 블록(code-block)' 기능 추가 및 스타일링 적용",
+    ],
+  },
+  {
     version: "1.52",
     date: "2026-02-10",
     changes: [

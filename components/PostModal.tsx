@@ -35,7 +35,7 @@ const QUILL_MODULES = (imageHandler: () => void) => ({
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
       [{ align: [] }],
-      ["link", "image"],
+      ["link", "image", "code-block"],
       ["clean"],
     ],
     handlers: { image: imageHandler },
@@ -60,6 +60,7 @@ const QUILL_FORMATS = [
   "align",
   "link",
   "image",
+  "code-block",
   "resize-inline",
   "resize-block",
 ];

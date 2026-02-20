@@ -174,3 +174,15 @@ body {
 .ql-editor a:hover, .ql-snow .ql-editor a:hover {
   color: #1d4ed8 !important; /* Tailwind blue-700 */
 }
+
+/* Quill 에디터 & 뷰어 코드 블록 스타일 */
+.ql-editor pre.ql-syntax,
+.ql-snow .ql-editor pre.ql-syntax {
+  background-color: #23241f !important;
+  color: #f8f8f2 !important;
+  overflow: visible !important;
+  padding: 1rem !important;
+  border-radius: 8px !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  line-height: 1.5 !important;
+}
