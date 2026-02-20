@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.47",
+    date: "2026-02-10",
+    changes: [
+      "수업관리 진도 날짜 표시 추가, 수업 취소 달력 동기화 버그 수정, 캘린더 내장 삭제 버튼 추가",
+    ],
+  },
+  {
     version: "1.46",
     date: "2026-02-10",
     changes: [

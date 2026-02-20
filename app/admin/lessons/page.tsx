@@ -344,6 +344,42 @@ export default function AdminLessonsPage() {
     }
   }
 
+  async function handleDeleteLessonHistory(historyId: string, lessonId: string) {
+    if (!window.confirm("정말 이 수업 일정을 삭제하시겠습니까?")) {
+      return;
+    }
+    try {
+      const lesson = lessons.find((l) => l.id === lessonId);
+      if (!lesson) return;
+
+      const { error: deleteError } = await supabase
+        .from("lesson_history")
+        .delete()
+        .eq("id", historyId);
+
+      if (deleteError) throw deleteError;
+
+      const newSession = Math.max(0, lesson.current_session - 1);
+      const { error } = await supabase
+        .from("lessons")
+        .update({ current_session: newSession })
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      await Promise.all([loadLessons(), loadLessonHistory()]);
+      const remaining = selectedDateLessons.filter((s) => s.id !== historyId);
+      setSelectedDateLessons(remaining);
+      if (remaining.length === 0) {
+        closeDetailModal();
+      }
+      alert("✅ 수업 일정이 삭제되었습니다.");
+    } catch (error) {
+      console.error("Delete lesson history error:", error);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  }
+
   async function handleUndoSession(lessonId: string) {
     try {
       const lesson = lessons.find(l => l.id === lessonId);
@@ -377,6 +413,11 @@ export default function AdminLessonsPage() {
       if (error) throw error;
 
       await Promise.all([loadLessons(), loadLessonHistory()]);
+      const remainingSessions = selectedDateLessons.filter(
+        (s) => !(s.lesson_id === lessonId && s.session_number === sessionToRemove)
+      );
+      setSelectedDateLessons(remainingSessions);
+      if (remainingSessions.length === 0) closeDetailModal();
       alert("✅ 마지막 수업이 취소되었습니다.");
     } catch (error) {
       console.error("Undo error:", error);
@@ -1423,26 +1464,48 @@ export default function AdminLessonsPage() {
                       이 날짜에 수업이 없습니다.
                     </p>
                   ) : (
-                    selectedDateLessons.map((session) => (
-                      <div
-                        key={session.id}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-bold text-gray-900">
-                            {session.student_name}
-                          </h3>
-                          <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">
-                            {session.session_number}회차
-                          </span>
+                    selectedDateLessons.map((session) => {
+                      const dateFormatted = session.completed_date
+                        ? (() => {
+                            const d = new Date(session.completed_date);
+                            const y = String(d.getFullYear()).slice(-2);
+                            const m = String(d.getMonth() + 1).padStart(2, "0");
+                            const day = String(d.getDate()).padStart(2, "0");
+                            return `${y}.${m}.${day}`;
+                          })()
+                        : "";
+                      return (
+                        <div
+                          key={session.id}
+                          className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-bold text-gray-900">
+                              {session.student_name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 font-medium">
+                                {dateFormatted}
+                              </span>
+                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">
+                                {session.session_number}회차
+                              </span>
+                              <button
+                                onClick={() => handleDeleteLessonHistory(session.id, session.lesson_id)}
+                                className="px-2 py-1 bg-red-500 text-white hover:bg-red-600 rounded text-xs font-medium transition-colors"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <span className="px-2 py-0.5 bg-white rounded border border-blue-300 text-blue-700 font-medium">
+                              {session.category}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <span className="px-2 py-0.5 bg-white rounded border border-blue-300 text-blue-700 font-medium">
-                            {session.category}
-                          </span>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
