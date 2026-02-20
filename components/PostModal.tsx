@@ -3,20 +3,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
-import { Quill } from "react-quill-new";
 import { sanitizeHtml } from "@/lib/html-utils";
-import "react-quill-new/dist/quill.snow.css";
-import "quill-resize-module/dist/resize.css";
 
-const SizeStyle = Quill.import("attributors/style/size");
-(SizeStyle as { whitelist: string[] }).whitelist = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-Quill.register(SizeStyle as any, true);
-
-const Font = Quill.import("formats/font");
-(Font as { whitelist: string[] }).whitelist = ["gowunDodum", "nanumMyeongjo"];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-Quill.register(Font as any, true);
+// ⚠️ react-quill-new / quill are NOT statically imported here.
+// All Quill module loading and format registration happens inside the
+// useEffect init() below so that the editor code stays out of the main
+// (public) JS bundle and is only fetched when the admin modal first mounts.
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -132,9 +124,33 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
 
   useEffect(() => {
     const init = async () => {
+      // 1. Load the Quill core via react-quill-new and register custom formats.
+      //    This import is fully dynamic — Quill stays out of the main bundle.
+      const { Quill: QuillCore } = await import("react-quill-new");
+
+      const SizeStyle = QuillCore.import("attributors/style/size") as { whitelist: string[] };
+      SizeStyle.whitelist = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      QuillCore.register(SizeStyle as any, true);
+
+      const Font = QuillCore.import("formats/font") as { whitelist: string[] };
+      Font.whitelist = ["gowunDodum", "nanumMyeongjo"];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      QuillCore.register(Font as any, true);
+
+      // 2. Load the image-resize plugin and register it.
       const QuillModule = (await import("quill")).default;
       const QuillResize = (await import("quill-resize-module")).default;
       QuillModule.register("modules/resize", QuillResize);
+
+      // 3. Load editor CSS lazily — only needed inside the admin modal.
+      //    webpack handles CSS dynamic imports at runtime; TypeScript has no
+      //    declarations for CSS files so we suppress the module-not-found error.
+      // @ts-ignore
+      await import("react-quill-new/dist/quill.snow.css");
+      // @ts-ignore
+      await import("quill-resize-module/dist/resize.css");
+
       setEditorReady(true);
     };
     init();

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
-const HomeBadges = dynamic(() => import("@/components/home/HomeBadges").then((m) => ({ default: m.HomeBadges })));
-const HomeConnect = dynamic(() => import("@/components/home/HomeConnect").then((m) => ({ default: m.HomeConnect })));
+import { HomeBadges } from "@/components/home/HomeBadges";
+import { HomeConnect } from "@/components/home/HomeConnect";
 
 // 👇 외부 이미지 주소
 const HERO_IMAGE =
@@ -23,7 +22,23 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <article className="max-w-2xl mx-auto px-6 py-12">
+    <>
+      {/*
+        Force-inject a <link rel="preload"> for the LCP image into <head>.
+        Next.js App Router hoists bare <link> elements from Server Components
+        to the document head automatically, so this fires as early as any
+        other resource hint — before React even begins hydrating.
+        Belt-and-suspenders on top of the `priority` / fetchPriority props
+        on the <Image> below.
+      */}
+      {/* eslint-disable-next-line @next/next/no-head-element */}
+      <link
+        rel="preload"
+        as="image"
+        href={HERO_IMAGE}
+        fetchPriority="high"
+      />
+      <article className="max-w-2xl mx-auto px-6 py-12">
       <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#111] tracking-tight">
         한국의 전통, 대한의 소리
       </h1>
@@ -89,8 +104,9 @@ export default function HomePage() {
         </p>
       </div>
 
-      <HomeBadges />
-      <HomeConnect />
+      <Suspense fallback={null}><HomeBadges /></Suspense>
+      <Suspense fallback={null}><HomeConnect /></Suspense>
     </article>
+    </>
   );
 }

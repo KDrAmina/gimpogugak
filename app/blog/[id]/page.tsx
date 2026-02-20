@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import ShareButton from "@/components/ShareButton";
 import { stripHtml, sanitizeHtml } from "@/lib/html-utils";
 import "react-quill-new/dist/quill.snow.css";
+
+import ShareButtonLazy from "@/components/ShareButtonLazy";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -73,6 +75,7 @@ function BlogContactSection() {
             src="/image_b4e966.jpg"
             alt="김포국악원 약도"
             fill
+            loading="lazy"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 672px"
           />
@@ -138,7 +141,11 @@ export default async function BlogDetailPage({ params }: Props) {
         />
       </div>
 
-      <BlogContactSection />
+      {/* Wrap in Suspense so the heavy map section doesn't block FCP/LCP.
+          The map image itself also carries loading="lazy" for belt-and-suspenders. */}
+      <Suspense fallback={null}>
+        <BlogContactSection />
+      </Suspense>
 
       <footer className="mt-12 pt-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Link
@@ -147,7 +154,7 @@ export default async function BlogDetailPage({ params }: Props) {
         >
           ← 목록으로 돌아가기
         </Link>
-        <ShareButton />
+        <ShareButtonLazy />
       </footer>
     </article>
   );

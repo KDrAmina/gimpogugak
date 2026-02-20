@@ -25,6 +25,10 @@ const gowunDodum = Gowun_Dodum({
   weight: ["400"],
   variable: "--font-gowun-dodum",
   display: "swap",
+  // preload: false — this font is only used inside the Quill editor / blog
+  // viewer, not on public pages. Skipping the <link rel="preload"> removes
+  // a bandwidth competitor that delayed the hero-image LCP fetch.
+  preload: false,
 });
 
 const nanumMyeongjo = Nanum_Myeongjo({
@@ -32,6 +36,8 @@ const nanumMyeongjo = Nanum_Myeongjo({
   weight: ["400", "700"],
   variable: "--font-nanum-myeongjo",
   display: "swap",
+  // preload: false — same rationale as gowunDodum above.
+  preload: false,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
