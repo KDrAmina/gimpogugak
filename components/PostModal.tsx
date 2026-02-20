@@ -37,17 +37,9 @@ const QUILL_MODULES = (imageHandler: () => void) => ({
       ["bold", "italic", "underline", "strike"],
       [{ align: [] }],
       ["link", "image"],
-      ["code-block"],
       ["clean"],
     ],
     handlers: { image: imageHandler },
-  },
-  htmlEditButton: {
-    buttonHTML: "<>",
-    buttonTitle: "HTML 소스 보기",
-    msg: "HTML을 직접 수정하세요. 확인 시 에디터에 반영됩니다. <script> 태그는 보안상 제거됩니다.",
-    okText: "적용",
-    cancelText: "취소",
   },
   resize: {
     modules: ["DisplaySize", "Toolbar", "Resize", "Keyboard"],
@@ -69,7 +61,6 @@ const QUILL_FORMATS = [
   "align",
   "link",
   "image",
-  "code-block",
   "resize-inline",
   "resize-block",
 ];
@@ -96,6 +87,8 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [editorReady, setEditorReady] = useState(false);
+  const [sourceMode, setSourceMode] = useState(false);
+  const [sourceDraft, setSourceDraft] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<unknown>(null);
   const supabase = createClient();
@@ -138,13 +131,21 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
     const init = async () => {
       const QuillModule = (await import("quill")).default;
       const QuillResize = (await import("quill-resize-module")).default;
-      const { htmlEditButton } = await import("quill-html-edit-button");
       QuillModule.register("modules/resize", QuillResize);
-      QuillModule.register("modules/htmlEditButton", htmlEditButton);
       setEditorReady(true);
     };
     init();
   }, []);
+
+  const toggleSourceMode = useCallback(() => {
+    if (sourceMode) {
+      setContent(sanitizeHtml(sourceDraft));
+      setSourceMode(false);
+    } else {
+      setSourceDraft(content);
+      setSourceMode(true);
+    }
+  }, [sourceMode, sourceDraft, content]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -341,17 +342,51 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
                   <div className="min-h-[400px] flex items-center justify-center border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
                     에디터 로딩 중...
                   </div>
+                ) : sourceMode ? (
+                  <>
+                    <textarea
+                      value={sourceDraft}
+                      onChange={(e) => setSourceDraft(e.target.value)}
+                      className="w-full min-h-[380px] p-4 font-mono text-sm border border-gray-300 rounded-t-lg bg-[#23241f] text-[#f8f8f2] resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="HTML 코드를 직접 입력하세요. <style> 태그도 사용 가능합니다."
+                      spellCheck={false}
+                    />
+                    <div className="flex items-center justify-end gap-2 px-3 py-2 bg-[#f8f9fa] border border-t-0 border-gray-300 rounded-b-lg">
+                      <button
+                        type="button"
+                        onClick={toggleSourceMode}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="적용 후 에디터로 돌아가기"
+                      >
+                        <span className="text-base">&lt;&gt;</span>
+                        적용
+                      </button>
+                    </div>
+                  </>
                 ) : (
-                  <ReactQuill
-                    {...({ ref: quillRef } as object)}
-                    theme="snow"
-                    value={content}
-                    onChange={setContent}
-                    modules={modules}
-                    formats={QUILL_FORMATS}
-                    placeholder="내용을 입력하세요. 이미지는 드래그 앤 드롭 또는 이미지 버튼으로 추가할 수 있습니다."
-                    className="[&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-lg [&_.ql-editor]:rounded-b-lg"
-                  />
+                  <>
+                    <ReactQuill
+                      {...({ ref: quillRef } as object)}
+                      theme="snow"
+                      value={content}
+                      onChange={setContent}
+                      modules={modules}
+                      formats={QUILL_FORMATS}
+                      placeholder="내용을 입력하세요. 이미지는 드래그 앤 드롭 또는 이미지 버튼으로 추가할 수 있습니다."
+                      className="[&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-none [&_.ql-editor]:rounded-b-none"
+                    />
+                    <div className="flex items-center justify-end gap-2 px-3 py-2 bg-[#f8f9fa] border border-t-0 border-gray-300 rounded-b-lg">
+                      <button
+                        type="button"
+                        onClick={toggleSourceMode}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="HTML 소스 코드 직접 편집"
+                      >
+                        <span className="text-base">&lt;&gt;</span>
+                        HTML 소스
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
