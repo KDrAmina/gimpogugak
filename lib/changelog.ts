@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.61",
+    date: "2026-02-20",
+    changes: [
+      "블로그 상세 페이지 정적 생성(SSG/ISR) 적용으로 로딩 속도 극대화",
+    ],
+  },
+  {
     version: "1.60",
     date: "2026-02-20",
     changes: [

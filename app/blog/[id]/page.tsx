@@ -9,6 +9,21 @@ import "react-quill-new/dist/quill.snow.css";
 
 import ShareButtonLazy from "@/components/ShareButtonLazy";
 
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  try {
+    const supabase = await createClient();
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("category", "소식");
+    return (posts ?? []).map((post) => ({ id: post.id }));
+  } catch {
+    return [];
+  }
+}
+
 type Props = { params: Promise<{ id: string }> };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
