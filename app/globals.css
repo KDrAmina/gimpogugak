@@ -81,7 +81,9 @@ body {
   font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   word-break: keep-all !important; /* 모바일: '무형문화재' 등 한글 단어 끊김 방지 */
 }
-.blog-detail-article .ql-editor {
+/* ql-editor: 에디터 기본 스타일 우선 - 붙여넣은 HTML 인라인 스타일과 충돌 방지 */
+.blog-detail-article .ql-editor,
+.quill-editor-wrapper .ql-editor {
   word-break: keep-all !important;
 }
 

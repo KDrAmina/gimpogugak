@@ -4,7 +4,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
-import { stripHtml } from "@/lib/html-utils";
+import { stripHtml, sanitizeHtml } from "@/lib/html-utils";
 import { gowunDodum, nanumMyeongjo } from "@/lib/fonts";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -134,7 +134,7 @@ export default async function BlogDetailPage({ params }: Props) {
       <div className={`ql-snow ${gowunDodum.variable} ${nanumMyeongjo.variable}`}>
         <div
           className="ql-editor"
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
           style={{ padding: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
         />
       </div>

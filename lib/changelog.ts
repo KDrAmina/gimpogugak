@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.57",
+    date: "2026-02-10",
+    changes: [
+      "에디터 'HTML 소스 직접 수정(View Source)' 기능 추가",
+    ],
+  },
+  {
     version: "1.56",
     date: "2026-02-10",
     changes: [

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Quill } from "react-quill-new";
+import { sanitizeHtml } from "@/lib/html-utils";
 import { gowunDodum, nanumMyeongjo } from "@/lib/fonts";
 import "react-quill-new/dist/quill.snow.css";
 import "quill-resize-module/dist/resize.css";
@@ -40,6 +41,13 @@ const QUILL_MODULES = (imageHandler: () => void) => ({
       ["clean"],
     ],
     handlers: { image: imageHandler },
+  },
+  htmlEditButton: {
+    buttonHTML: "<>",
+    buttonTitle: "HTML 소스 보기",
+    msg: "HTML을 직접 수정하세요. 확인 시 에디터에 반영됩니다. <script> 태그는 보안상 제거됩니다.",
+    okText: "적용",
+    cancelText: "취소",
   },
   resize: {
     modules: ["DisplaySize", "Toolbar", "Resize", "Keyboard"],
@@ -128,9 +136,11 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
 
   useEffect(() => {
     const init = async () => {
-      const Quill = (await import("quill")).default;
+      const QuillModule = (await import("quill")).default;
       const QuillResize = (await import("quill-resize-module")).default;
-      Quill.register("modules/resize", QuillResize);
+      const { htmlEditButton } = await import("quill-html-edit-button");
+      QuillModule.register("modules/resize", QuillResize);
+      QuillModule.register("modules/htmlEditButton", htmlEditButton);
       setEditorReady(true);
     };
     init();
@@ -218,7 +228,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       const { data: { user } } = await supabase.auth.getUser();
       const payload = {
         title: title.trim(),
-        content: content.trim(),
+        content: sanitizeHtml(content.trim()),
         category: DEFAULT_CATEGORY,
         tag: DEFAULT_CATEGORY,
         thumbnail_url: thumbnailUrl,
