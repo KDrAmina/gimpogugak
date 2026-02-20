@@ -48,6 +48,7 @@ export default function AdminLessonsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
   const [lessonHistory, setLessonHistory] = useState<LessonHistoryItem[]>([]);
+  const [allLessonHistory, setAllLessonHistory] = useState<LessonHistoryItem[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [viewDate, setViewDate] = useState(() => new Date());
   
@@ -122,7 +123,7 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      await Promise.all([loadLessons(), loadUnassignedUsers()]);
+      await Promise.all([loadLessons(), loadUnassignedUsers(), loadAllLessonHistory()]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -293,6 +294,49 @@ export default function AdminLessonsPage() {
     }
   }
 
+  async function loadAllLessonHistory() {
+    try {
+      const { data, error } = await supabase
+        .from("lesson_history")
+        .select(`
+          id,
+          lesson_id,
+          session_number,
+          completed_date,
+          lessons (
+            category,
+            user_id,
+            profiles (
+              name,
+              role
+            )
+          )
+        `)
+        .order("session_number", { ascending: true });
+
+      if (error || !data) {
+        setAllLessonHistory([]);
+        return;
+      }
+
+      const formatted = data
+        .filter((item: any) => item.lessons?.profiles?.role === "user")
+        .map((item: any) => ({
+          id: item.id,
+          lesson_id: item.lesson_id,
+          session_number: item.session_number,
+          completed_date: item.completed_date,
+          student_name: item.lessons?.profiles?.name || "Unknown",
+          category: item.lessons?.category || "성인개인",
+        }));
+
+      setAllLessonHistory(formatted);
+    } catch (error) {
+      console.error("Error loading all lesson history:", error);
+      setAllLessonHistory([]);
+    }
+  }
+
   async function handleCheckIn(lessonId: string) {
     try {
       const lesson = lessons.find(l => l.id === lessonId);
@@ -333,7 +377,7 @@ export default function AdminLessonsPage() {
       }
 
       // Step 3: Refresh data
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
 
       if (newSession === 4) {
         alert(`🎉 ${lesson.student_name}님의 4회 수업이 모두 완료되었습니다!`);
@@ -367,7 +411,7 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
       const remaining = selectedDateLessons.filter((s) => s.id !== historyId);
       setSelectedDateLessons(remaining);
       if (remaining.length === 0) {
@@ -412,7 +456,7 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
       const remainingSessions = selectedDateLessons.filter(
         (s) => !(s.lesson_id === lessonId && s.session_number === sessionToRemove)
       );
@@ -441,7 +485,7 @@ export default function AdminLessonsPage() {
         .update({ current_session: 0 })
         .neq("id", "00000000-0000-0000-0000-000000000000");
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
       alert("✅ 캘린더가 리셋되었습니다.");
     } catch (error) {
       console.error("Reset calendar error:", error);
@@ -751,7 +795,7 @@ export default function AdminLessonsPage() {
 
       if (historyError) throw historyError;
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
       closeAddLessonByDateModal();
       alert(`✅ ${lesson.student_name}님의 수업이 ${selectedDateForAdd}로 기록되었습니다.`);
     } catch (error: any) {
@@ -959,6 +1003,94 @@ export default function AdminLessonsPage() {
           </div>
         )}
 
+        {/* Calendar View */}
+        {showCalendar && calendarData && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                  aria-label="이전 달"
+                >
+                  <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
+                </button>
+                <h2 className="text-xl font-bold text-gray-900 min-w-[180px] text-center">
+                  📅 {calendarData.year}년 {calendarData.month + 1}월
+                </h2>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                  aria-label="다음 달"
+                >
+                  <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+                </button>
+              </div>
+              <button
+                onClick={handleToday}
+                className="px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors font-medium text-sm"
+              >
+                오늘
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+              {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                <div key={day} className="text-center text-xs font-bold text-gray-500 py-2">{day}</div>
+              ))}
+              {Array(calendarData.firstDay).fill(null).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square"></div>
+              ))}
+              {calendarData.days.map((day) => {
+                const hasFourthSession = day.sessions.some((s) => s.session_number % 4 === 0);
+                const bgColor = hasFourthSession
+                  ? "bg-orange-500 border-orange-600 hover:bg-orange-600"
+                  : day.sessions.length > 0
+                    ? "bg-blue-600 border-blue-700 hover:bg-blue-700"
+                    : "border-gray-200 hover:bg-gray-100";
+                return (
+                  <button
+                    key={day.date}
+                    onClick={() => handleDateClick(day.dateStr, day.sessions)}
+                    className={`aspect-square border rounded-lg p-1 transition-all cursor-pointer hover:shadow-lg ${bgColor}`}
+                  >
+                    <p className={`text-xs font-bold mb-1 ${
+                      day.sessions.length > 0 ? "text-white" : "text-gray-700"
+                    }`}>
+                      {day.date}
+                    </p>
+                    <div className="space-y-0.5">
+                      {day.sessions.length >= 3 && (
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-white/90 text-blue-800 text-[8px] font-bold">
+                          {day.sessions.length}명
+                        </span>
+                      )}
+                      {day.sessions.slice(0, day.sessions.length >= 3 ? 1 : 2).map((session) => (
+                        <div
+                          key={session.id}
+                          className={`text-[9px] px-1 py-0.5 rounded truncate font-medium ${
+                            session.session_number % 4 === 0
+                              ? "bg-amber-200 text-amber-900"
+                              : "bg-white text-blue-900"
+                          }`}
+                          title={day.sessions.map((s) => `${s.student_name} (${s.session_number}회차)`).join(", ")}
+                        >
+                          {session.student_name}
+                        </div>
+                      ))}
+                      {day.sessions.length > 2 && (
+                        <p className="text-[8px] text-white font-bold">+{day.sessions.length - (day.sessions.length >= 3 ? 1 : 2)}</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              💡 날짜 클릭: 수업 있음 → 일정 보기(+ 추가 가능) / 수업 없음 → 수업 추가. 주황색 = 4회차 완료.
+            </p>
+          </div>
+        )}
+
         {/* Lessons Table/List */}
         {filteredLessons.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
@@ -1037,17 +1169,40 @@ export default function AdminLessonsPage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-bold ${
-                              needsRenewal ? "text-red-600" :
-                              remaining <= 1 ? "text-orange-600" : "text-green-600"
-                            }`}>
-                              {lesson.current_session}/4
-                            </span>
-                            {!needsRenewal && (
-                              <span className="text-xs text-gray-500">({remaining}회 남음)</span>
-                            )}
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-bold ${
+                                needsRenewal ? "text-red-600" :
+                                remaining <= 1 ? "text-orange-600" : "text-green-600"
+                              }`}>
+                                {lesson.current_session}/4
+                              </span>
+                              {!needsRenewal && (
+                                <span className="text-xs text-gray-500">({remaining}회 남음)</span>
+                              )}
+                            </div>
+                            {(() => {
+                              const lessonRecords = allLessonHistory
+                                .filter(h => h.lesson_id === lesson.id)
+                                .sort((a, b) => a.completed_date.localeCompare(b.completed_date));
+                              const currentPeriodRecords = lesson.current_session > 0
+                                ? lessonRecords.slice(-lesson.current_session)
+                                : [];
+                              return currentPeriodRecords
+                                .sort((a, b) => a.session_number - b.session_number)
+                                .map(h => {
+                                  const [yr, mo, dy] = h.completed_date.split('-');
+                                  const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
+                                  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                                  const dayName = dayNames[d.getDay()];
+                                  return (
+                                    <span key={h.id} className="text-xs text-gray-400 whitespace-nowrap">
+                                      {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
+                                    </span>
+                                  );
+                                });
+                            })()}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1242,12 +1397,35 @@ export default function AdminLessonsPage() {
                           </div>
                         )}
                       </div>
-                      <span className={`text-lg font-bold ${
-                        needsRenewal ? "text-red-600" :
-                        remaining <= 1 ? "text-orange-600" : "text-green-600"
-                      }`}>
-                        {lesson.current_session}/4
-                      </span>
+                      <div className="text-right ml-2 flex-shrink-0">
+                        <span className={`text-lg font-bold ${
+                          needsRenewal ? "text-red-600" :
+                          remaining <= 1 ? "text-orange-600" : "text-green-600"
+                        }`}>
+                          {lesson.current_session}/4
+                        </span>
+                        {(() => {
+                          const lessonRecords = allLessonHistory
+                            .filter(h => h.lesson_id === lesson.id)
+                            .sort((a, b) => a.completed_date.localeCompare(b.completed_date));
+                          const currentPeriodRecords = lesson.current_session > 0
+                            ? lessonRecords.slice(-lesson.current_session)
+                            : [];
+                          return currentPeriodRecords
+                            .sort((a, b) => a.session_number - b.session_number)
+                            .map(h => {
+                              const [yr, mo, dy] = h.completed_date.split('-');
+                              const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
+                              const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                              const dayName = dayNames[d.getDay()];
+                              return (
+                                <div key={h.id} className="text-xs text-gray-400 text-right">
+                                  {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
+                                </div>
+                              );
+                            });
+                        })()}
+                      </div>
                     </div>
 
                     <div className="space-y-1 mb-3 text-xs text-gray-600">
@@ -1343,94 +1521,6 @@ export default function AdminLessonsPage() {
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* Calendar View */}
-        {showCalendar && calendarData && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrevMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
-                  aria-label="이전 달"
-                >
-                  <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
-                </button>
-                <h2 className="text-xl font-bold text-gray-900 min-w-[180px] text-center">
-                  📅 {calendarData.year}년 {calendarData.month + 1}월
-                </h2>
-                <button
-                  onClick={handleNextMonth}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
-                  aria-label="다음 달"
-                >
-                  <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
-                </button>
-              </div>
-              <button
-                onClick={handleToday}
-                className="px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors font-medium text-sm"
-              >
-                오늘
-              </button>
-            </div>
-            <div className="grid grid-cols-7 gap-2">
-              {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-                <div key={day} className="text-center text-xs font-bold text-gray-500 py-2">{day}</div>
-              ))}
-              {Array(calendarData.firstDay).fill(null).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-square"></div>
-              ))}
-              {calendarData.days.map((day) => {
-                const hasFourthSession = day.sessions.some((s) => s.session_number % 4 === 0);
-                const bgColor = hasFourthSession
-                  ? "bg-orange-500 border-orange-600 hover:bg-orange-600"
-                  : day.sessions.length > 0
-                    ? "bg-blue-600 border-blue-700 hover:bg-blue-700"
-                    : "border-gray-200 hover:bg-gray-100";
-                return (
-                  <button
-                    key={day.date}
-                    onClick={() => handleDateClick(day.dateStr, day.sessions)}
-                    className={`aspect-square border rounded-lg p-1 transition-all cursor-pointer hover:shadow-lg ${bgColor}`}
-                  >
-                    <p className={`text-xs font-bold mb-1 ${
-                      day.sessions.length > 0 ? "text-white" : "text-gray-700"
-                    }`}>
-                      {day.date}
-                    </p>
-                    <div className="space-y-0.5">
-                      {day.sessions.length >= 3 && (
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-white/90 text-blue-800 text-[8px] font-bold">
-                          {day.sessions.length}명
-                        </span>
-                      )}
-                      {day.sessions.slice(0, day.sessions.length >= 3 ? 1 : 2).map((session) => (
-                        <div
-                          key={session.id}
-                          className={`text-[9px] px-1 py-0.5 rounded truncate font-medium ${
-                            session.session_number % 4 === 0
-                              ? "bg-amber-200 text-amber-900"
-                              : "bg-white text-blue-900"
-                          }`}
-                          title={day.sessions.map((s) => `${s.student_name} (${s.session_number}회차)`).join(", ")}
-                        >
-                          {session.student_name}
-                        </div>
-                      ))}
-                      {day.sessions.length > 2 && (
-                        <p className="text-[8px] text-white font-bold">+{day.sessions.length - (day.sessions.length >= 3 ? 1 : 2)}</p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              💡 날짜 클릭: 수업 있음 → 일정 보기(+ 추가 가능) / 수업 없음 → 수업 추가. 주황색 = 4회차 완료.
-            </p>
           </div>
         )}
 
