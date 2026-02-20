@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.50",
+    date: "2026-02-10",
+    changes: [
+      "에디터 툴바 하이퍼링크(link) 버튼 활성화 및 클릭 유도(CTA) 링크 CSS 스타일 적용",
+    ],
+  },
+  {
     version: "1.49",
     date: "2026-02-10",
     changes: [

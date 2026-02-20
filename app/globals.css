@@ -162,3 +162,15 @@ body {
 .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
   content: '제목 3' !important;
 }
+
+/* Quill 에디터 & 뷰어 하이퍼링크(전화번호 등) 스타일 */
+.ql-editor a, .ql-snow .ql-editor a {
+  color: #2563eb !important; /* Tailwind blue-600 */
+  text-decoration: underline !important;
+  text-underline-offset: 4px;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+}
+.ql-editor a:hover, .ql-snow .ql-editor a:hover {
+  color: #1d4ed8 !important; /* Tailwind blue-700 */
+}
