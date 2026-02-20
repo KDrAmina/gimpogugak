@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
 import { createClientForBuild } from "@/lib/supabase/build";
 import { notFound } from "next/navigation";
 import { stripHtml, sanitizeHtml } from "@/lib/html-utils";
@@ -11,6 +10,7 @@ import "react-quill-new/dist/quill.snow.css";
 import ShareButtonLazy from "@/components/ShareButtonLazy";
 
 export const revalidate = 60;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
@@ -31,7 +31,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpo-gugak.kr";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createClientForBuild();
   const { data } = await supabase
     .from("posts")
     .select("title, content, thumbnail_url")
@@ -128,7 +128,7 @@ function BlogContactSection() {
 
 export default async function BlogDetailPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createClientForBuild();
   const { data: post, error } = await supabase
     .from("posts")
     .select("id, title, content, created_at")
