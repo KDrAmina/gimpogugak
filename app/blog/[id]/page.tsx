@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
 import { stripHtml } from "@/lib/html-utils";
+import { gowunDodum, nanumMyeongjo } from "@/lib/fonts";
 import "react-quill-new/dist/quill.snow.css";
 
 type Props = { params: Promise<{ id: string }> };
@@ -75,7 +76,7 @@ export default async function BlogDetailPage({ params }: Props) {
         <p className="text-sm text-gray-500">{formatDate(post.created_at)}</p>
       </header>
 
-      <div className="ql-snow">
+      <div className={`ql-snow ${gowunDodum.variable} ${nanumMyeongjo.variable}`}>
         <div
           className="ql-editor"
           dangerouslySetInnerHTML={{ __html: post.content }}

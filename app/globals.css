@@ -106,3 +106,25 @@ body {
   content: '\00a0' !important;
   display: block !important;
 }
+
+/* Safe Quill Fonts using next/font variables */
+.ql-font-gowunDodum { font-family: var(--font-gowun-dodum), sans-serif !important; }
+.ql-font-nanumMyeongjo { font-family: var(--font-nanum-myeongjo), serif !important; }
+
+/* Dropdown Labels */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="gowunDodum"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="gowunDodum"]::before {
+  content: '고운돋움' !important;
+  font-family: var(--font-gowun-dodum) !important;
+}
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="nanumMyeongjo"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="nanumMyeongjo"]::before {
+  content: '나눔명조' !important;
+  font-family: var(--font-nanum-myeongjo) !important;
+}
+.ql-snow .ql-picker.ql-font .ql-picker-label:not([data-value])::before {
+  content: '기본폰트' !important;
+}
+.ql-snow .ql-picker.ql-font .ql-picker-item:not([data-value])::before {
+  content: '기본폰트' !important;
+}

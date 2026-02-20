@@ -90,13 +90,13 @@ export default function DirectorPage() {
         </h2>
         <table className="w-full text-left border-collapse">
           <tbody className="text-[#666]">
-            <Row year="2024" content="국가문화유산 경기민요 전수자 자격증" detail="국가무형유산 경기민요" />
-            <Row year="2024" content="국가문화유산 서도민요 전수자 자격증" detail="국가무형유산 서도민요" />
-            <Row year="2024" content="문화예술교육사 2급" detail="한국문화예술교육진흥원" />
-            <Row year="2018" content="중등학교 정교사(2급) 실기교사" detail="교육부 장관" />
-            <Row year="2017" content="황해도무형문화재 제3호 놀량사거리 이수자" detail="황해도지사 인정" highlight />
-            <Row year="2017" content="아동국악교육지도사 1급" detail="한국아동국악교육협회" />
-            <Row year="2015" content="효 국악 1급 지도사" detail="성산효대학원대학교" />
+            <Row year="" content="국가문화유산 경기민요 전수자 자격증" detail="국가무형유산 경기민요" />
+            <Row year="" content="국가문화유산 서도민요 전수자 자격증" detail="국가무형유산 서도민요" />
+            <Row year="" content="문화예술교육사 2급" detail="한국문화예술교육진흥원" />
+            <Row year="" content="중등학교 정교사(2급) 실기교사" detail="교육부 장관" />
+            <Row year="" content="황해도무형문화재 제3호 놀량사거리 이수자" detail="황해도지사 인정" highlight />
+            <Row year="" content="아동국악교육지도사 1급" detail="한국아동국악교육협회" />
+            <Row year="" content="효 국악 1급 지도사" detail="성산효대학원대학교" />
           </tbody>
         </table>
       </div>

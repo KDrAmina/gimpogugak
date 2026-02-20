@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Quill } from "react-quill-new";
+import { gowunDodum, nanumMyeongjo } from "@/lib/fonts";
 import "react-quill-new/dist/quill.snow.css";
 import "quill-resize-module/dist/resize.css";
 
@@ -11,6 +12,11 @@ const SizeStyle = Quill.import("attributors/style/size");
 (SizeStyle as { whitelist: string[] }).whitelist = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 Quill.register(SizeStyle as any, true);
+
+const Font = Quill.import("formats/font");
+(Font as { whitelist: string[] }).whitelist = ["gowunDodum", "nanumMyeongjo"];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+Quill.register(Font as any, true);
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -24,6 +30,7 @@ const DEFAULT_CATEGORY = "소식";
 const QUILL_MODULES = (imageHandler: () => void) => ({
   toolbar: {
     container: [
+      [{ font: [false, "gowunDodum", "nanumMyeongjo"] }],
       [{ size: ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px", "36px"] }],
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic"],
@@ -41,7 +48,7 @@ const QUILL_MODULES = (imageHandler: () => void) => ({
   },
 });
 
-const QUILL_FORMATS = ["size", "header", "bold", "italic", "align", "image", "resize-inline", "resize-block"];
+const QUILL_FORMATS = ["font", "size", "header", "bold", "italic", "align", "image", "resize-inline", "resize-block"];
 
 export type PostForEdit = {
   id: string;
@@ -300,7 +307,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">내용 *</label>
               <div
-                className="quill-editor-wrapper [&_.ql-container]:min-h-[400px] [&_.ql-editor]:min-h-[380px]"
+                className={`quill-editor-wrapper [&_.ql-container]:min-h-[400px] [&_.ql-editor]:min-h-[380px] ${gowunDodum.variable} ${nanumMyeongjo.variable}`}
                 onDrop={handleEditorDrop}
                 onDragOver={(e) => e.preventDefault()}
               >

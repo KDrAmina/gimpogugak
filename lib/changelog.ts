@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.46",
+    date: "2026-02-10",
+    changes: [
+      "성능 저하 없는 안전한 에디터 폰트(고운돋움, 나눔명조) 국소적 추가 적용",
+    ],
+  },
+  {
     version: "1.45",
     date: "2026-02-10",
     changes: [
