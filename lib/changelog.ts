@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.65",
+    date: "2026-02-22",
+    changes: [
+      "블로그 에디터 이미지 이중 삽입 버그 수정: modules useMemo, 파일 input 초기화, paste/drop capture 단계 처리, clipboard IMG matcher로 Base64 차단",
+    ],
+  },
+  {
     version: "1.64",
     date: "2026-02-22",
     changes: [

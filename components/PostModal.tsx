@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeHtml } from "@/lib/html-utils";
@@ -102,6 +102,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
   const [sourceDraft, setSourceDraft] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<unknown>(null);
+  const clipboardMatcherAdded = useRef(false);
   const supabase = createClient();
 
   const isEdit = !!editingPost;
@@ -202,6 +203,23 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
     init();
   }, []);
 
+  // Clipboard matcher: IMG paste 시 Base64 삽입 차단 (우리 핸들러가 업로드 후 URL 삽입)
+  useEffect(() => {
+    if (!editorReady || clipboardMatcherAdded.current) return;
+    const timer = setTimeout(() => {
+      const editor = (quillRef.current as { getEditor?: () => { clipboard?: { addMatcher: (sel: string, fn: (node: Node, delta: unknown) => unknown) => void } } })?.getEditor?.();
+      const clipboard = editor?.clipboard;
+      if (clipboard && !clipboardMatcherAdded.current) {
+        clipboardMatcherAdded.current = true;
+        import("quill").then(({ default: Quill }) => {
+          const Delta = Quill.import("delta");
+          clipboard.addMatcher("IMG", () => new Delta());
+        });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [editorReady]);
+
   const toggleSourceMode = useCallback(() => {
     if (sourceMode) {
       setContent(sanitizeHtml(sourceDraft));
@@ -219,23 +237,30 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
     input.click();
     input.onchange = async () => {
       const file = input.files?.[0];
-      if (file) await uploadImageAndInsert(file);
+      if (file) {
+        await uploadImageAndInsert(file);
+        input.value = "";
+      }
     };
   }, [uploadImageAndInsert]);
 
-  const handleEditorDrop = useCallback(async (e: React.DragEvent) => {
-    const file = e.dataTransfer?.files?.[0];
-    if (file?.type.startsWith("image/")) {
-      e.preventDefault();
-      e.stopPropagation();
-      await uploadImageAndInsert(file);
-    }
-  }, [uploadImageAndInsert]);
+  /** 드롭: capture로 Quill 기본 동작보다 먼저 실행, Base64 중복 삽입 방지 */
+  const handleEditorDrop = useCallback(
+    async (e: React.DragEvent) => {
+      const file = e.dataTransfer?.files?.[0];
+      if (file?.type.startsWith("image/")) {
+        e.preventDefault();
+        e.stopPropagation();
+        await uploadImageAndInsert(file);
+      }
+    },
+    [uploadImageAndInsert]
+  );
 
-  /** 붙여넣기 시 이미지가 있으면 Base64 대신 Storage 업로드 후 URL 삽입 */
+  /** 붙여넣기: capture로 Quill 기본 동작보다 먼저 실행, Base64 중복 삽입 방지 */
   const handleEditorPaste = useCallback(
     async (e: React.ClipboardEvent) => {
-      if (sourceMode) return; // HTML 소스 모드에서는 기본 동작 유지
+      if (sourceMode) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       const imageFiles: File[] = [];
@@ -260,7 +285,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
     [uploadImageAndInsert, sourceMode]
   );
 
-  const modules = QUILL_MODULES(imageHandler);
+  const modules = useMemo(() => QUILL_MODULES(imageHandler), [imageHandler]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -491,9 +516,9 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
               <label className="block text-sm font-medium text-gray-700 mb-1">내용 *</label>
               <div
                 className="quill-editor-wrapper [&_.ql-container]:min-h-[400px] [&_.ql-editor]:min-h-[380px]"
-                onDrop={handleEditorDrop}
+                onDropCapture={handleEditorDrop}
                 onDragOver={(e) => e.preventDefault()}
-                onPaste={handleEditorPaste}
+                onPasteCapture={handleEditorPaste}
               >
                 {!editorReady ? (
                   <div className="min-h-[400px] flex items-center justify-center border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
