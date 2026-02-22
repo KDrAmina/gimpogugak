@@ -142,7 +142,8 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
         alert(`이미지 업로드 실패: ${result.error}`);
         return;
       }
-      editor.insertEmbed(insertIndex, "image", result.url, "user");
+      const altText = (typeof window !== "undefined" && window.prompt?.("Enter Alt Text for SEO (optional):")) || "";
+      editor.insertEmbed(insertIndex, "image", { url: result.url, alt: altText } as unknown as string, "user");
       editor.setSelection(insertIndex + 1, 0);
     },
     [supabase]
@@ -163,6 +164,25 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       Font.whitelist = ["gowunDodum", "nanumMyeongjo"];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       QuillCore.register(Font as any, true);
+
+      // 1b. Custom Image blot with alt attribute support for SEO
+      const BaseImage = QuillCore.import("formats/image");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      class ImageWithAlt extends (BaseImage as any) {
+        static blotName = "image";
+        static tagName = "IMG";
+
+        static create(value: string | { url?: string; src?: string; alt?: string }) {
+          const url = typeof value === "string" ? value : value?.url || value?.src || "";
+          const node = super.create(url);
+          if (typeof value === "object" && value?.alt != null) {
+            node.setAttribute("alt", String(value.alt));
+          }
+          return node;
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      QuillCore.register(ImageWithAlt as any, true);
 
       // 2. Load the image-resize plugin and register it.
       const QuillModule = (await import("quill")).default;

@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.64",
+    date: "2026-02-22",
+    changes: [
+      "블로그 에디터 이미지 Alt Text(대체 텍스트) 지원: 커스텀 Image blot으로 alt 속성 저장, 업로드 시 SEO용 alt 입력 프롬프트, HTML 출력에 <img alt=\"...\"> 포함",
+    ],
+  },
+  {
     version: "1.63",
     date: "2026-02-22",
     changes: [
