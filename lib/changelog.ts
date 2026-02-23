@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.66",
+    date: "2026-02-23",
+    changes: [
+      "소식 관리 페이지 검색 및 페이지네이션 기능 추가: 제목/내용 키워드 검색, 페이지당 표시 개수 선택(10/15/30/50/100), 이전/다음/페이지 번호 네비게이션",
+    ],
+  },
+  {
     version: "1.65",
     date: "2026-02-22",
     changes: [
