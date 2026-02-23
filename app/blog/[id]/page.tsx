@@ -6,6 +6,7 @@ import { createClientForBuild } from "@/lib/supabase/build";
 import { notFound } from "next/navigation";
 import { stripHtml, sanitizeHtml } from "@/lib/html-utils";
 import { formatDateKST } from "@/lib/date-utils";
+import { getBlogPostPath } from "@/lib/blog-utils";
 import "react-quill-new/dist/quill.snow.css";
 
 import ShareButtonLazy from "@/components/ShareButtonLazy";
@@ -14,15 +15,38 @@ import BlogContent from "@/components/BlogContent";
 export const revalidate = 60;
 export const dynamicParams = true;
 
+async function fetchPostBySlugOrId(supabase: ReturnType<typeof createClientForBuild>, param: string) {
+  const now = new Date().toISOString();
+  const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords";
+
+  const { data: bySlug } = await supabase
+    .from("posts")
+    .select(selectCols)
+    .eq("category", "소식")
+    .eq("slug", param)
+    .lte("published_at", now)
+    .single();
+  if (bySlug) return bySlug;
+
+  const { data: byId } = await supabase
+    .from("posts")
+    .select(selectCols)
+    .eq("category", "소식")
+    .eq("id", param)
+    .lte("published_at", now)
+    .single();
+  return byId ?? null;
+}
+
 export async function generateStaticParams() {
   try {
     const supabase = createClientForBuild();
     const { data: posts } = await supabase
       .from("posts")
-      .select("id")
+      .select("id, slug")
       .eq("category", "소식")
       .lte("published_at", new Date().toISOString());
-    return (posts ?? []).map((post) => ({ id: String(post.id) }));
+    return (posts ?? []).map((post) => ({ id: getBlogPostPath(post.slug ?? null, String(post.id)) }));
   } catch {
     return [];
   }
@@ -33,30 +57,26 @@ type Props = { params: Promise<{ id: string }> };
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpogugak.com";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { id: param } = await params;
   const supabase = createClientForBuild();
-  const { data } = await supabase
-    .from("posts")
-    .select("title, content, thumbnail_url, meta_title, meta_description, meta_keywords")
-    .eq("id", id)
-    .eq("category", "소식")
-    .lte("published_at", new Date().toISOString())
-    .single();
+  const data = await fetchPostBySlugOrId(supabase, param);
 
   if (!data) {
     return { title: "국악원 소식 | 김포국악원" };
   }
 
+  const canonicalPath = getBlogPostPath(data.slug ?? null, String(data.id));
+  const url = `${siteUrl}/blog/${canonicalPath}`;
   const fallbackDescription = stripHtml(data.content).slice(0, 150);
   const title = data.meta_title?.trim() || `${data.title} | 김포국악원 소식`;
   const description = data.meta_description?.trim() || fallbackDescription || "김포국악원의 소식과 블로그를 확인하세요.";
-  const url = `${siteUrl}/blog/${id}`;
   const image = data.thumbnail_url || `${siteUrl}/logo.png`;
 
   return {
     title,
     description,
     keywords: data.meta_keywords?.trim() || undefined,
+    alternates: { canonical: url },
     openGraph: {
       title,
       description,
@@ -125,17 +145,11 @@ function BlogContactSection() {
 }
 
 export default async function BlogDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { id: param } = await params;
   const supabase = createClientForBuild();
-  const { data: post, error } = await supabase
-    .from("posts")
-    .select("id, title, content, created_at, published_at")
-    .eq("id", id)
-    .eq("category", "소식")
-    .lte("published_at", new Date().toISOString())
-    .single();
+  const post = await fetchPostBySlugOrId(supabase, param);
 
-  if (error || !post) {
+  if (!post) {
     notFound();
   }
 

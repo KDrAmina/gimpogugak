@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.68",
+    date: "2026-02-23",
+    changes: [
+      "블로그 URL 슬러그 우선: slug가 있으면 /blog/[slug], 없으면 /blog/[id]로 접근. 목록·관리자·사이트맵·메타데이터 canonical 모두 slug 기반 URL 사용",
+    ],
+  },
+  {
     version: "1.66",
     date: "2026-02-23",
     changes: [

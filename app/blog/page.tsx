@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateKST } from "@/lib/date-utils";
+import { getBlogPostPath } from "@/lib/blog-utils";
 
 export const dynamic = "force-static";
 export const revalidate = 60;
@@ -59,7 +60,7 @@ export default async function BlogListPage() {
   const supabase = await createClient();
   const { data: posts } = await supabase
     .from("posts")
-    .select("id, title, external_url, created_at, published_at")
+    .select("id, slug, title, external_url, created_at, published_at")
     .eq("category", "소식")
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
@@ -84,7 +85,7 @@ export default async function BlogListPage() {
           {items.map((post) => (
             <li key={post.id}>
               <BlogListItem
-                href={post.external_url || `/blog/${post.id}`}
+                href={post.external_url || `/blog/${getBlogPostPath(post.slug ?? null, post.id)}`}
                 title={post.title}
                 date={formatDateKST(post.published_at || post.created_at, "short")}
                 isExternal={!!post.external_url}

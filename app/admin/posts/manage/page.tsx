@@ -7,9 +7,11 @@ import Link from "next/link";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 import PostModal, { type PostForEdit } from "@/components/PostModal";
 import { formatDateKST, formatDateTimeKST } from "@/lib/date-utils";
+import { getBlogPostPath } from "@/lib/blog-utils";
 
 type Post = {
   id: string;
+  slug: string | null;
   title: string;
   content: string;
   category: string;
@@ -71,7 +73,7 @@ export default function AdminPostsManagePage() {
     try {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, title, content, category, created_at, published_at")
+        .select("id, slug, title, content, category, created_at, published_at")
         .eq("category", "소식")
         .order("created_at", { ascending: false });
 
@@ -280,7 +282,7 @@ export default function AdminPostsManagePage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Link
-                              href={`/blog/${post.id}`}
+                              href={`/blog/${getBlogPostPath(post.slug ?? null, post.id)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline font-medium truncate max-w-[200px] block"
