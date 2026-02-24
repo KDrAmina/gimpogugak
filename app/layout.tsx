@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR, Gowun_Dodum, Nanum_Myeongjo } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 import { AnalyticsSpeedInsights } from "../components/AnalyticsSpeedInsights";
@@ -170,6 +171,7 @@ export default function RootLayout({
         </main>
         
         <AnalyticsSpeedInsights />
+        <GoogleAnalytics gaId="G-DJ97Y83J9Y" />
       </body>
     </html>
   );

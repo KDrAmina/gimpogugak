@@ -142,6 +142,23 @@ export default function AdminDashboardPage() {
         </p>
       </div>
 
+      {/* Google Analytics Quick Link */}
+      <div className="mb-6">
+        <a
+          href="https://analytics.google.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 p-5 group"
+        >
+          <div className="text-4xl">📊</div>
+          <div className="flex-1">
+            <p className="text-lg font-bold">구글 애널리틱스</p>
+            <p className="text-sm text-blue-100">전체 통계 보기 →</p>
+          </div>
+          <div className="text-blue-200 group-hover:translate-x-1 transition-transform text-xl">↗</div>
+        </a>
+      </div>
+
       {/* Total Tuition Card */}
       <div className="mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow-sm border border-emerald-200 p-6">
         <h3 className="text-sm font-medium text-emerald-800 mb-1">

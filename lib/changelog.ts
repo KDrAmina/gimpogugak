@@ -10,6 +10,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.71",
+    date: "2026-02-24",
+    changes: [
+      "관리자 대시보드 상단에 구글 애널리틱스 바로가기 버튼 추가 (analytics.google.com 새 탭 열기)",
+    ],
+  },
+  {
+    version: "1.70",
+    date: "2026-02-24",
+    changes: [
+      "Google Analytics 4(GA4) 전역 연동: @next/third-parties/google의 GoogleAnalytics 컴포넌트를 루트 레이아웃에 추가하여 모든 페이지의 방문자 및 사용자 행동 데이터 수집 시작 (측정 ID: G-DJ97Y83J9Y)",
+    ],
+  },
+  {
     version: "1.69",
     date: "2026-02-24",
     changes: [
