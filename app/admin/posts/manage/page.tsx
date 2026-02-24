@@ -17,6 +17,7 @@ type Post = {
   category: string;
   created_at: string;
   published_at: string | null;
+  views: number | null;
 };
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 15, 30, 50, 100] as const;
@@ -73,7 +74,7 @@ export default function AdminPostsManagePage() {
     try {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, slug, title, content, category, created_at, published_at")
+        .select("id, slug, title, content, category, created_at, published_at, views")
         .eq("category", "소식")
         .order("created_at", { ascending: false });
 
@@ -268,6 +269,7 @@ export default function AdminPostsManagePage() {
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">제목</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">카테고리</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">작성일</th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-700">조회수</th>
                     <th className="text-right px-4 py-3 font-semibold text-gray-700">삭제</th>
                   </tr>
                 </thead>
@@ -298,6 +300,7 @@ export default function AdminPostsManagePage() {
                         </td>
                         <td className="px-4 py-3 text-gray-600">{post.category}</td>
                         <td className="px-4 py-3 text-gray-600">{formatDateKST(post.created_at, "long")}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{post.views ?? 0}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
                             <button

@@ -11,6 +11,7 @@ import "react-quill-new/dist/quill.snow.css";
 
 import ShareButtonLazy from "@/components/ShareButtonLazy";
 import BlogContent from "@/components/BlogContent";
+import ViewTracker from "@/components/ViewTracker";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -155,6 +156,7 @@ export default async function BlogDetailPage({ params }: Props) {
 
   return (
     <article className="blog-detail-article mx-auto max-w-2xl px-6 py-12">
+      <ViewTracker postId={String(post.id)} />
       <header className="mb-8">
         <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#111] mb-2">
           {post.title}

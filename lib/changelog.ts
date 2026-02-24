@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.69",
+    date: "2026-02-24",
+    changes: [
+      "블로그 게시글 조회수(views) 기능 추가: 공개 상세 페이지 방문 시 localStorage 기반 24시간 중복 방지 후 Supabase views 컬럼 자동 증가, 관리자 소식 관리 테이블에 '조회수' 열 표시 (공개 페이지에는 노출 없음)",
+    ],
+  },
+  {
     version: "1.68",
     date: "2026-02-23",
     changes: [
