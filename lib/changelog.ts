@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.81",
+    date: "2026-02-25",
+    changes: [
+      "수업 갱신(handleRenewLesson) 파괴적 삭제 방식 수정: 갱신 시 lesson_history 레코드를 삭제하지 않고 기존 수업 행을 is_active=false로 아카이브한 뒤 새로운 수업 행(current_session=0)을 INSERT하는 LMS 표준 방식으로 전환. 이전 출석·진도 기록이 DB에 영구 보존됨. my-lessons 페이지에서 is_active=true 필터 추가로 수강생이 항상 현재 기수만 조회하도록 수정.",
+    ],
+  },
+  {
     version: "1.80",
     date: "2026-02-25",
     changes: [

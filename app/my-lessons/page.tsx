@@ -73,11 +73,12 @@ export default function MyLessonsPage() {
 
   async function loadLessonData(userId: string) {
     try {
-      // Get lesson data
+      // Get the currently active lesson (is_active = true) to avoid picking up archived cycles
       const { data: lesson, error: lessonError } = await supabase
         .from("lessons")
         .select("*")
         .eq("user_id", userId)
+        .eq("is_active", true)
         .single();
 
       if (lessonError) {

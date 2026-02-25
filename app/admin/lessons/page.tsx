@@ -732,30 +732,39 @@ export default function AdminLessonsPage() {
     : unassignedUsers;
 
   async function handleRenewLesson(lessonId: string) {
-    if (!confirm("수업을 갱신하시겠습니까? (진도와 출석 기록이 초기화됩니다)")) {
+    if (!confirm("수업을 갱신하시겠습니까?\n\n이전 수강 기록은 보존되고 새로운 4회 수업이 시작됩니다.")) {
       return;
     }
 
     try {
-      // Clear lesson_history first so calendar never shows stale pre-renewal records
-      const { error: deleteError } = await supabase
-        .from("lesson_history")
-        .delete()
-        .eq("lesson_id", lessonId);
+      // Find the current lesson from state to copy fields into the new row
+      const currentLesson = lessons.find((l) => l.id === lessonId);
+      if (!currentLesson) throw new Error("수업 정보를 찾을 수 없습니다.");
 
-      if (deleteError) throw deleteError;
-
-      const { error } = await supabase
+      // Step 1: Archive the current lesson (preserves all lesson_history records)
+      const { error: archiveError } = await supabase
         .from("lessons")
-        .update({
-          current_session: 0,
-          payment_date: getTodayKST(),
-        })
+        .update({ is_active: false })
         .eq("id", lessonId);
 
-      if (error) throw error;
-      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
-      alert("✅ 수업이 갱신되었습니다.");
+      if (archiveError) throw archiveError;
+
+      // Step 2: Insert a brand-new lesson row for the next 4-session cycle
+      const { error: insertError } = await supabase
+        .from("lessons")
+        .insert({
+          user_id: currentLesson.user_id,
+          category: currentLesson.category,
+          current_session: 0,
+          tuition_amount: currentLesson.tuition_amount,
+          payment_date: getTodayKST(),
+          is_active: true,
+        });
+
+      if (insertError) throw insertError;
+
+      await Promise.all([loadLessons(), loadUnassignedUsers(), loadLessonHistory(), loadAllLessonHistory()]);
+      alert("✅ 수업이 갱신되었습니다. 새로운 4회 수업이 시작됩니다.");
     } catch (error) {
       console.error("Renew error:", error);
       alert("수업 갱신 중 오류가 발생했습니다.");
