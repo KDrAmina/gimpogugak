@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.84",
+    date: "2026-02-25",
+    changes: [
+      "관리자 수업관리 단체반 '납부 이력' 모달 추가: '최근 납부: YYYY년 MM월' 텍스트 클릭 시 lesson_history에서 status '결제 완료' 기록만 조회하여 날짜순 내림차순 목록 표시. 신규 수강생(기록 없음)은 '납부 기록이 없습니다' 안내. 읽기 전용(SELECT만, 수정/삭제 없음).",
+    ],
+  },
+  {
     version: "1.83",
     date: "2026-02-25",
     changes: [

@@ -80,6 +80,12 @@ export default function AdminLessonsPage() {
   // Group class monthly payment confirmation (prevents double-click)
   const [confirmingPayment, setConfirmingPayment] = useState<string | null>(null);
 
+  // Payment history modal for group classes
+  const [isPaymentHistoryModalOpen, setPaymentHistoryModalOpen] = useState(false);
+  const [selectedLessonForHistory, setSelectedLessonForHistory] = useState<Lesson | null>(null);
+  const [paymentHistoryDates, setPaymentHistoryDates] = useState<string[]>([]);
+  const [loadingPaymentHistory, setLoadingPaymentHistory] = useState(false);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -632,6 +638,38 @@ export default function AdminLessonsPage() {
       console.error("Restore lesson error:", error);
       alert("수업 재개 중 오류가 발생했습니다.");
     }
+  }
+
+  async function openPaymentHistoryModal(lesson: Lesson) {
+    setSelectedLessonForHistory(lesson);
+    setPaymentHistoryModalOpen(true);
+    setLoadingPaymentHistory(true);
+    setPaymentHistoryDates([]);
+
+    try {
+      const { data, error } = await supabase
+        .from("lesson_history")
+        .select("completed_date")
+        .eq("lesson_id", lesson.id)
+        .eq("status", "결제 완료")
+        .order("completed_date", { ascending: false });
+
+      if (error) throw error;
+
+      const dates = (data || []).map((r) => r.completed_date);
+      setPaymentHistoryDates(dates);
+    } catch (error) {
+      console.error("Payment history fetch error:", error);
+      setPaymentHistoryDates([]);
+    } finally {
+      setLoadingPaymentHistory(false);
+    }
+  }
+
+  function closePaymentHistoryModal() {
+    setPaymentHistoryModalOpen(false);
+    setSelectedLessonForHistory(null);
+    setPaymentHistoryDates([]);
   }
 
   async function handleDeleteLesson(lessonId: string) {
@@ -1315,11 +1353,15 @@ export default function AdminLessonsPage() {
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 w-fit">
                                 월정액
                               </span>
-                              {lesson.payment_date && (
-                                <span className="text-xs text-gray-400 whitespace-nowrap">
-                                  최근 납부: {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월
-                                </span>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => openPaymentHistoryModal(lesson)}
+                                className="text-xs text-gray-400 whitespace-nowrap hover:text-purple-600 hover:underline cursor-pointer text-left"
+                              >
+                                {lesson.payment_date
+                                  ? `최근 납부: ${lesson.payment_date.substring(0, 7).replace('-', '년 ')}월`
+                                  : "납부 이력 보기"}
+                              </button>
                             </div>
                           ) : (
                             <div className="flex flex-col gap-0.5">
@@ -1565,11 +1607,15 @@ export default function AdminLessonsPage() {
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                               월정액
                             </span>
-                            {lesson.payment_date && (
-                              <span className="text-xs text-gray-400">
-                                최근: {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => openPaymentHistoryModal(lesson)}
+                              className="text-xs text-gray-400 hover:text-purple-600 hover:underline cursor-pointer"
+                            >
+                              {lesson.payment_date
+                                ? `최근: ${lesson.payment_date.substring(0, 7).replace('-', '년 ')}월`
+                                : "납부 이력 보기"}
+                            </button>
                           </div>
                         ) : (
                           <>
@@ -1809,6 +1855,54 @@ export default function AdminLessonsPage() {
                   닫기
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment History Modal (group class only) */}
+        {isPaymentHistoryModalOpen && selectedLessonForHistory && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                {selectedLessonForHistory.student_name} 납부 이력
+              </h2>
+              {loadingPaymentHistory ? (
+                <div className="py-8 text-center text-gray-500">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent mx-auto mb-2" />
+                  <p className="text-sm">불러오는 중...</p>
+                </div>
+              ) : paymentHistoryDates.length === 0 ? (
+                <p className="py-8 text-center text-gray-500 text-sm">
+                  납부 기록이 없습니다.
+                </p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
+                  {paymentHistoryDates.map((dateStr) => (
+                    <div
+                      key={dateStr}
+                      className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg text-sm"
+                    >
+                      <span className="text-gray-800 font-medium">
+                        {new Date(dateStr).toLocaleDateString("ko-KR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          weekday: "short",
+                        })}
+                      </span>
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                        결제 완료
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={closePaymentHistoryModal}
+                className="w-full mt-6 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-bold"
+              >
+                닫기
+              </button>
             </div>
           </div>
         )}
