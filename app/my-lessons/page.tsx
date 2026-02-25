@@ -170,6 +170,16 @@ export default function MyLessonsPage() {
   const needsRenewal = lessonData.current_session === 4;
   const progressPercent = (lessonData.current_session / 4) * 100;
 
+  // Two-track UI: group class (단체) vs private class (개인)
+  const isGroupClass = lessonData.category.includes('단체');
+
+  // For group: determine if current month is paid
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const isGroupPaidThisMonth = lessonData.payment_date != null && lessonData.payment_date.substring(0, 7) === currentMonthStr;
+  // Extract regular payment day from payment_date (e.g. "2026-02-15" → 15)
+  const paymentDay = lessonData.payment_date ? parseInt(lessonData.payment_date.split('-')[2], 10) : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pb-20">
       {/* Header */}
@@ -183,15 +193,15 @@ export default function MyLessonsPage() {
               {lessonData.category}
             </span>
             <span className="text-sm text-blue-100">
-              4회 수강권
+              {isGroupClass ? "단체수업 (월정액)" : "4회 수강권"}
             </span>
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 -mt-6 space-y-4">
-        {/* Progress Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6">
+        {/* Progress Card — private class only */}
+        {!isGroupClass && <div className="bg-white rounded-2xl shadow-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg md:text-xl font-bold text-gray-900">수업 진행 현황</h2>
             <div className="text-right">
@@ -246,7 +256,7 @@ export default function MyLessonsPage() {
               </>
             )}
           </p>
-        </div>
+        </div>}
 
         {/* Reschedule Note Card (if exists) */}
         {lessonData.reschedule_note && (
@@ -261,8 +271,8 @@ export default function MyLessonsPage() {
           </div>
         )}
 
-        {/* 최근 수강 내역 Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6">
+        {/* 최근 수강 내역 Card — private class only */}
+        {!isGroupClass && <div className="bg-white rounded-2xl shadow-xl p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span>📋</span>
             <span>최근 수강 내역</span>
@@ -355,10 +365,63 @@ export default function MyLessonsPage() {
               )}
             </div>
           )}
-        </div>
+        </div>}
 
-        {/* Payment Status Card */}
-        <div
+        {/* Group Payment Info Card — group class only */}
+        {isGroupClass && (
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <span>💳</span>
+              <span>결제 안내</span>
+            </h2>
+
+            {/* Regular payment day */}
+            <div className="flex items-center justify-between mb-5 pb-5 border-b border-gray-100">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">정기 납부일</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {paymentDay != null ? `매월 ${paymentDay}일` : "미등록"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500 mb-1">이번 달 납부</p>
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold ${
+                  isGroupPaidThisMonth
+                    ? "bg-green-100 text-green-700"
+                    : lessonData.payment_date == null
+                      ? "bg-gray-100 text-gray-500"
+                      : "bg-red-100 text-red-600"
+                }`}>
+                  {isGroupPaidThisMonth
+                    ? "✓ 납부 완료"
+                    : lessonData.payment_date == null
+                      ? "미등록"
+                      : "⏳ 납부 대기"}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment account info */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm text-gray-700">
+              <p className="font-semibold text-gray-900 mb-2">💰 납부 계좌 안내</p>
+              <p><strong>은행:</strong> 국민은행</p>
+              <p><strong>계좌번호:</strong> 81140-20-4299435</p>
+              <p><strong>예금주:</strong> 김포국악원</p>
+              <p className="text-xs text-gray-500 pt-2">
+                입금 후 원장님께 카톡으로 알려주시면 확인해 드립니다.
+              </p>
+            </div>
+
+            {lessonData.payment_date && (
+              <p className="text-xs text-gray-400 mt-3 text-right">
+                최근 납부 확인일: {new Date(lessonData.payment_date).toLocaleDateString("ko-KR")}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Payment Status Card — private class only */}
+        {!isGroupClass && <div
           className={`rounded-2xl shadow-xl p-6 ${
             needsRenewal
               ? "bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300"
@@ -418,7 +481,7 @@ export default function MyLessonsPage() {
               )}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Inquiry Button */}
         <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-2xl shadow-xl p-6 text-center">

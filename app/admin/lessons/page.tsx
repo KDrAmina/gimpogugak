@@ -75,7 +75,10 @@ export default function AdminLessonsPage() {
   const [showAddLessonByDateModal, setShowAddLessonByDateModal] = useState(false);
   const [selectedDateForAdd, setSelectedDateForAdd] = useState<string>("");
   const [selectedLessonForAdd, setSelectedLessonForAdd] = useState<Lesson | null>(null);
-  
+
+  // Group class monthly payment confirmation (prevents double-click)
+  const [confirmingPayment, setConfirmingPayment] = useState<string | null>(null);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -771,6 +774,45 @@ export default function AdminLessonsPage() {
     }
   }
 
+  async function handleConfirmGroupPayment(lessonId: string) {
+    // Prevent double-click
+    if (confirmingPayment === lessonId) return;
+
+    const lesson = lessons.find((l) => l.id === lessonId);
+    if (!lesson) return;
+
+    const today = getTodayKST();
+    const currentMonth = today.substring(0, 7);
+
+    // Guard: already confirmed this month
+    if (lesson.payment_date && lesson.payment_date.substring(0, 7) === currentMonth) {
+      alert("이미 이번 달 입금이 확인된 수강생입니다.");
+      return;
+    }
+
+    if (!confirm(`${lesson.student_name}님의 ${currentMonth.replace('-', '년 ')}월 입금을 확인하시겠습니까?\n\n기존 데이터는 보존되며 결제일만 오늘 날짜로 업데이트됩니다.`)) {
+      return;
+    }
+
+    setConfirmingPayment(lessonId);
+    try {
+      const { error } = await supabase
+        .from("lessons")
+        .update({ payment_date: today })
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      await loadLessons();
+      alert("✅ 이번 달 입금이 확인되었습니다.");
+    } catch (error) {
+      console.error("Group payment confirmation error:", error);
+      alert("입금 확인 중 오류가 발생했습니다.");
+    } finally {
+      setConfirmingPayment(null);
+    }
+  }
+
   // Handle date click: detail modal (has lessons) or add lesson modal (empty)
   function handleDateClick(dateStr: string, sessions: LessonHistoryItem[]) {
     if (sessions.length > 0) {
@@ -1174,9 +1216,13 @@ export default function AdminLessonsPage() {
                   {filteredLessons.map((lesson) => {
                     const remaining = 4 - lesson.current_session;
                     const needsRenewal = lesson.current_session === 4;
+                    const isGroupClass = lesson.category.includes('단체');
+                    const todayKST = getTodayKST();
+                    const currentMonthStr = todayKST.substring(0, 7);
+                    const isGroupPaidThisMonth = isGroupClass && lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
 
                     return (
-                      <tr key={lesson.id} className={`hover:bg-gray-50 ${needsRenewal ? "bg-red-50" : ""}`}>
+                      <tr key={lesson.id} className={`hover:bg-gray-50 ${needsRenewal && !isGroupClass ? "bg-red-50" : ""}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{lesson.student_name}</div>
                         </td>
@@ -1227,33 +1273,46 @@ export default function AdminLessonsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-bold ${
-                                needsRenewal ? "text-red-600" :
-                                remaining <= 1 ? "text-orange-600" : "text-green-600"
-                              }`}>
-                                {lesson.current_session}/4
+                          {isGroupClass ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 w-fit">
+                                월정액
                               </span>
-                              {!needsRenewal && (
-                                <span className="text-xs text-gray-500">({remaining}회 남음)</span>
+                              {lesson.payment_date && (
+                                <span className="text-xs text-gray-400 whitespace-nowrap">
+                                  최근 납부: {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월
+                                </span>
                               )}
                             </div>
-                            {allLessonHistory
-                              .filter(h => h.lesson_id === lesson.id)
-                              .sort((a, b) => a.session_number - b.session_number)
-                              .map(h => {
-                                const [yr, mo, dy] = h.completed_date.split('-');
-                                const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
-                                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                                const dayName = dayNames[d.getDay()];
-                                return (
-                                  <span key={h.id} className="text-xs text-gray-400 whitespace-nowrap">
-                                    {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
-                                  </span>
-                                );
-                              })}
-                          </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-bold ${
+                                  needsRenewal ? "text-red-600" :
+                                  remaining <= 1 ? "text-orange-600" : "text-green-600"
+                                }`}>
+                                  {lesson.current_session}/4
+                                </span>
+                                {!needsRenewal && (
+                                  <span className="text-xs text-gray-500">({remaining}회 남음)</span>
+                                )}
+                              </div>
+                              {allLessonHistory
+                                .filter(h => h.lesson_id === lesson.id)
+                                .sort((a, b) => a.session_number - b.session_number)
+                                .map(h => {
+                                  const [yr, mo, dy] = h.completed_date.split('-');
+                                  const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
+                                  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                                  const dayName = dayNames[d.getDay()];
+                                  return (
+                                    <span key={h.id} className="text-xs text-gray-400 whitespace-nowrap">
+                                      {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
+                                    </span>
+                                  );
+                                })}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {editingTuition === lesson.id ? (
@@ -1350,6 +1409,18 @@ export default function AdminLessonsPage() {
                                 🗑️ 삭제
                               </button>
                             </div>
+                          ) : isGroupClass ? (
+                            <button
+                              onClick={() => handleConfirmGroupPayment(lesson.id)}
+                              disabled={confirmingPayment === lesson.id}
+                              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-50 ${
+                                isGroupPaidThisMonth
+                                  ? "bg-gray-100 text-gray-500"
+                                  : "bg-purple-600 text-white hover:bg-purple-700"
+                              }`}
+                            >
+                              {isGroupPaidThisMonth ? "✓ 납부완료" : "💰 이번 달 입금 확인"}
+                            </button>
                           ) : needsRenewal ? (
                             <div className="flex justify-end gap-2">
                               <button
@@ -1397,9 +1468,13 @@ export default function AdminLessonsPage() {
               {filteredLessons.map((lesson) => {
                 const remaining = 4 - lesson.current_session;
                 const needsRenewal = lesson.current_session === 4;
+                const isGroupClass = lesson.category.includes('단체');
+                const todayKST = getTodayKST();
+                const currentMonthStr = todayKST.substring(0, 7);
+                const isGroupPaidThisMonth = isGroupClass && lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
 
                 return (
-                  <div key={lesson.id} className={`p-4 ${needsRenewal ? "bg-red-50" : ""}`}>
+                  <div key={lesson.id} className={`p-4 ${needsRenewal && !isGroupClass ? "bg-red-50" : ""}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="font-bold text-gray-900">{lesson.student_name}</h3>
@@ -1448,26 +1523,41 @@ export default function AdminLessonsPage() {
                         )}
                       </div>
                       <div className="text-right ml-2 flex-shrink-0">
-                        <span className={`text-lg font-bold ${
-                          needsRenewal ? "text-red-600" :
-                          remaining <= 1 ? "text-orange-600" : "text-green-600"
-                        }`}>
-                          {lesson.current_session}/4
-                        </span>
-                        {allLessonHistory
-                          .filter(h => h.lesson_id === lesson.id)
-                          .sort((a, b) => a.session_number - b.session_number)
-                          .map(h => {
-                            const [yr, mo, dy] = h.completed_date.split('-');
-                            const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
-                            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                            const dayName = dayNames[d.getDay()];
-                            return (
-                              <div key={h.id} className="text-xs text-gray-400 text-right">
-                                {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
-                              </div>
-                            );
-                          })}
+                        {isGroupClass ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              월정액
+                            </span>
+                            {lesson.payment_date && (
+                              <span className="text-xs text-gray-400">
+                                최근: {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <span className={`text-lg font-bold ${
+                              needsRenewal ? "text-red-600" :
+                              remaining <= 1 ? "text-orange-600" : "text-green-600"
+                            }`}>
+                              {lesson.current_session}/4
+                            </span>
+                            {allLessonHistory
+                              .filter(h => h.lesson_id === lesson.id)
+                              .sort((a, b) => a.session_number - b.session_number)
+                              .map(h => {
+                                const [yr, mo, dy] = h.completed_date.split('-');
+                                const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
+                                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                                const dayName = dayNames[d.getDay()];
+                                return (
+                                  <div key={h.id} className="text-xs text-gray-400 text-right">
+                                    {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
+                                  </div>
+                                );
+                              })}
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -1526,6 +1616,18 @@ export default function AdminLessonsPage() {
                             🗑️ 삭제
                           </button>
                         </>
+                      ) : isGroupClass ? (
+                        <button
+                          onClick={() => handleConfirmGroupPayment(lesson.id)}
+                          disabled={confirmingPayment === lesson.id}
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                            isGroupPaidThisMonth
+                              ? "bg-gray-100 text-gray-500"
+                              : "bg-purple-600 text-white hover:bg-purple-700"
+                          }`}
+                        >
+                          {isGroupPaidThisMonth ? "✓ 이번 달 납부완료" : "💰 이번 달 입금 확인"}
+                        </button>
                       ) : needsRenewal ? (
                         <>
                           <button
