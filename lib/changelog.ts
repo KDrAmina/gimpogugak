@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.83",
+    date: "2026-02-25",
+    changes: [
+      "단체수업 Two-Track 강화: 관리자 캘린더 날짜별 수업 추가 모달에서 단체반 수강생 선택 시 '납부 등록' 라벨 표시 및 제출 시 lesson_history에 status '결제 완료'로 기록. lessons.payment_date 업데이트. 개인반 출석 로직과 완전 분기.",
+      "관리자 캘린더 삭제 시 current_session 동기화를 session_number>0 레코드만 카운트하도록 수정하여 단체 납부 기록이 개인반 진도에 영향 없음.",
+      "수강생 마이페이지 단체반 '최근 납부 내역' 카드 노출: 기존 숨김 해제, 제목/리스트 문구 분기(회차 제거, 결제 완료 표시), 10개 페이지네이션 재사용.",
+    ],
+  },
+  {
     version: "1.82",
     date: "2026-02-25",
     changes: [

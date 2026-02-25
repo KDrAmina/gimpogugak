@@ -271,15 +271,15 @@ export default function MyLessonsPage() {
           </div>
         )}
 
-        {/* 최근 수강 내역 Card — private class only */}
-        {!isGroupClass && <div className="bg-white rounded-2xl shadow-xl p-6">
+        {/* 최근 수강/납부 내역 Card — both private and group */}
+        <div className="bg-white rounded-2xl shadow-xl p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span>📋</span>
-            <span>최근 수강 내역</span>
+            <span>{isGroupClass ? "최근 납부 내역" : "최근 수강 내역"}</span>
           </h2>
           {history.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">
-              아직 수강 기록이 없습니다.
+              {isGroupClass ? "아직 납부 기록이 없습니다." : "아직 수강 기록이 없습니다."}
             </p>
           ) : (
             <div className="relative">
@@ -287,18 +287,20 @@ export default function MyLessonsPage() {
               <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-100" />
               <div className="space-y-3">
                 {currentHistory.map((record) => {
-                  const status = record.status ?? "출석";
+                  const status = record.status ?? (isGroupClass ? "결제 완료" : "출석");
                   const statusStyles: Record<string, string> = {
                     "출석": "bg-green-100 text-green-700",
                     "결석": "bg-red-100 text-red-600",
                     "보강": "bg-blue-100 text-blue-700",
                     "대기": "bg-yellow-100 text-yellow-700",
+                    "결제 완료": "bg-green-100 text-green-700",
                   };
                   const dotStyles: Record<string, string> = {
                     "출석": "bg-green-500",
                     "결석": "bg-red-400",
                     "보강": "bg-blue-500",
                     "대기": "bg-yellow-400",
+                    "결제 완료": "bg-green-500",
                   };
                   const badgeCls = statusStyles[status] ?? "bg-gray-100 text-gray-600";
                   const dotCls = dotStyles[status] ?? "bg-gray-400";
@@ -307,19 +309,27 @@ export default function MyLessonsPage() {
                     <div key={record.id} className="flex items-start gap-4 relative">
                       {/* Timeline dot */}
                       <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0 ${dotCls}`}>
-                        {record.session_number}
+                        {isGroupClass ? "✓" : record.session_number}
                       </div>
                       <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-gray-800">
-                            {record.session_number}회차
+                            {isGroupClass
+                              ? new Date(record.completed_date).toLocaleDateString("ko-KR", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })
+                              : `${record.session_number}회차`}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {new Date(record.completed_date).toLocaleDateString("ko-KR", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
+                            {isGroupClass
+                              ? "결제 완료"
+                              : new Date(record.completed_date).toLocaleDateString("ko-KR", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
                           </p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${badgeCls}`}>
@@ -365,7 +375,7 @@ export default function MyLessonsPage() {
               )}
             </div>
           )}
-        </div>}
+        </div>
 
         {/* Group Payment Info Card — group class only */}
         {isGroupClass && (

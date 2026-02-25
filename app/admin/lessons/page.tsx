@@ -37,6 +37,7 @@ type LessonHistoryItem = {
   completed_date: string;
   student_name: string;
   category: LessonCategory;
+  status?: string | null;
 };
 
 const CATEGORIES: LessonCategory[] = ["성인단체", "성인개인", "어린이개인", "어린이단체"];
@@ -249,6 +250,7 @@ export default function AdminLessonsPage() {
           lesson_id,
           session_number,
           completed_date,
+          status,
           lessons (
             category,
             user_id,
@@ -288,6 +290,7 @@ export default function AdminLessonsPage() {
             completed_date: item.completed_date,
             student_name: studentName,
             category: category,
+            status: item.status ?? null,
           };
         });
 
@@ -308,6 +311,7 @@ export default function AdminLessonsPage() {
           lesson_id,
           session_number,
           completed_date,
+          status,
           lessons (
             category,
             user_id,
@@ -333,6 +337,7 @@ export default function AdminLessonsPage() {
           completed_date: item.completed_date,
           student_name: item.lessons?.profiles?.name || "Unknown",
           category: item.lessons?.category || "성인개인",
+          status: item.status ?? null,
         }));
 
       setAllLessonHistory(formatted);
@@ -407,11 +412,12 @@ export default function AdminLessonsPage() {
 
       if (deleteError) throw deleteError;
 
-      // Re-count actual remaining records so current_session always matches lesson_history
+      // Re-count attendance records only (session_number > 0) so group payment records don't affect current_session
       const { count, error: countError } = await supabase
         .from("lesson_history")
         .select("*", { count: "exact", head: true })
-        .eq("lesson_id", lessonId);
+        .eq("lesson_id", lessonId)
+        .gt("session_number", 0);
 
       if (countError) throw countError;
 
@@ -465,11 +471,12 @@ export default function AdminLessonsPage() {
         if (deleteError) throw deleteError;
       }
 
-      // Step 2: Re-count remaining records so current_session always matches lesson_history
+      // Step 2: Re-count attendance records only (session_number > 0)
       const { count, error: countError } = await supabase
         .from("lesson_history")
         .select("*", { count: "exact", head: true })
-        .eq("lesson_id", lessonId);
+        .eq("lesson_id", lessonId)
+        .gt("session_number", 0);
 
       if (countError) throw countError;
 
@@ -853,50 +860,80 @@ export default function AdminLessonsPage() {
     const lessonId = selectedLessonForAdd.id;
     const userId = selectedLessonForAdd.user_id;
     const studentName = selectedLessonForAdd.student_name;
+    const isGroupClass = selectedLessonForAdd.category.includes("단체");
 
     try {
-      // Re-fetch current_session from DB to avoid stale modal state
-      const { data: freshLesson, error: fetchError } = await supabase
-        .from("lessons")
-        .select("current_session")
-        .eq("id", lessonId)
-        .single();
+      if (isGroupClass) {
+        // Group class: insert payment record, update payment_date, do NOT touch current_session
+        const { error: historyError } = await supabase
+          .from("lesson_history")
+          .insert({
+            lesson_id: lessonId,
+            session_number: 0,
+            completed_date: selectedDateForAdd,
+            user_id: userId,
+            status: "결제 완료",
+          });
 
-      if (fetchError) throw fetchError;
+        if (historyError) {
+          console.error("Supabase Insert Error:", historyError);
+          throw historyError;
+        }
 
-      const freshSession = freshLesson.current_session ?? 0;
-      if (freshSession >= 4) {
-        alert("이미 4회차가 완료된 수강생입니다. 수강료 갱신 후 진행해주세요.");
-        return;
+        const { error: updateError } = await supabase
+          .from("lessons")
+          .update({ payment_date: selectedDateForAdd })
+          .eq("id", lessonId);
+
+        if (updateError) throw updateError;
+
+        await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
+        closeAddLessonByDateModal();
+        alert(`✅ ${studentName}님의 납부가 ${selectedDateForAdd}로 등록되었습니다.`);
+      } else {
+        // Private class: existing attendance logic
+        const { data: freshLesson, error: fetchError } = await supabase
+          .from("lessons")
+          .select("current_session")
+          .eq("id", lessonId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const freshSession = freshLesson.current_session ?? 0;
+        if (freshSession >= 4) {
+          alert("이미 4회차가 완료된 수강생입니다. 수강료 갱신 후 진행해주세요.");
+          return;
+        }
+
+        const newSession = freshSession + 1;
+
+        const { error } = await supabase
+          .from("lessons")
+          .update({ current_session: newSession })
+          .eq("id", lessonId);
+
+        if (error) throw error;
+
+        const { error: historyError } = await supabase
+          .from("lesson_history")
+          .insert({
+            lesson_id: lessonId,
+            session_number: newSession,
+            completed_date: selectedDateForAdd,
+            user_id: userId,
+            status: "출석",
+          });
+
+        if (historyError) {
+          console.error("Supabase Insert Error:", historyError);
+          throw historyError;
+        }
+
+        await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
+        closeAddLessonByDateModal();
+        alert(`✅ ${studentName}님의 수업이 ${selectedDateForAdd}로 기록되었습니다.`);
       }
-
-      const newSession = freshSession + 1;
-
-      const { error } = await supabase
-        .from("lessons")
-        .update({ current_session: newSession })
-        .eq("id", lessonId);
-
-      if (error) throw error;
-
-      const { error: historyError } = await supabase
-        .from("lesson_history")
-        .insert({
-          lesson_id: lessonId,
-          session_number: newSession,
-          completed_date: selectedDateForAdd,
-          user_id: userId,
-          status: "출석",
-        });
-
-      if (historyError) {
-        console.error("Supabase Insert Error:", historyError);
-        throw historyError;
-      }
-
-      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
-      closeAddLessonByDateModal();
-      alert(`✅ ${studentName}님의 수업이 ${selectedDateForAdd}로 기록되었습니다.`);
     } catch (error: any) {
       console.error("Supabase Insert Error:", error);
       alert("수업 기록 중 오류가 발생했습니다.");
@@ -1140,7 +1177,7 @@ export default function AdminLessonsPage() {
                 <div key={`empty-${i}`} className="aspect-square"></div>
               ))}
               {calendarData.days.map((day) => {
-                const hasFourthSession = day.sessions.some((s) => s.session_number % 4 === 0);
+                const hasFourthSession = day.sessions.some((s) => s.session_number > 0 && s.session_number % 4 === 0);
                 const bgColor = hasFourthSession
                   ? "bg-orange-500 border-orange-600 hover:bg-orange-600"
                   : day.sessions.length > 0
@@ -1167,11 +1204,11 @@ export default function AdminLessonsPage() {
                         <div
                           key={session.id}
                           className={`text-[9px] px-1 py-0.5 rounded truncate font-medium ${
-                            session.session_number % 4 === 0
+                            session.session_number > 0 && session.session_number % 4 === 0
                               ? "bg-amber-200 text-amber-900"
                               : "bg-white text-blue-900"
                           }`}
-                          title={day.sessions.map((s) => `${s.student_name} (${s.session_number}회차)`).join(", ")}
+                          title={day.sessions.map((s) => s.status === "결제 완료" ? `${s.student_name} (결제 완료)` : `${s.student_name} (${s.session_number}회차)`).join(", ")}
                         >
                           {session.student_name}
                         </div>
@@ -1722,8 +1759,12 @@ export default function AdminLessonsPage() {
                               <span className="text-xs text-gray-500 font-medium">
                                 {dateFormatted}
                               </span>
-                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">
-                                {session.session_number}회차
+                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                session.status === "결제 완료"
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-blue-600 text-white"
+                              }`}>
+                                {session.status === "결제 완료" ? "결제 완료" : `${session.session_number}회차`}
                               </span>
                               <button
                                 onClick={() => handleDeleteLessonHistory(session.id, session.lesson_id)}
@@ -1798,14 +1839,16 @@ export default function AdminLessonsPage() {
                 >
                   <option value="">-- 수강생 선택 --</option>
                   {lessons
-                    .filter((l) => l.is_active && l.current_session < 4)
+                    .filter((l) => l.is_active && (l.category.includes("단체") || l.current_session < 4))
                     .map((l) => (
                       <option key={l.id} value={l.id}>
-                        {l.student_name} ({l.category}) - {l.current_session}/4회
+                        {l.category.includes("단체")
+                          ? `${l.student_name} (단체) - 납부 등록`
+                          : `${l.student_name} (개인) - ${l.current_session}/4회`}
                       </option>
                     ))}
                 </select>
-                {lessons.filter((l) => l.is_active && l.current_session < 4).length === 0 && (
+                {lessons.filter((l) => l.is_active && (l.category.includes("단체") || l.current_session < 4)).length === 0 && (
                   <p className="text-xs text-amber-600 mt-2">
                     수업 추가 가능한 수강생이 없습니다. (4회차 완료 또는 수업 중인 회원만)
                   </p>
