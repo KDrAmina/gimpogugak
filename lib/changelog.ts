@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.76",
+    date: "2026-02-25",
+    changes: [
+      "Vercel ISR Writes 한도 초과 대응: 관리자 대시보드(admin/page.tsx), 수업 관리(admin/lessons/page.tsx), 내 수업(my-lessons/page.tsx) 페이지에 force-dynamic 적용하여 ISR 캐시 생성을 차단",
+    ],
+  },
+  {
     version: "1.75",
     date: "2026-02-25",
     changes: [
