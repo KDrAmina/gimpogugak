@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.74",
+    date: "2026-02-25",
+    changes: [
+      "내 수업 페이지에 '최근 수강 내역' 카드 추가: 수업 진행 현황과 결제 상태 카드 사이에 타임라인 형식으로 회차별 날짜·출결 상태(출석/결석/보강/대기) 표시. lesson_history 테이블에 status 컬럼 추가(기본값 '출석')로 상세 출결 관리 지원.",
+    ],
+  },
+  {
     version: "1.73",
     date: "2026-02-24",
     changes: [

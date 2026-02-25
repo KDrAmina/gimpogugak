@@ -16,6 +16,7 @@ type LessonHistory = {
   session_number: number;
   completed_date: string;
   note: string | null;
+  status: string | null;
 };
 
 export default function MyLessonsPage() {
@@ -88,9 +89,9 @@ export default function MyLessonsPage() {
       if (lesson) {
         const { data: historyData, error: historyError } = await supabase
           .from("lesson_history")
-          .select("session_number, completed_date, note")
+          .select("session_number, completed_date, note, status")
           .eq("lesson_id", lesson.id)
-          .order("session_number", { ascending: false });
+          .order("completed_date", { ascending: false });
 
         if (!historyError) {
           setHistory(historyData || []);
@@ -243,6 +244,77 @@ export default function MyLessonsPage() {
           </div>
         )}
 
+        {/* 최근 수강 내역 Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span>📋</span>
+            <span>최근 수강 내역</span>
+          </h2>
+          {history.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">
+              아직 수강 기록이 없습니다.
+            </p>
+          ) : (
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-100" />
+              <div className="space-y-3">
+                {history.slice(0, 8).map((record) => {
+                  const status = record.status ?? "출석";
+                  const statusStyles: Record<string, string> = {
+                    "출석": "bg-green-100 text-green-700",
+                    "결석": "bg-red-100 text-red-600",
+                    "보강": "bg-blue-100 text-blue-700",
+                    "대기": "bg-yellow-100 text-yellow-700",
+                  };
+                  const dotStyles: Record<string, string> = {
+                    "출석": "bg-green-500",
+                    "결석": "bg-red-400",
+                    "보강": "bg-blue-500",
+                    "대기": "bg-yellow-400",
+                  };
+                  const badgeCls = statusStyles[status] ?? "bg-gray-100 text-gray-600";
+                  const dotCls = dotStyles[status] ?? "bg-gray-400";
+
+                  return (
+                    <div key={`${record.session_number}-${record.completed_date}`} className="flex items-start gap-4 relative">
+                      {/* Timeline dot */}
+                      <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0 ${dotCls}`}>
+                        {record.session_number}
+                      </div>
+                      <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">
+                            {record.session_number}회차
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {new Date(record.completed_date).toLocaleDateString("ko-KR", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                          {record.note && (
+                            <p className="text-xs text-gray-400 mt-1 italic">{record.note}</p>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${badgeCls}`}>
+                          {status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {history.length > 8 && (
+                  <p className="text-xs text-gray-400 text-center pt-1">
+                    최근 8회 표시 중 · 총 {history.length}회 기록
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Payment Status Card */}
         <div
           className={`rounded-2xl shadow-xl p-6 ${
@@ -305,45 +377,6 @@ export default function MyLessonsPage() {
             </div>
           )}
         </div>
-
-        {/* Past Lessons Card */}
-        {history.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📖</span>
-              <span>지난 수업 기록</span>
-            </h2>
-            <div className="space-y-2">
-              {history.map((record) => (
-                <div
-                  key={record.session_number}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:from-gray-100 hover:to-gray-200 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 text-white rounded-full flex items-center justify-center font-bold shadow-md">
-                      {record.session_number}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {record.session_number}회차 수업
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {new Date(record.completed_date).toLocaleDateString("ko-KR", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                    완료
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Inquiry Button */}
         <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-2xl shadow-xl p-6 text-center">
