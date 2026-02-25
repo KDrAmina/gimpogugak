@@ -366,6 +366,8 @@ export default function AdminLessonsPage() {
           lesson_id: lessonId,
           session_number: newSession,
           completed_date: todayDate,
+          user_id: lesson.user_id,
+          status: "출석",
         })
         .select();
 
@@ -791,6 +793,8 @@ export default function AdminLessonsPage() {
           lesson_id: lesson.id,
           session_number: newSession,
           completed_date: selectedDateForAdd,
+          user_id: lesson.user_id,
+          status: "출석",
         });
 
       if (historyError) throw historyError;

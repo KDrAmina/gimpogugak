@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.75",
+    date: "2026-02-25",
+    changes: [
+      "관리자 출석 체크 동기화: 출석(handleCheckIn) 및 날짜별 수업 확인(handleConfirmLessonByDate) 시 lesson_history에 user_id와 status('출석') 필드를 명시적으로 함께 저장하여 수강생 페이지의 최근 수강 내역과 완전 연동",
+    ],
+  },
+  {
     version: "1.74",
     date: "2026-02-25",
     changes: [
