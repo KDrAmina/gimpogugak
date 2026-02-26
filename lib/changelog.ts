@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.96",
+    date: "2026-02-27",
+    changes: [
+      "Supabase Storage 이미지 일괄 최적화: images·public-media 버킷 전체 383개 파일 중 1MB 이상 323개를 sharp로 최대 1200px 리사이즈 + WebP(q80) 변환. 총 1,595MB → 약 40MB로 감소, 약 1.56GB 스토리지·이그레스 절감.",
+    ],
+  },
+  {
     version: "1.95",
     date: "2026-02-27",
     changes: [

@@ -9,7 +9,10 @@
       "Bash(npm install:*)",
       "Bash(cd:*)",
       "Bash(grep:*)",
-      "Bash(cd C:\\\\Users\\\\JUN\\\\gimpo-gugak:*)"
+      "Bash(cd C:\\\\Users\\\\JUN\\\\gimpo-gugak:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)"
     ]
   }
 }
