@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.97",
+    date: "2026-02-27",
+    changes: [
+      "이미지 EXIF 회전 보정: 업로드 시 createImageBitmap + Canvas로 자동 회전 적용 후 WebP 변환. 스마트폰 세로 사진이 옆으로 눕는 문제 해결.",
+      "블로그 본문 이미지 가운데 정렬: 리사이즈된 이미지도 항상 중앙 배치되도록 BlogContent 컴포넌트에 display:block + margin:0 auto 적용.",
+    ],
+  },
+  {
     version: "1.96",
     date: "2026-02-27",
     changes: [

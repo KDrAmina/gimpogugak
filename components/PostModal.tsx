@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeHtml } from "@/lib/html-utils";
-import { uploadBlogImage } from "@/lib/upload-image";
+import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
 import { toDatetimeLocalKST, parseDatetimeLocalAsKST } from "@/lib/date-utils";
 
 // ⚠️ react-quill-new / quill are NOT statically imported here.
@@ -340,9 +340,15 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       let thumbnailUrl: string | null = editingPost?.thumbnail_url || null;
 
       if (thumbnailFile) {
-        const ext = thumbnailFile.name.split(".").pop() || "jpg";
+        let thumbBlob: Blob = thumbnailFile;
+        let ext = thumbnailFile.name.split(".").pop() || "jpg";
+        try {
+          const norm = await normalizeImage(thumbnailFile);
+          thumbBlob = norm.blob;
+          ext = norm.ext;
+        } catch { /* fallback to original */ }
         const path = `posts/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, thumbnailFile, { upsert: true });
+        const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, thumbBlob, { upsert: true });
         if (uploadError) {
           const msg = uploadError.message || JSON.stringify(uploadError);
           if (msg.includes("Bucket") || msg.includes("bucket")) {

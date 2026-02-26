@@ -67,7 +67,7 @@ const parserOptions: HTMLReactParserOptions = {
         loading="lazy"
         // Responsive: fill container width but never exceed natural size,
         // and let height scale proportionally.
-        style={{ width: "100%", height: "auto", maxWidth: `${w}px` }}
+        style={{ display: "block", margin: "0 auto", width: "100%", height: "auto", maxWidth: `${w}px` }}
       />
     );
   },
