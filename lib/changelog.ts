@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.88",
+    date: "2026-02-26",
+    changes: [
+      "블로그 상세 페이지 UI 개편: 공유 버튼을 하단에서 날짜 옆 상단으로 이동(링크 아이콘 소형 버튼), 하단 '공유하기' 버튼 제거 후 이전글/목록/다음글 네비게이션으로 교체. 이전글은 ← 이전글 [제목5자], 다음글은 다음글 [제목5자] → 형식으로 표시하며 가장 오래된/최신 글의 경우 해당 방향 링크 생략.",
+    ],
+  },
+  {
     version: "1.87",
     date: "2026-02-26",
     changes: [

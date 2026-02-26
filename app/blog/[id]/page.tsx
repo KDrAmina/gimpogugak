@@ -16,9 +16,10 @@ import ViewTracker from "@/components/ViewTracker";
 export const revalidate = 60;
 export const dynamicParams = true;
 
+const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords";
+
 async function fetchPostBySlugOrId(supabase: ReturnType<typeof createClientForBuild>, param: string) {
   const now = new Date().toISOString();
-  const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords";
 
   const { data: bySlug } = await supabase
     .from("posts")
@@ -145,6 +146,8 @@ function BlogContactSection() {
   );
 }
 
+const truncate = (str: string, n: number) => str.length > n ? str.slice(0, n) + "..." : str;
+
 export default async function BlogDetailPage({ params }: Props) {
   const { id: param } = await params;
   const supabase = createClientForBuild();
@@ -154,6 +157,31 @@ export default async function BlogDetailPage({ params }: Props) {
     notFound();
   }
 
+  const postDate = post.published_at || post.created_at;
+  const now = new Date().toISOString();
+
+  const [{ data: prevPosts }, { data: nextPosts }] = await Promise.all([
+    supabase
+      .from("posts")
+      .select("id, title, slug")
+      .eq("category", "소식")
+      .lte("published_at", now)
+      .lt("published_at", postDate)
+      .order("published_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("posts")
+      .select("id, title, slug")
+      .eq("category", "소식")
+      .lte("published_at", now)
+      .gt("published_at", postDate)
+      .order("published_at", { ascending: true })
+      .limit(1),
+  ]);
+
+  const prevPost = prevPosts?.[0] ?? null;
+  const nextPost = nextPosts?.[0] ?? null;
+
   return (
     <article className="blog-detail-article mx-auto max-w-2xl px-6 py-12">
       <ViewTracker postId={String(post.id)} />
@@ -161,7 +189,10 @@ export default async function BlogDetailPage({ params }: Props) {
         <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#111] mb-2">
           {post.title}
         </h1>
-        <p className="text-sm text-gray-500">{formatDateKST(post.published_at || post.created_at, "long")}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-500">{formatDateKST(post.published_at || post.created_at, "long")}</p>
+          <ShareButtonLazy />
+        </div>
       </header>
 
       <BlogContent html={sanitizeHtml(post.content)} />
@@ -172,15 +203,41 @@ export default async function BlogDetailPage({ params }: Props) {
         <BlogContactSection />
       </Suspense>
 
-      <footer className="mt-12 pt-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-2 text-blue-600 hover:underline font-medium"
-        >
-          ← 목록으로 돌아가기
-        </Link>
-        <ShareButtonLazy />
-      </footer>
+      {/* Prev/Next Navigation */}
+      <div className="flex justify-between items-center w-full mt-10 pt-6 border-t border-gray-200">
+        <div className="flex-1 text-left">
+          {prevPost ? (
+            <Link
+              href={`/blog/${getBlogPostPath(prevPost.slug ?? null, String(prevPost.id))}`}
+              className="text-sm text-gray-600 hover:text-blue-600 hover:underline"
+            >
+              ← 이전글 {truncate(prevPost.title, 5)}
+            </Link>
+          ) : (
+            <span />
+          )}
+        </div>
+        <div className="flex-shrink-0 px-4">
+          <Link
+            href="/blog"
+            className="text-sm text-gray-500 hover:text-blue-600 hover:underline"
+          >
+            목록
+          </Link>
+        </div>
+        <div className="flex-1 text-right">
+          {nextPost ? (
+            <Link
+              href={`/blog/${getBlogPostPath(nextPost.slug ?? null, String(nextPost.id))}`}
+              className="text-sm text-gray-600 hover:text-blue-600 hover:underline"
+            >
+              다음글 {truncate(nextPost.title, 5)} →
+            </Link>
+          ) : (
+            <span />
+          )}
+        </div>
+      </div>
     </article>
   );
 }
