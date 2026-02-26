@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.89",
+    date: "2026-02-26",
+    changes: [
+      "개인정보처리방침 페이지(/privacy) 신설: 수집 항목·이용 목적·보유 기간·파기 절차·제3자 제공·이용자 권리·보호책임자·쿠키 운영 등 9개 섹션으로 구성된 한국 법령 준수 방침 페이지 추가. 푸터 '개인정보처리방침' 링크 연결 완료.",
+    ],
+  },
+  {
     version: "1.88",
     date: "2026-02-26",
     changes: [
