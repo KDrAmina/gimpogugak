@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.93",
+    date: "2026-02-26",
+    changes: [
+      "전역 푸터 '개인정보처리방침' 링크 노출 확인 및 버전 업데이트: 모든 페이지 하단 푸터 '바로가기' 섹션에 /privacy 링크가 정상 노출됨을 최종 검증.",
+    ],
+  },
+  {
     version: "1.92",
     date: "2026-02-26",
     changes: [
