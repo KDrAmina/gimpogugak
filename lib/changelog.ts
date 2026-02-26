@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.99",
+    date: "2026-02-27",
+    changes: [
+      "파비콘 400 오류 수정: Naver Search Advisor가 보고한 /favicon.ico 400 Bad Request 해결. app/icon.png(192×192 PNG)를 ICO 컨테이너에 임베드하여 public/favicon.ico 생성. 모든 크롤러 및 브라우저의 /favicon.ico 요청이 유효한 이미지로 응답됨.",
+    ],
+  },
+  {
     version: "1.98",
     date: "2026-02-27",
     changes: [
