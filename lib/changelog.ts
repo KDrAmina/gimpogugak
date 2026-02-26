@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.98",
+    date: "2026-02-27",
+    changes: [
+      "블로그 본문 이미지 강제 중앙 정렬: CSS display:block + margin:auto에 !important 추가하여 에디터 인라인 스타일(width 등)에 의한 좌측 쏠림 현상 완전 해결.",
+      "블로그 본문 가독성 향상: 뷰어 전용 line-height 1.8, 문단 간격 margin-bottom 1.5em 적용 (폰트 패밀리 변경 없음).",
+    ],
+  },
+  {
     version: "1.97",
     date: "2026-02-27",
     changes: [

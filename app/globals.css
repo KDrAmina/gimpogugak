@@ -49,19 +49,21 @@ body {
 
 
 
-/* Quill editor & blog content: responsive images */
+/* Quill editor & blog content: responsive images — always centered */
 .quill-editor-wrapper .ql-editor img,
 .blog-detail-article .ql-editor img {
   display: block !important;
   max-width: 100% !important;
   height: auto !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
-/* 기본 정렬: 부모에 resize 스타일이 없을 때만 가운데 */
+/* 기본 정렬: 부모에 resize 스타일이 없을 때 가운데 (명시적 !important 추가) */
 .quill-editor-wrapper .ql-editor p:not([class*="ql-resize-style"]) img,
 .blog-detail-article .ql-editor p:not([class*="ql-resize-style"]) img {
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* quill-resize-module 정렬 스타일 (부모 블록에 적용됨) */
@@ -191,4 +193,12 @@ body {
   border-radius: 8px !important;
   font-family: 'Courier New', Courier, monospace !important;
   line-height: 1.5 !important;
+}
+
+/* 블로그 본문 뷰어 전용: 가독성 향상 (에디터 쪽 간격은 유지) */
+.blog-detail-article .ql-editor {
+  line-height: 1.8 !important;
+}
+.blog-detail-article .ql-editor p {
+  margin-bottom: 1.5em !important;
 }
