@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.94",
+    date: "2026-02-26",
+    changes: [
+      "홈페이지 CONNECT 섹션에 '개인정보처리방침' 링크 추가: 실제 사용자에게 노출되는 Instagram·Naver Blog 영역에 /privacy 링크 배치.",
+    ],
+  },
+  {
     version: "1.93",
     date: "2026-02-26",
     changes: [
