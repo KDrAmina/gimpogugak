@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.95",
+    date: "2026-02-27",
+    changes: [
+      "관리자 글 작성·수정 폼 입력값 공백 정제: title, slug, external_link, meta_title, meta_description, meta_keywords 필드에 앞뒤 공백 trim() 적용. slug는 추가로 내부 공백을 하이픈(-)으로 치환하여 SEO URL 오염 방지.",
+      "글 작성 기본 카테고리를 '음악교실'로 변경: PostModal(소식 관리) 및 write 페이지 모두 신규 글 생성 시 기본값이 '음악교실'로 설정되어 관리 워크플로우 최적화.",
+    ],
+  },
+  {
     version: "1.94",
     date: "2026-02-26",
     changes: [

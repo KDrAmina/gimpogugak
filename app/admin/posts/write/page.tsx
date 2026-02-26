@@ -10,7 +10,7 @@ type BlogCategory = (typeof BLOG_CATEGORIES)[number];
 
 export default function AdminPostsWritePage() {
   const [title, setTitle] = useState("");
-  const [postCategory, setPostCategory] = useState<BlogCategory>("국악원소식");
+  const [postCategory, setPostCategory] = useState<BlogCategory>("음악교실");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const router = useRouter();

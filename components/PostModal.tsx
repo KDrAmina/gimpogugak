@@ -91,7 +91,7 @@ type Props = {
 
 export default function PostModal({ editingPost, onClose, onSaved }: Props) {
   const [title, setTitle] = useState("");
-  const [postCategory, setPostCategory] = useState<BlogCategory>("국악원소식");
+  const [postCategory, setPostCategory] = useState<BlogCategory>("음악교실");
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [externalUrl, setExternalUrl] = useState("");
@@ -118,7 +118,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       setPostCategory(
         BLOG_CATEGORIES.includes(editingPost.category as BlogCategory)
           ? (editingPost.category as BlogCategory)
-          : "국악원소식"
+          : "음악교실"
       );
       setContent(editingPost.content);
       setExternalUrl(editingPost.external_url || "");
@@ -130,7 +130,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
       setPublishedAt(toDatetimeLocalKST(editingPost.published_at));
     } else {
       setTitle("");
-      setPostCategory("국악원소식");
+      setPostCategory("음악교실");
       setContent("");
       setExternalUrl("");
       setThumbnailFile(null);
@@ -370,7 +370,7 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
         meta_title: metaTitle.trim() || null,
         meta_description: metaDescription.trim() || null,
         meta_keywords: metaKeywords.trim() || null,
-        slug: slug.trim() || null,
+        slug: slug.trim().replace(/\s+/g, '-') || null,
         published_at: publishedAtValue,
       };
 
