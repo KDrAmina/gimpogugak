@@ -49,6 +49,15 @@ body {
 
 
 
+/* Image caption: centered styled text below images */
+.ql-image-caption {
+  text-align: center !important;
+  font-size: 14px !important;
+  color: #6b7280 !important;
+  margin-top: 8px !important;
+  margin-bottom: 16px !important;
+}
+
 /* Quill editor & blog content: responsive images — always centered */
 .quill-editor-wrapper .ql-editor img,
 .blog-detail-article .ql-editor img {

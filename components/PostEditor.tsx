@@ -228,17 +228,11 @@ export default function PostEditor({ editingPost = null }: Props) {
     if (!wrapper) return;
 
     function findCaptionP(img: HTMLImageElement): HTMLParagraphElement | null {
-      const next = img.nextElementSibling;
-      if (next?.tagName === "P" && next.classList.contains("img-caption")) {
+      // Quill wraps images in <p>; the caption sits after that wrapper
+      const anchor = img.closest("p") || img;
+      const next = anchor.nextElementSibling;
+      if (next?.tagName === "P" && next.classList.contains("ql-image-caption")) {
         return next as HTMLParagraphElement;
-      }
-      // Quill wraps images in <p>; check parent's next sibling
-      const parentP = img.closest("p");
-      if (parentP) {
-        const nextP = parentP.nextElementSibling;
-        if (nextP?.tagName === "P" && nextP.classList.contains("img-caption")) {
-          return nextP as HTMLParagraphElement;
-        }
       }
       return null;
     }
@@ -279,26 +273,30 @@ export default function PostEditor({ editingPost = null }: Props) {
     setImageTooltip((prev) => {
       if (!prev.imgEl) return { ...prev, caption: value };
 
-      // Find or create caption <p> after the image
-      const parentP = prev.imgEl.closest("p");
-      const anchor = parentP || prev.imgEl;
-      let captionP = anchor.nextElementSibling;
-      if (!captionP || !captionP.classList.contains("img-caption")) {
+      // Anchor is always the <p> wrapping the image (or the image itself)
+      const anchor = prev.imgEl.closest("p") || prev.imgEl;
+      const next = anchor.nextElementSibling;
+      const existingCaption =
+        next?.tagName === "P" && next.classList.contains("ql-image-caption")
+          ? next
+          : null;
+
+      if (existingCaption) {
         if (value.trim()) {
-          captionP = document.createElement("p");
-          captionP.className = "img-caption";
-          (captionP as HTMLElement).style.cssText = "text-align:center;font-size:14px;color:#6b7280;margin-top:8px;margin-bottom:16px;";
-          anchor.after(captionP);
+          // Update existing caption text
+          existingCaption.textContent = value;
         } else {
-          return { ...prev, caption: value };
+          // Empty value → remove caption element entirely
+          existingCaption.remove();
         }
+      } else if (value.trim()) {
+        // No existing caption and non-empty value → create one
+        const captionP = document.createElement("p");
+        captionP.className = "ql-image-caption";
+        captionP.textContent = value;
+        anchor.after(captionP);
       }
 
-      if (!value.trim()) {
-        captionP.remove();
-      } else {
-        captionP.textContent = value;
-      }
       return { ...prev, caption: value };
     });
   }, []);

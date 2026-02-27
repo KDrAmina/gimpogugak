@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.04",
+    date: "2026-02-27",
+    changes: [
+      "블로그 에디터 이미지 캡션 중복 삽입 버그 수정: 캡션 입력 시 기존 캡션을 탐지하여 업데이트하는 멱등(idempotent) 로직으로 리팩터링. 이미지당 캡션 요소를 하나만 유지하며, 빈 값 입력 시 캡션 자동 제거. CSS 클래스를 ql-image-caption으로 통일하여 에디터·뷰어 스타일 일관성 확보.",
+    ],
+  },
+  {
     version: "2.03",
     date: "2026-02-27",
     changes: [
