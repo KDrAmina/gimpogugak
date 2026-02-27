@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.06",
+    date: "2026-02-27",
+    changes: [
+      "툴팁 키보드 이벤트 버블링 차단 및 오답 노트(Troubleshooting) 시스템 도입: 이미지 툴팁(Alt/Caption) input에 onKeyDown·onKeyPress·onPointerDown stopPropagation 적용하여 키 입력이 Quill 에디터로 새어 나가는 버그 수정. TROUBLESHOOTING.md 신설 — Ghosting Caption·Keystroke Leakage 등 유사 버그 재발 방지용 문서화.",
+    ],
+  },
+  {
     version: "2.05",
     date: "2026-02-27",
     changes: [

@@ -613,6 +613,9 @@ export default function PostEditor({ editingPost = null }: Props) {
                       type="text"
                       value={imageTooltip.alt}
                       onChange={(e) => handleTooltipAltChange(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onKeyPress={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       placeholder="이미지를 설명하는 텍스트"
                       className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
@@ -626,7 +629,15 @@ export default function PostEditor({ editingPost = null }: Props) {
                         type="text"
                         value={imageTooltip.caption}
                         onChange={(e) => handleTooltipCaptionChange(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyCaption(); } }}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            applyCaption();
+                          }
+                        }}
+                        onKeyPress={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                         placeholder="사진 아래에 표시될 설명"
                         className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
