@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.08",
+    date: "2026-02-27",
+    changes: [
+      "툴팁 첫 글자 누수 방지를 위한 에디터 잠금(ReadOnly) 및 네이티브 이벤트 격리 적용: React Synthetic Events(onKeyDownCapture)가 Quill 네이티브 DOM 리스너보다 늦게 실행되는 근본 원인 발견. 세 겹 격리 전략 도입 — (1) readOnly={imageTooltip.visible}로 에디터 키보드 모듈 자체 비활성화, (2) tooltipRef에 네이티브 addEventListener(capture:true) + stopImmediatePropagation으로 DOM 레벨 차단, (3) auto-focus로 UX 보장. TROUBLESHOOTING.md에 React vs Native 이벤트 실행 순서 다이어그램 문서화.",
+    ],
+  },
+  {
     version: "2.07",
     date: "2026-02-27",
     changes: [

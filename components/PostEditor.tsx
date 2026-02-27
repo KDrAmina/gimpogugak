@@ -120,6 +120,8 @@ export default function PostEditor({ editingPost = null }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<unknown>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipAltRef = useRef<HTMLInputElement>(null);
   const clipboardMatcherAdded = useRef(false);
   const supabase = createClient();
   const router = useRouter();
@@ -317,6 +319,47 @@ export default function PostEditor({ editingPost = null }: Props) {
   const closeTooltip = useCallback(() => {
     setImageTooltip((prev) => ({ ...prev, visible: false, imgEl: null }));
   }, []);
+
+  // Editor ReadOnly lock: Quill의 네이티브 키보드 리스너를 원천 무력화
+  useEffect(() => {
+    if (!editorReady) return;
+    const editor = (quillRef.current as { getEditor?: () => { enable?: (v: boolean) => void } })?.getEditor?.();
+    if (!editor?.enable) return;
+    if (imageTooltip.visible) {
+      editor.enable(false);
+    } else {
+      editor.enable(true);
+    }
+  }, [imageTooltip.visible, editorReady]);
+
+  // Native DOM event isolation: stopImmediatePropagation으로 Quill 네이티브 리스너 도달 차단
+  useEffect(() => {
+    const el = tooltipRef.current;
+    if (!el || !imageTooltip.visible) return;
+    const stop = (e: Event) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+    el.addEventListener("keydown", stop, true);
+    el.addEventListener("keypress", stop, true);
+    el.addEventListener("keyup", stop, true);
+    el.addEventListener("input", stop, true);
+    return () => {
+      el.removeEventListener("keydown", stop, true);
+      el.removeEventListener("keypress", stop, true);
+      el.removeEventListener("keyup", stop, true);
+      el.removeEventListener("input", stop, true);
+    };
+  }, [imageTooltip.visible]);
+
+  // Auto-focus: 툴팁 열릴 때 Alt input에 자동 포커스
+  useEffect(() => {
+    if (!imageTooltip.visible) return;
+    const timer = setTimeout(() => {
+      tooltipAltRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [imageTooltip.visible]);
 
   // Clipboard matcher: IMG paste 시 Base64 삽입 차단
   useEffect(() => {
@@ -568,6 +611,7 @@ export default function PostEditor({ editingPost = null }: Props) {
                     theme="snow"
                     value={content}
                     onChange={setContent}
+                    readOnly={imageTooltip.visible}
                     modules={modules}
                     formats={QUILL_FORMATS}
                     placeholder="내용을 입력하세요. 이미지는 드래그 앤 드롭 또는 이미지 버튼으로 추가할 수 있습니다."
@@ -588,31 +632,23 @@ export default function PostEditor({ editingPost = null }: Props) {
               </>
             )}
 
-            {/* Image Tooltip Popover — Capture-phase isolation wrapper.
-                React-Quill registers keyboard listeners at the document/window level,
-                so bubble-phase stopPropagation on individual inputs is INEFFECTIVE.
-                Intercepting at the CAPTURE phase here prevents the event from ever
-                reaching any deeper listener (Quill toolbar, editor, or global). */}
+            {/* Image Tooltip Popover — Triple isolation:
+                1. Editor ReadOnly lock (readOnly={imageTooltip.visible}) disables Quill's keyboard module entirely
+                2. Native DOM addEventListener with stopImmediatePropagation (tooltipRef useEffect)
+                3. onMouseDownCapture to prevent click-through to editor
+                React Synthetic onKeyDownCapture alone was insufficient because Quill
+                attaches native DOM listeners that fire before React's event system. */}
             {imageTooltip.visible && (
               <div
+                ref={tooltipRef}
                 className="image-tooltip-popover absolute z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-72"
                 style={{
                   top: imageTooltip.top,
                   left: Math.max(0, imageTooltip.left - 144),
                 }}
-                onKeyDownCapture={(e) => {
-                  // Capture-phase: kill the event before Quill sees it
-                  e.stopPropagation();
-                }}
-                onKeyUpCapture={(e) => {
-                  e.stopPropagation();
-                }}
-                onKeyPressCapture={(e) => {
-                  e.stopPropagation();
-                }}
-                onPointerDownCapture={(e) => {
-                  e.stopPropagation();
-                }}
+                /* Native event isolation is handled via tooltipRef useEffect
+                   (stopImmediatePropagation at capture phase on the real DOM).
+                   Editor is also locked via readOnly={imageTooltip.visible}. */
                 onMouseDownCapture={(e) => {
                   e.stopPropagation();
                 }}
@@ -633,14 +669,10 @@ export default function PostEditor({ editingPost = null }: Props) {
                       SEO 텍스트 (Alt)
                     </label>
                     <input
+                      ref={tooltipAltRef}
                       type="text"
                       value={imageTooltip.alt}
                       onChange={(e) => handleTooltipAltChange(e.target.value)}
-                      onFocus={() => {
-                        // Force Quill to lose focus so it stops intercepting keys
-                        const editor = (quillRef.current as { getEditor?: () => { blur?: () => void } })?.getEditor?.();
-                        editor?.blur?.();
-                      }}
                       placeholder="이미지를 설명하는 텍스트"
                       className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
@@ -654,10 +686,6 @@ export default function PostEditor({ editingPost = null }: Props) {
                         type="text"
                         value={imageTooltip.caption}
                         onChange={(e) => handleTooltipCaptionChange(e.target.value)}
-                        onFocus={() => {
-                          const editor = (quillRef.current as { getEditor?: () => { blur?: () => void } })?.getEditor?.();
-                          editor?.blur?.();
-                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
