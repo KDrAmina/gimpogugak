@@ -14,7 +14,8 @@
       "Bash(curl:*)",
       "Bash(rm:*)",
       "Bash(git:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(npm i:*)"
     ]
   }
 }
