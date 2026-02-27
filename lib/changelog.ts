@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.03",
+    date: "2026-02-27",
+    changes: [
+      "블로그 에디터 이미지 삽입 UX 리뉴얼: 이미지 업로드·붙여넣기·드래그 시 차단 모달(window.prompt) 제거, 즉시 삽입 방식으로 전환. 에디터 내 이미지 클릭 시 플로팅 툴팁(팝오버) 표시 — SEO 대체 텍스트(Alt)와 사진 설명(Caption) 입력 지원. 캡션은 이미지 바로 아래 스타일링된 텍스트로 삽입되어 게시글 가독성 향상.",
+    ],
+  },
+  {
     version: "2.02",
     date: "2026-02-27",
     changes: [

@@ -88,6 +88,15 @@ type Props = {
   editingPost?: PostForEdit | null;
 };
 
+type ImageTooltipState = {
+  visible: boolean;
+  imgEl: HTMLImageElement | null;
+  alt: string;
+  caption: string;
+  top: number;
+  left: number;
+};
+
 export default function PostEditor({ editingPost = null }: Props) {
   const [title, setTitle] = useState("");
   const [postCategory, setPostCategory] = useState<BlogCategory>("음악교실");
@@ -104,8 +113,12 @@ export default function PostEditor({ editingPost = null }: Props) {
   const [editorReady, setEditorReady] = useState(false);
   const [sourceMode, setSourceMode] = useState(false);
   const [sourceDraft, setSourceDraft] = useState("");
+  const [imageTooltip, setImageTooltip] = useState<ImageTooltipState>({
+    visible: false, imgEl: null, alt: "", caption: "", top: 0, left: 0,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<unknown>(null);
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
   const clipboardMatcherAdded = useRef(false);
   const supabase = createClient();
   const router = useRouter();
@@ -156,8 +169,7 @@ export default function PostEditor({ editingPost = null }: Props) {
         alert(`이미지 업로드 실패: ${result.error}`);
         return;
       }
-      const altText = (typeof window !== "undefined" && window.prompt?.("Enter Alt Text for SEO (optional):")) || "";
-      editor.insertEmbed(insertIndex, "image", { url: result.url, alt: altText } as unknown as string, "user");
+      editor.insertEmbed(insertIndex, "image", { url: result.url, alt: "" } as unknown as string, "user");
       editor.setSelection(insertIndex + 1, 0);
     },
     [supabase]
@@ -207,6 +219,97 @@ export default function PostEditor({ editingPost = null }: Props) {
       setEditorReady(true);
     };
     init();
+  }, []);
+
+  // Image click → floating tooltip
+  useEffect(() => {
+    if (!editorReady || sourceMode) return;
+    const wrapper = editorWrapperRef.current;
+    if (!wrapper) return;
+
+    function findCaptionP(img: HTMLImageElement): HTMLParagraphElement | null {
+      const next = img.nextElementSibling;
+      if (next?.tagName === "P" && next.classList.contains("img-caption")) {
+        return next as HTMLParagraphElement;
+      }
+      // Quill wraps images in <p>; check parent's next sibling
+      const parentP = img.closest("p");
+      if (parentP) {
+        const nextP = parentP.nextElementSibling;
+        if (nextP?.tagName === "P" && nextP.classList.contains("img-caption")) {
+          return nextP as HTMLParagraphElement;
+        }
+      }
+      return null;
+    }
+
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG" && target.closest(".ql-editor")) {
+        const img = target as HTMLImageElement;
+        const wrapperRect = wrapper!.getBoundingClientRect();
+        const imgRect = img.getBoundingClientRect();
+        const captionP = findCaptionP(img);
+        setImageTooltip({
+          visible: true,
+          imgEl: img,
+          alt: img.getAttribute("alt") || "",
+          caption: captionP?.textContent || "",
+          top: imgRect.bottom - wrapperRect.top + 8,
+          left: imgRect.left - wrapperRect.left + imgRect.width / 2,
+        });
+        e.stopPropagation();
+      } else if (!target.closest(".image-tooltip-popover")) {
+        setImageTooltip((prev) => (prev.visible ? { ...prev, visible: false, imgEl: null } : prev));
+      }
+    }
+
+    wrapper.addEventListener("click", handleClick, true);
+    return () => wrapper.removeEventListener("click", handleClick, true);
+  }, [editorReady, sourceMode]);
+
+  const handleTooltipAltChange = useCallback((value: string) => {
+    setImageTooltip((prev) => {
+      if (prev.imgEl) prev.imgEl.setAttribute("alt", value);
+      return { ...prev, alt: value };
+    });
+  }, []);
+
+  const handleTooltipCaptionChange = useCallback((value: string) => {
+    setImageTooltip((prev) => {
+      if (!prev.imgEl) return { ...prev, caption: value };
+
+      // Find or create caption <p> after the image
+      const parentP = prev.imgEl.closest("p");
+      const anchor = parentP || prev.imgEl;
+      let captionP = anchor.nextElementSibling;
+      if (!captionP || !captionP.classList.contains("img-caption")) {
+        if (value.trim()) {
+          captionP = document.createElement("p");
+          captionP.className = "img-caption";
+          (captionP as HTMLElement).style.cssText = "text-align:center;font-size:14px;color:#6b7280;margin-top:8px;margin-bottom:16px;";
+          anchor.after(captionP);
+        } else {
+          return { ...prev, caption: value };
+        }
+      }
+
+      if (!value.trim()) {
+        captionP.remove();
+      } else {
+        captionP.textContent = value;
+      }
+      return { ...prev, caption: value };
+    });
+  }, []);
+
+  const closeTooltip = useCallback(() => {
+    setImageTooltip((prev) => ({ ...prev, visible: false, imgEl: null }));
+    // Sync editor content after tooltip changes
+    const editor = (quillRef.current as { getEditor?: () => { root?: HTMLElement } })?.getEditor?.();
+    if (editor?.root) {
+      setContent(editor.root.innerHTML);
+    }
   }, []);
 
   // Clipboard matcher: IMG paste 시 Base64 삽입 차단
@@ -420,7 +523,8 @@ export default function PostEditor({ editingPost = null }: Props) {
         {/* Editor */}
         <div className="flex-1 flex flex-col">
           <div
-            className="quill-editor-wrapper flex-1 [&_.ql-container]:min-h-[500px] [&_.ql-editor]:min-h-[480px] [&_.ql-container]:border-gray-300 [&_.ql-toolbar]:border-gray-300 [&_.ql-toolbar]:bg-white [&_.ql-toolbar]:sticky [&_.ql-toolbar]:top-16 [&_.ql-toolbar]:z-10"
+            ref={editorWrapperRef}
+            className="quill-editor-wrapper flex-1 relative [&_.ql-container]:min-h-[500px] [&_.ql-editor]:min-h-[480px] [&_.ql-container]:border-gray-300 [&_.ql-toolbar]:border-gray-300 [&_.ql-toolbar]:bg-white [&_.ql-toolbar]:sticky [&_.ql-toolbar]:top-16 [&_.ql-toolbar]:z-10"
             onDropCapture={handleEditorDrop}
             onDragOver={(e) => e.preventDefault()}
             onPasteCapture={handleEditorPaste}
@@ -476,6 +580,57 @@ export default function PostEditor({ editingPost = null }: Props) {
                   </button>
                 </div>
               </>
+            )}
+
+            {/* Image Tooltip Popover */}
+            {imageTooltip.visible && (
+              <div
+                className="image-tooltip-popover absolute z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-72"
+                style={{
+                  top: imageTooltip.top,
+                  left: Math.max(0, imageTooltip.left - 144),
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-gray-800">이미지 설정</span>
+                  <button
+                    type="button"
+                    onClick={closeTooltip}
+                    className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+                  >
+                    &times;
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      SEO 텍스트 (Alt)
+                    </label>
+                    <input
+                      type="text"
+                      value={imageTooltip.alt}
+                      onChange={(e) => handleTooltipAltChange(e.target.value)}
+                      placeholder="이미지를 설명하는 텍스트"
+                      className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      사진 설명 (Caption)
+                    </label>
+                    <input
+                      type="text"
+                      value={imageTooltip.caption}
+                      onChange={(e) => handleTooltipCaptionChange(e.target.value)}
+                      placeholder="사진 아래에 표시될 설명"
+                      className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-2">
+                  클릭하여 이미지의 SEO 텍스트와 캡션을 편집하세요.
+                </p>
+              </div>
             )}
           </div>
         </div>
