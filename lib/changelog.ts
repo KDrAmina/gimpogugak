@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.05",
+    date: "2026-02-27",
+    changes: [
+      "에디터 유령 캡션(Ghosting Caption) 무한 중복 버그 수정 및 캡션 적용 버튼 추가: 키 입력마다 DOM을 직접 조작하던 로직을 제거하고, 캡션 입력은 React 상태만 업데이트하도록 변경. '적용' 버튼 클릭 또는 Enter 키로 캡션을 일괄 반영하여 React-Quill Delta 엔진과의 충돌 해소.",
+    ],
+  },
+  {
     version: "2.04",
     date: "2026-02-27",
     changes: [

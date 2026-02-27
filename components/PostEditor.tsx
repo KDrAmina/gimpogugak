@@ -270,44 +270,49 @@ export default function PostEditor({ editingPost = null }: Props) {
   }, []);
 
   const handleTooltipCaptionChange = useCallback((value: string) => {
-    setImageTooltip((prev) => {
-      if (!prev.imgEl) return { ...prev, caption: value };
-
-      // Anchor is always the <p> wrapping the image (or the image itself)
-      const anchor = prev.imgEl.closest("p") || prev.imgEl;
-      const next = anchor.nextElementSibling;
-      const existingCaption =
-        next?.tagName === "P" && next.classList.contains("ql-image-caption")
-          ? next
-          : null;
-
-      if (existingCaption) {
-        if (value.trim()) {
-          // Update existing caption text
-          existingCaption.textContent = value;
-        } else {
-          // Empty value → remove caption element entirely
-          existingCaption.remove();
-        }
-      } else if (value.trim()) {
-        // No existing caption and non-empty value → create one
-        const captionP = document.createElement("p");
-        captionP.className = "ql-image-caption";
-        captionP.textContent = value;
-        anchor.after(captionP);
-      }
-
-      return { ...prev, caption: value };
-    });
+    // Only update local React state — NO DOM manipulation here.
+    // Caption is applied to the Quill Delta via the "적용" button or Enter key.
+    setImageTooltip((prev) => ({ ...prev, caption: value }));
   }, []);
+
+  const applyCaption = useCallback(() => {
+    const img = imageTooltip.imgEl;
+    if (!img) return;
+    const editor = (quillRef.current as { getEditor?: () => QuillEditor & { root?: HTMLElement } })?.getEditor?.();
+    if (!editor?.root) return;
+
+    const captionText = imageTooltip.caption.trim();
+
+    // Find the <p> wrapping the image
+    const anchor = img.closest("p") || img;
+    const next = anchor.nextElementSibling;
+    const existingCaptionEl =
+      next?.tagName === "P" && next.classList.contains("ql-image-caption")
+        ? next
+        : null;
+
+    if (existingCaptionEl) {
+      if (captionText) {
+        existingCaptionEl.textContent = captionText;
+      } else {
+        existingCaptionEl.remove();
+      }
+    } else if (captionText) {
+      const captionP = document.createElement("p");
+      captionP.className = "ql-image-caption";
+      captionP.style.textAlign = "center";
+      captionP.textContent = captionText;
+      anchor.after(captionP);
+    }
+
+    // Sync DOM → React state via innerHTML so Quill's content stays in sync
+    setContent(editor.root.innerHTML);
+    // Close tooltip after applying
+    setImageTooltip((prev) => ({ ...prev, visible: false, imgEl: null }));
+  }, [imageTooltip.imgEl, imageTooltip.caption]);
 
   const closeTooltip = useCallback(() => {
     setImageTooltip((prev) => ({ ...prev, visible: false, imgEl: null }));
-    // Sync editor content after tooltip changes
-    const editor = (quillRef.current as { getEditor?: () => { root?: HTMLElement } })?.getEditor?.();
-    if (editor?.root) {
-      setContent(editor.root.innerHTML);
-    }
   }, []);
 
   // Clipboard matcher: IMG paste 시 Base64 삽입 차단
@@ -616,17 +621,27 @@ export default function PostEditor({ editingPost = null }: Props) {
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       사진 설명 (Caption)
                     </label>
-                    <input
-                      type="text"
-                      value={imageTooltip.caption}
-                      onChange={(e) => handleTooltipCaptionChange(e.target.value)}
-                      placeholder="사진 아래에 표시될 설명"
-                      className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={imageTooltip.caption}
+                        onChange={(e) => handleTooltipCaptionChange(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyCaption(); } }}
+                        placeholder="사진 아래에 표시될 설명"
+                        className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={applyCaption}
+                        className="shrink-0 px-2.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                      >
+                        적용
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <p className="text-[11px] text-gray-400 mt-2">
-                  클릭하여 이미지의 SEO 텍스트와 캡션을 편집하세요.
+                  캡션 입력 후 적용 버튼 또는 Enter를 눌러주세요.
                 </p>
               </div>
             )}
