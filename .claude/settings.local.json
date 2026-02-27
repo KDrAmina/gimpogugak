@@ -13,7 +13,8 @@
       "Bash(node:*)",
       "Bash(curl:*)",
       "Bash(rm:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npx next:*)"
     ]
   }
 }
