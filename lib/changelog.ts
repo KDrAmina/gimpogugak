@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.11",
+    date: "2026-02-27",
+    changes: [
+      "Bing IndexNow API 연동 (글 발행 시 자동 색인 요청 기능 추가): 블로그 글 등록/수정 성공 시 Bing·Naver 등 IndexNow 지원 검색엔진에 즉시 색인 요청. public/<key>.txt 키 파일, lib/indexnow.ts 유틸, /api/indexnow 라우트 추가. PostEditor·PostModal 발행 플로우에 fire-and-forget 방식으로 연동.",
+    ],
+  },
+  {
     version: "2.10",
     date: "2026-02-27",
     changes: [

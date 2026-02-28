@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { sanitizeHtml } from "@/lib/html-utils";
 import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
 import { toDatetimeLocalKST, parseDatetimeLocalAsKST } from "@/lib/date-utils";
+import { getBlogPostPath } from "@/lib/blog-utils";
 
 // ⚠️ react-quill-new / quill are NOT statically imported here.
 // All Quill module loading and format registration happens inside the
@@ -380,6 +381,8 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
         published_at: publishedAtValue,
       };
 
+      let postPath: string;
+
       if (isEdit && editingPost) {
         const { error } = await supabase
           .from("posts")
@@ -387,12 +390,20 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
           .eq("id", editingPost.id);
 
         if (error) throw new Error(error.message);
+        postPath = getBlogPostPath(payload.slug, editingPost.id);
         alert("✅ 게시글이 수정되었습니다.");
       } else {
-        const { error } = await supabase.from("posts").insert(payload);
+        const { data, error } = await supabase
+          .from("posts")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw new Error(error.message);
+        postPath = getBlogPostPath(payload.slug, data.id);
         alert("✅ 게시글이 등록되었습니다.");
       }
+
+      fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
 
       onSaved();
       onClose();

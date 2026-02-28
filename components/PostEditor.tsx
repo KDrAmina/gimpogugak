@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { sanitizeHtml } from "@/lib/html-utils";
 import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
 import { toDatetimeLocalKST, parseDatetimeLocalAsKST } from "@/lib/date-utils";
+import { getBlogPostPath } from "@/lib/blog-utils";
 
 // ⚠️ react-quill-new / quill are NOT statically imported here.
 // All Quill module loading and format registration happens inside the
@@ -534,6 +535,8 @@ export default function PostEditor({ editingPost = null }: Props) {
         published_at: publishedAtValue,
       };
 
+      let postPath: string;
+
       if (isEdit && editingPost) {
         const { error } = await supabase
           .from("posts")
@@ -541,12 +544,21 @@ export default function PostEditor({ editingPost = null }: Props) {
           .eq("id", editingPost.id);
 
         if (error) throw new Error(error.message);
+        postPath = getBlogPostPath(payload.slug, editingPost.id);
         alert("✅ 게시글이 수정되었습니다.");
       } else {
-        const { error } = await supabase.from("posts").insert(payload);
+        const { data, error } = await supabase
+          .from("posts")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw new Error(error.message);
+        postPath = getBlogPostPath(payload.slug, data.id);
         alert("✅ 게시글이 등록되었습니다.");
       }
+
+      // IndexNow: Bing/Naver 등 검색엔진에 즉시 색인 요청 (fire-and-forget)
+      fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
 
       router.push("/admin/posts/manage");
     } catch (err: unknown) {

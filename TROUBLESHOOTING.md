@@ -151,4 +151,13 @@ const applyCaption = useCallback(() => {
 
 ---
 
-*최종 업데이트: 2026-02-27 (v2.09)*
+## SEO & IndexNow Integration
+
+- **IndexNow 키 위치:** `public/<key>.txt` — 32자 hex 문자열이 파일명이자 내용과 동일
+- **유틸리티:** `lib/indexnow.ts` — `notifyIndexNow(postSlugOrId)` 함수가 Bing IndexNow API에 POST 요청
+- **호출 시점:** 블로그 글 발행/수정 성공 직후 (PostEditor, PostModal) — fire-and-forget로 `/api/indexnow?path=...` 호출
+- **지원 검색엔진:** Bing, Naver 등 IndexNow 프로토콜 지원 엔진
+
+---
+
+*최종 업데이트: 2026-02-27 (v2.11)*
