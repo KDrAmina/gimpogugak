@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.14",
+    date: "2026-02-27",
+    changes: [
+      "IndexNow 전송 로직 수정: 예약/임시저장 글은 제외하고 실제 발행된 글만 검색엔진에 핑을 보내도록 개선. published_at이 현재 시각 이하일 때만 IndexNow API 호출.",
+    ],
+  },
+  {
     version: "2.12",
     date: "2026-02-27",
     changes: [

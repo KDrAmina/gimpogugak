@@ -557,8 +557,10 @@ export default function PostEditor({ editingPost = null }: Props) {
         alert("✅ 게시글이 등록되었습니다.");
       }
 
-      // IndexNow: Bing/Naver 등 검색엔진에 즉시 색인 요청 (fire-and-forget)
-      fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
+      // IndexNow: 실제 발행된 글만 검색엔진에 핑 (예약/미래 발행 글 제외)
+      if (publishedAtValue && new Date(publishedAtValue) <= new Date()) {
+        fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
+      }
 
       router.push("/admin/posts/manage");
     } catch (err: unknown) {

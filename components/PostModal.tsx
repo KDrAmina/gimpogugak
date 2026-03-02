@@ -403,7 +403,10 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
         alert("✅ 게시글이 등록되었습니다.");
       }
 
-      fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
+      // IndexNow: 실제 발행된 글만 검색엔진에 핑 (예약/미래 발행 글 제외)
+      if (publishedAtValue && new Date(publishedAtValue) <= new Date()) {
+        fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
+      }
 
       onSaved();
       onClose();
