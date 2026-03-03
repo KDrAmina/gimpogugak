@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.16",
+    date: "2026-02-27",
+    changes: [
+      "로그인 페이지에 '비밀번호를 잊으셨나요?' 링크 및 이메일 입력 폼 추가. resetPasswordForEmail 호출 시 redirectTo를 https://gimpogugak.com/update-password로 설정하여 재설정 링크가 전용 페이지로 연결되도록 함. 발송 성공 시 '이메일로 재설정 링크를 보냈습니다' 안내.",
+    ],
+  },
+  {
     version: "2.15",
     date: "2026-02-27",
     changes: [

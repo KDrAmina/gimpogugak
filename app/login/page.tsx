@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -152,6 +155,36 @@ export default function LoginPage() {
       setMessage("로그인 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setResetLoading(true);
+    setMessage("");
+
+    const email = resetEmail.trim();
+    if (!email) {
+      setMessage("이메일 주소를 입력해주세요.");
+      setResetLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://gimpogugak.com/update-password",
+      });
+
+      if (error) throw error;
+
+      setMessage("이메일로 재설정 링크를 보냈습니다.");
+      setShowForgotPassword(false);
+      setResetEmail("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "재설정 메일 발송에 실패했습니다.";
+      setMessage(msg);
+    } finally {
+      setResetLoading(false);
     }
   }
 
@@ -378,7 +411,7 @@ export default function LoginPage() {
           {message && (
             <div
               className={`mb-4 p-3 rounded-lg text-sm ${
-                message.includes("완료") || message.includes("성공")
+                message.includes("완료") || message.includes("성공") || message.includes("보냈습니다")
                   ? "bg-green-50 text-green-800"
                   : "bg-red-50 text-red-800"
               }`}
@@ -422,7 +455,50 @@ export default function LoginPage() {
                 <p className="text-xs text-gray-500 mt-1 text-center">
                   회원가입 시 설정한 비밀번호를 입력하세요 (4자리 이상, 공백 제외)
                 </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword((prev) => !prev);
+                    setMessage("");
+                  }}
+                  className="mt-2 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                >
+                  비밀번호를 잊으셨나요?
+                </button>
               </div>
+
+              {showForgotPassword && (
+                <form onSubmit={handleResetPassword} className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-700">가입 시 등록한 이메일 주소를 입력하시면 재설정 링크를 보내드립니다.</p>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {resetLoading ? "전송 중..." : "전송"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setResetEmail("");
+                        setMessage("");
+                      }}
+                      className="px-3 py-2 text-gray-600 hover:text-gray-900 text-sm"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </form>
+              )}
 
               <button
                 type="submit"
