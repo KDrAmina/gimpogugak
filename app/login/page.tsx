@@ -158,8 +158,9 @@ export default function LoginPage() {
     }
   }
 
-  async function handleResetPassword(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleResetPassword(e?: React.FormEvent | React.MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
     setResetLoading(true);
     setMessage("");
 
@@ -170,17 +171,45 @@ export default function LoginPage() {
       return;
     }
 
+    console.log("🔄 Password reset requested for:", email);
+    console.log("🔑 Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("🔑 Anon key present:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: "https://gimpogugak.com/update-password",
       });
 
-      if (error) throw error;
+      console.log("📧 resetPasswordForEmail response:", { data, error });
 
-      setMessage("이메일로 재설정 링크를 보냈습니다.");
+      if (error) {
+        console.error("❌ Reset password error object:", JSON.stringify(error, null, 2));
+        console.error("❌ Error details:", {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+        });
+
+        // ⚠️ Known Supabase issues:
+        // - "Email rate limit exceeded": Supabase free tier limits to ~3 emails/hour. Check Dashboard > Auth > Rate Limits.
+        // - "Identity provider not configured": SMTP is not set up in Supabase Dashboard > Auth > Email Templates > SMTP Settings.
+        if (error.message?.includes("rate limit")) {
+          setMessage("이메일 발송 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
+        } else if (error.message?.includes("not configured") || error.message?.includes("provider")) {
+          setMessage("이메일 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요.");
+        } else {
+          setMessage(error.message || "재설정 메일 발송에 실패했습니다.");
+        }
+        return;
+      }
+
+      // Supabase returns success even if email doesn't exist (security by design)
+      console.log("✅ Reset email request accepted by Supabase");
+      setMessage("해당 이메일이 등록되어 있다면, 재설정 링크가 발송됩니다. 메일함(스팸 포함)을 확인해주세요.");
       setShowForgotPassword(false);
       setResetEmail("");
     } catch (err: unknown) {
+      console.error("❌ Unexpected reset error:", err);
       const msg = err instanceof Error ? err.message : "재설정 메일 발송에 실패했습니다.";
       setMessage(msg);
     } finally {
@@ -411,7 +440,7 @@ export default function LoginPage() {
           {message && (
             <div
               className={`mb-4 p-3 rounded-lg text-sm ${
-                message.includes("완료") || message.includes("성공") || message.includes("보냈습니다")
+                message.includes("완료") || message.includes("성공") || message.includes("보냈습니다") || message.includes("발송됩니다")
                   ? "bg-green-50 text-green-800"
                   : "bg-red-50 text-red-800"
               }`}
@@ -468,7 +497,7 @@ export default function LoginPage() {
               </div>
 
               {showForgotPassword && (
-                <form onSubmit={handleResetPassword} className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-700">가입 시 등록한 이메일 주소를 입력하시면 재설정 링크를 보내드립니다.</p>
                   <input
                     type="email"
@@ -479,8 +508,9 @@ export default function LoginPage() {
                   />
                   <div className="flex gap-2">
                     <button
-                      type="submit"
+                      type="button"
                       disabled={resetLoading}
+                      onClick={handleResetPassword}
                       className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {resetLoading ? "전송 중..." : "전송"}
@@ -497,7 +527,7 @@ export default function LoginPage() {
                       취소
                     </button>
                   </div>
-                </form>
+                </div>
               )}
 
               <button
