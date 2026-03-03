@@ -16,13 +16,25 @@ export default function UpdatePasswordPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Supabase가 URL hash(비밀번호 재설정 링크)에서 세션을 복원할 시간 확보
-    const timer = setTimeout(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setHasUser(!!user);
-      setSessionReady(true);
-    }, 300);
-    return () => clearTimeout(timer);
+    // Supabase가 URL hash(비밀번호 재설정 링크)에서 세션을 복원할 시간 확보.
+    // 300ms는 네트워크 왕복이 필요할 수 있어 부족할 수 있음 → 1초로 연장, 재시도 추가
+    let cancelled = false;
+    async function checkSession() {
+      for (let i = 0; i < 5 && !cancelled; i++) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setHasUser(true);
+          break;
+        }
+        if (i < 4) await new Promise((r) => setTimeout(r, 300));
+      }
+      if (!cancelled) setSessionReady(true);
+    }
+    const timer = setTimeout(checkSession, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.17",
+    date: "2026-02-27",
+    changes: [
+      "비밀번호 재설정 페이지(/update-password) 세션 복원 로직 개선: URL hash 처리 대기 시간 500ms·최대 5회 재시도로 확대하여 이메일 링크 접속 시 세션 미인식 문제 해결. 테스트용 디버그 UI 제거 후 정식 배포.",
+    ],
+  },
+  {
     version: "2.16",
     date: "2026-02-27",
     changes: [
