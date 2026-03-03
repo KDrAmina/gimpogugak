@@ -169,15 +169,15 @@ export function Navbar() {
         </ul>
       </div>
 
-      {/* Mobile: Logo left, horizontal menu right */}
+      {/* Mobile: Logo left, horizontal menu right — 로고 max-width로 메뉴 겹침 방지 */}
       <div className="flex md:hidden items-center gap-2 sm:gap-3 px-3 sm:px-6 py-3 border-b border-[#111111]/10 min-h-[60px] relative z-[100]">
-        <Link href="/" className="shrink-0 hover:opacity-90 transition-opacity">
+        <Link href="/" className="shrink-0 max-w-[100px] sm:max-w-[110px] hover:opacity-90 transition-opacity">
           <Image
             src="/logo.png"
             alt="GIMPO GUGAK CENTER 김포국악원"
             width={120}
             height={48}
-            className="h-12 sm:h-14 w-auto object-contain"
+            className="h-10 sm:h-12 w-auto object-contain"
           />
         </Link>
 

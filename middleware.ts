@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public routes that don't need authentication
-  const publicRoutes = ["/", "/classes", "/activities", "/contact", "/Song-Ri-Gyel", "/Park-Jun-Yeol", "/login"];
+  const publicRoutes = ["/", "/classes", "/activities", "/contact", "/Song-Ri-Gyel", "/Park-Jun-Yeol", "/login", "/update-password"];
   
   // Member-only routes (require status = 'active')
   const memberRoutes = ["/notices", "/gallery", "/materials", "/my-lessons"];

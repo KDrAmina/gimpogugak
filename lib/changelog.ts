@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.15",
+    date: "2026-02-27",
+    changes: [
+      "[보안/회원] 비밀번호 분실 시 재설정할 수 있는 전용 페이지(/update-password) 신설 및 Supabase Auth updateUser 연동. 이메일 복구 링크 접속 후 새 비밀번호 입력·확인 폼으로 변경 가능.",
+      "[UI/UX] 모바일 및 카카오톡 인앱 브라우저에서 로고와 상단 메뉴가 겹치던 가독성 문제 해결. 로고 max-width·높이 조정, 메뉴 justify-start로 반응형 헤더 최적화.",
+      "[시스템] IndexNow 전송 로직의 예외 처리 강화(8초 타임아웃, AbortController)로 검색 엔진 최적화 효율 증대.",
+    ],
+  },
+  {
     version: "2.14",
     date: "2026-02-27",
     changes: [

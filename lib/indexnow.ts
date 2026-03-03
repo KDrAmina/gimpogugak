@@ -23,15 +23,21 @@ export async function notifyIndexNow(postSlugOrId: string): Promise<void> {
   };
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch("https://api.indexnow.org/indexnow", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!res.ok) {
       console.error("[IndexNow] API error:", res.status, await res.text());
     }
   } catch (err) {
-    console.error("[IndexNow] Request failed:", err);
+    if ((err as Error).name !== "AbortError") {
+      console.error("[IndexNow] Request failed:", err);
+    }
   }
 }
