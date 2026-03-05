@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.21",
+    date: "2026-03-05",
+    changes: [
+      "관리자 대시보드 '수강료 입금 대기' 목록 필터링 오류 수정: 수강생별 최신 수강 기록 1건만 기준으로 삼도록 변경(created_at DESC + user_id 중복 제거). 이전에 4회차를 완료한 기록이 is_active=true로 남아 있어도, 이미 갱신된 수강생(최신 기록이 1~3회차)은 더 이상 목록에 표시되지 않음.",
+    ],
+  },
+  {
     version: "2.20",
     date: "2026-03-05",
     changes: [

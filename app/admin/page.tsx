@@ -98,23 +98,31 @@ export default function AdminDashboardPage() {
         .from("lessons")
         .select(`
           id,
+          user_id,
           current_session,
           category,
           profiles!inner (name, role, phone)
         `)
         .eq("is_active", true)
-        .eq("profiles.role", "user");
+        .eq("profiles.role", "user")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const due = (data || []).filter(
-        (l: any) => l.current_session > 0 && l.current_session % 4 === 0
-      ).map((l: any) => ({
-        id: l.id,
-        student_name: l.profiles?.name || "Unknown",
-        category: l.category,
-        phone: l.profiles?.phone ?? null,
-      }));
+      // 수강생별 최신 1건만 유지 (created_at DESC 정렬이므로 Set에 먼저 들어오는 것이 최신)
+      const seenUserIds = new Set<string>();
+      const due = (data || [])
+        .filter((l: any) => {
+          if (seenUserIds.has(l.user_id)) return false;
+          seenUserIds.add(l.user_id);
+          return l.current_session > 0 && l.current_session % 4 === 0;
+        })
+        .map((l: any) => ({
+          id: l.id,
+          student_name: l.profiles?.name || "Unknown",
+          category: l.category,
+          phone: l.profiles?.phone ?? null,
+        }));
 
       setTuitionDueList(due);
     } catch (error) {
