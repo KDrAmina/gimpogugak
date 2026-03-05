@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getTodayKST } from "@/lib/date-utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -47,7 +48,7 @@ export default function AdminLessonsPage() {
   const [unassignedUsers, setUnassignedUsers] = useState<UnassignedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<LessonCategory | "전체">("전체");
-  const [sortBy, setSortBy] = useState<"remaining" | "name" | "date">("remaining");
+  const [sortBy, setSortBy] = useState<"remaining" | "name" | "date">("name");
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
   const [lessonHistory, setLessonHistory] = useState<LessonHistoryItem[]>([]);
@@ -986,11 +987,13 @@ export default function AdminLessonsPage() {
   // Deduplicate by user_id: 동일 수강생이 갱신(renew) 등으로 여러 행을 가질 때 중복 출력 방지
   // lessons는 created_at DESC 정렬이므로 Set에 먼저 들어오는 것(최신)이 유지됨
   const seenUserIds = new Set<string>();
-  const deduplicatedLessons = displayLessons.filter(lesson => {
-    if (seenUserIds.has(lesson.user_id)) return false;
-    seenUserIds.add(lesson.user_id);
-    return true;
-  });
+  const deduplicatedLessons = displayLessons
+    .filter(lesson => {
+      if (seenUserIds.has(lesson.user_id)) return false;
+      seenUserIds.add(lesson.user_id);
+      return true;
+    })
+    .sort((a, b) => a.student_name.localeCompare(b.student_name, "ko"));
 
   // Filter and sort
   const filteredLessons = deduplicatedLessons
@@ -1308,7 +1311,9 @@ export default function AdminLessonsPage() {
                     return (
                       <tr key={lesson.id} className={`hover:bg-gray-50 ${needsRenewal && !isGroupClass ? "bg-red-50" : ""}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{lesson.student_name}</div>
+                          <Link href={`/admin/students/${lesson.user_id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                            {lesson.student_name}
+                          </Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {editingCategory === lesson.id ? (
@@ -1565,7 +1570,9 @@ export default function AdminLessonsPage() {
                   <div key={lesson.id} className={`p-4 ${needsRenewal && !isGroupClass ? "bg-red-50" : ""}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="font-bold text-gray-900">{lesson.student_name}</h3>
+                        <Link href={`/admin/students/${lesson.user_id}`} className="font-bold text-blue-600 hover:underline">
+                          {lesson.student_name}
+                        </Link>
                         {editingCategory === lesson.id ? (
                           <div className="mt-2 space-y-1">
                             {CATEGORIES.map(cat => (

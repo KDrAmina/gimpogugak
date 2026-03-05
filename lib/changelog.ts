@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.19",
+    date: "2026-03-05",
+    changes: [
+      "관리자 대시보드 총 등록 수강료 계산 버그 수정: 복수 행 등록(다중 카테고리 등)으로 동일 수강생이 중복 합산되던 문제를 user_id 기준 중복 제거(Deduplication) 로직으로 해결. 가장 최신 활성(is_active=true) 행 1건만 합산.",
+      "수업 관리 페이지 UI 개선: 수강생 이름 클릭 시 해당 수강생 상세 페이지(/admin/students/[id])로 이동하는 링크 추가. 수강생 목록 기본 정렬을 가나다순(localeCompare 'ko')으로 변경.",
+    ],
+  },
+  {
     version: "2.18",
     date: "2026-03-05",
     changes: [
