@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.18",
+    date: "2026-03-05",
+    changes: [
+      "수업 관리 페이지의 수강생 중복 출력 버그 수정 (데이터 그룹화 최적화): 갱신(Renew) 또는 복수 행 등록으로 동일 수강생이 여러 번 표시되던 문제를 TypeScript 단에서 user_id 기준 중복 제거(Deduplication)로 해결. 활성/종료 필터 적용 후 가장 최근 생성된 행 1건만 표시.",
+    ],
+  },
+  {
     version: "2.17",
     date: "2026-02-27",
     changes: [

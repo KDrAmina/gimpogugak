@@ -979,12 +979,21 @@ export default function AdminLessonsPage() {
   }
 
   // Filter by active/inactive
-  const displayLessons = lessons.filter(lesson => 
+  const displayLessons = lessons.filter(lesson =>
     activeFilter === "active" ? lesson.is_active : !lesson.is_active
   );
 
+  // Deduplicate by user_id: 동일 수강생이 갱신(renew) 등으로 여러 행을 가질 때 중복 출력 방지
+  // lessons는 created_at DESC 정렬이므로 Set에 먼저 들어오는 것(최신)이 유지됨
+  const seenUserIds = new Set<string>();
+  const deduplicatedLessons = displayLessons.filter(lesson => {
+    if (seenUserIds.has(lesson.user_id)) return false;
+    seenUserIds.add(lesson.user_id);
+    return true;
+  });
+
   // Filter and sort
-  const filteredLessons = displayLessons
+  const filteredLessons = deduplicatedLessons
     .filter(lesson => {
       if (selectedCategory === "전체") return true;
       // Split comma-separated categories and check if selected category is included
