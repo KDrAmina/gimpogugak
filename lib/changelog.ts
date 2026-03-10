@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.22",
+    date: "2026-03-10",
+    changes: [
+      "관리자 상단 메뉴 개편: '회원승인' 메뉴 제거, 메뉴 순서를 [Home, 공지사항, 회원관리, 수업관리, 소식관리, 이미지]로 재배치.",
+      "관리자 대시보드 '승인 대기 중' 위젯 클릭 시 승인 대기 회원 목록 팝업(Modal) 표시, 모달 내에서 직접 승인/거절 처리 가능.",
+      "신규 '이미지' 관리 페이지 추가: 다중 파일 선택, browser-image-compression을 이용한 자동 WebP 변환 및 용량 최적화, Supabase Storage(images 버킷) 업로드. 업로드 진행 상태(변환 중/업로드 중/완료/실패) UI 피드백 및 저장된 이미지 갤러리(URL 복사/삭제) 제공.",
+    ],
+  },
+  {
     version: "2.21",
     date: "2026-03-05",
     changes: [

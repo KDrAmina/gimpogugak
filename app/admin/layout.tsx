@@ -7,11 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Home" },
-  { href: "/admin/approvals", label: "회원승인" },
+  { href: "/admin/posts", label: "공지사항" },
   { href: "/admin/students", label: "회원관리" },
   { href: "/admin/lessons", label: "수업관리" },
-  { href: "/admin/posts", label: "공지사항" },
-  { href: "/admin/posts/manage", label: "소식 관리" },
+  { href: "/admin/posts/manage", label: "소식관리" },
+  { href: "/admin/images", label: "이미지" },
 ];
 
 export default function AdminLayout({

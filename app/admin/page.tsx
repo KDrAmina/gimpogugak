@@ -8,12 +8,24 @@ import { useRouter } from "next/navigation";
 import { CHANGELOG, CURRENT_VERSION } from "@/lib/changelog";
 import { getTuitionPaymentMessage, getSmsUrl } from "@/lib/messages";
 
+type PendingProfile = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  phone: string | null;
+  created_at: string;
+};
+
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [totalTuition, setTotalTuition] = useState<number>(0);
   const [tuitionDueList, setTuitionDueList] = useState<{ id: string; student_name: string; category: string; phone: string | null }[]>([]);
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [pendingModalOpen, setPendingModalOpen] = useState(false);
+  const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -131,6 +143,66 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function openPendingModal() {
+    setPendingModalOpen(true);
+    setPendingLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("status", "pending")
+        .eq("role", "user")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPendingProfiles(data || []);
+    } catch (error) {
+      console.error("Error fetching pending profiles:", error);
+    } finally {
+      setPendingLoading(false);
+    }
+  }
+
+  async function handleApprove(userId: string) {
+    if (!confirm("이 수강생을 승인하시겠습니까?")) return;
+    setProcessing(userId);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", userId);
+      if (error) throw error;
+      alert("승인이 완료되었습니다.");
+      setPendingProfiles((prev) => prev.filter((p) => p.id !== userId));
+      setPendingCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error approving profile:", error);
+      alert("승인 처리 중 오류가 발생했습니다.");
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function handleReject(userId: string) {
+    if (!confirm("이 신청을 거절하시겠습니까?")) return;
+    setProcessing(userId);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "rejected" })
+        .eq("id", userId);
+      if (error) throw error;
+      alert("거절 처리가 완료되었습니다.");
+      setPendingProfiles((prev) => prev.filter((p) => p.id !== userId));
+      setPendingCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error rejecting profile:", error);
+      alert("거절 처리 중 오류가 발생했습니다.");
+    } finally {
+      setProcessing(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -193,10 +265,14 @@ export default function AdminDashboardPage() {
       {/* Status Widgets Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Widget 1: Pending Approvals */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <button
+          type="button"
+          onClick={openPendingModal}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow text-left cursor-pointer w-full"
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-600">
-              대기중인 승인
+              승인 대기 중
             </h3>
             <div className="text-3xl">⏳</div>
           </div>
@@ -204,12 +280,16 @@ export default function AdminDashboardPage() {
             <p className="text-4xl font-bold text-blue-600">{pendingCount}</p>
             <span className="text-sm text-gray-500">명</span>
           </div>
-          {pendingCount > 0 && (
+          {pendingCount > 0 ? (
             <p className="mt-2 text-xs text-amber-600 font-medium">
-              승인 대기 중인 회원이 있습니다
+              클릭하여 승인 처리하기
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-gray-400">
+              대기 중인 회원이 없습니다
             </p>
           )}
-        </div>
+        </button>
 
         {/* Widget 2: System Status */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -309,6 +389,90 @@ export default function AdminDashboardPage() {
         </div>
         <p className="mt-2 text-xs text-gray-500">클릭하여 업데이트 내역 보기</p>
       </button>
+
+      {/* Pending Approval Modal */}
+      {pendingModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setPendingModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="승인 대기 목록"
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-900">승인 대기 목록</h2>
+              <button
+                type="button"
+                onClick={() => setPendingModalOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              {pendingLoading ? (
+                <p className="text-center text-gray-500 py-8">로딩 중...</p>
+              ) : pendingProfiles.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">
+                  승인 대기 중인 회원이 없습니다.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingProfiles.map((profile) => (
+                    <div
+                      key={profile.id}
+                      className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            {profile.name || "이름 미입력"}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {profile.email || "이메일 미입력"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {profile.phone || "연락처 미입력"}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            신청:{" "}
+                            {new Date(profile.created_at).toLocaleDateString("ko-KR", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleApprove(profile.id)}
+                            disabled={processing === profile.id}
+                            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                          >
+                            {processing === profile.id ? "처리 중..." : "승인"}
+                          </button>
+                          <button
+                            onClick={() => handleReject(profile.id)}
+                            disabled={processing === profile.id}
+                            className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                          >
+                            거절
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Changelog Modal */}
       {changelogOpen && (
