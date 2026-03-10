@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   compress: true, // 압축 유지 (Good)
   
   images: {
-    formats: ['image/avif', 'image/webp'],
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
