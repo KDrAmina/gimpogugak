@@ -14,12 +14,16 @@ type UploadItem = {
   preview?: string;
   error?: string;
   url?: string;
+  dbSaved?: boolean;
+  dbError?: string;
 };
 
 export default function AdminImagesPage() {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [storedImages, setStoredImages] = useState<{ name: string; url: string }[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
+  const [caption, setCaption] = useState("");
+  const [category, setCategory] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -66,31 +70,28 @@ export default function AdminImagesPage() {
     // Reset input so same files can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
 
-    // Start processing
-    processUploads(newUploads);
+    // Start processing (capture caption/category at click time)
+    processUploads(newUploads, caption, category);
   }
 
-  async function processUploads(items: UploadItem[]) {
+  async function processUploads(items: UploadItem[], captionVal: string, categoryVal: string) {
     for (const item of items) {
-      await processOneUpload(item);
+      await processOneUpload(item, captionVal, categoryVal);
     }
   }
 
-  async function processOneUpload(item: UploadItem) {
-    const updateStatus = (
-      status: UploadItem["status"],
-      extra?: Partial<UploadItem>
-    ) => {
+  async function processOneUpload(item: UploadItem, captionVal: string, categoryVal: string) {
+    const updateItem = (extra: Partial<UploadItem>) => {
       setUploads((prev) =>
         prev.map((u) =>
-          u.preview === item.preview ? { ...u, status, ...extra } : u
+          u.preview === item.preview ? { ...u, ...extra } : u
         )
       );
     };
 
     try {
       // 1. Compress & convert to WebP
-      updateStatus("compressing");
+      updateItem({ status: "compressing" });
 
       const options = {
         maxSizeMB: 1,
@@ -107,31 +108,58 @@ export default function AdminImagesPage() {
       const fileName = `${baseName}_${timestamp}.webp`;
 
       // 3. Upload to Supabase Storage
-      updateStatus("uploading");
+      updateItem({ status: "uploading" });
 
-      const { error } = await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from("images")
         .upload(fileName, compressedFile, {
           contentType: "image/webp",
           upsert: false,
         });
 
-      if (error) throw error;
+      if (storageError) throw storageError;
 
       const { data: urlData } = supabase.storage
         .from("images")
         .getPublicUrl(fileName);
 
-      updateStatus("done", { url: urlData.publicUrl });
+      const publicUrl = urlData.publicUrl;
+
+      // 4. Insert into gallery DB table
+      const insertPayload: Record<string, string> = { image_url: publicUrl };
+      if (captionVal.trim()) insertPayload.caption = captionVal.trim();
+      if (categoryVal.trim()) insertPayload.category = categoryVal.trim();
+
+      console.log("[gallery insert] payload:", insertPayload);
+
+      const { data: dbData, error: dbError } = await supabase
+        .from("gallery")
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error("[gallery insert] DB 저장 실패 ❌", {
+          code: dbError.code,
+          message: dbError.message,
+          details: dbError.details,
+          hint: dbError.hint,
+          payload: insertPayload,
+        });
+        updateItem({ status: "done", url: publicUrl, dbSaved: false, dbError: dbError.message });
+      } else {
+        console.log("[gallery insert] DB 저장 성공 ✅", dbData);
+        updateItem({ status: "done", url: publicUrl, dbSaved: true });
+      }
 
       // Add to stored images list
       setStoredImages((prev) => [
-        { name: fileName, url: urlData.publicUrl },
+        { name: fileName, url: publicUrl },
         ...prev,
       ]);
     } catch (error: any) {
-      console.error("Upload error:", error);
-      updateStatus("error", { error: error.message || "업로드 실패" });
+      console.error("[upload] Storage 업로드 실패:", error);
+      updateItem({ status: "error", error: error.message || "업로드 실패" });
     }
   }
 
@@ -181,6 +209,34 @@ export default function AdminImagesPage() {
 
       {/* Upload Area */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        {/* Caption / Category inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              설명 (caption) <span className="text-gray-400 font-normal">선택</span>
+            </label>
+            <input
+              type="text"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="예: 2025 김포예술제 공연"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              카테고리 (category) <span className="text-gray-400 font-normal">선택</span>
+            </label>
+            <input
+              type="text"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="예: 공연, 수업, 행사"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+        </div>
+
         <input
           ref={fileInputRef}
           type="file"
@@ -199,7 +255,7 @@ export default function AdminImagesPage() {
             클릭하여 사진 선택
           </p>
           <p className="text-sm text-gray-500 mt-1">
-            여러 장을 한 번에 선택할 수 있습니다 (자동 WebP 변환)
+            여러 장을 한 번에 선택할 수 있습니다 (자동 WebP 변환, 갤러리 DB 자동 저장)
           </p>
         </label>
       </div>
@@ -268,6 +324,24 @@ export default function AdminImagesPage() {
                     </span>
                   )}
                 </div>
+                {/* DB save status badge */}
+                {item.status === "done" && (
+                  <div className="absolute bottom-1 left-1">
+                    {item.dbSaved === true && (
+                      <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
+                        DB ✓
+                      </span>
+                    )}
+                    {item.dbSaved === false && (
+                      <span
+                        className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium cursor-help"
+                        title={item.dbError}
+                      >
+                        DB 실패
+                      </span>
+                    )}
+                  </div>
+                )}
                 {/* Remove button */}
                 {(item.status === "done" || item.status === "error") && (
                   <button
