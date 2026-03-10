@@ -30,5 +30,5 @@ const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-// 3. 최종 내보내기
+// 3. 최종 내보내기 완료
 export default bundleAnalyzer(nextConfig);
