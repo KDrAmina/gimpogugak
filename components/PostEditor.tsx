@@ -32,6 +32,7 @@ type QuillEditor = {
   getSelection: (x: boolean) => { index: number; length: number } | null;
   getLength: () => number;
   insertEmbed: (i: number, t: string, u: string, s: string) => void;
+  insertText: (i: number, text: string, source: string) => void;
   setSelection: (i: number, l: number) => void;
   blur?: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
