@@ -793,12 +793,16 @@ export default function PostEditor({ editingPost = null }: Props) {
         const idx = savedCursorIndex.current ?? quill.getLength() - 1;
         quill.insertEmbed(idx, "table-embed", html, "user");
         // BlockEmbed는 Delta에서 embed(1) + \n(1) = 2 포지션을 차지.
-        // idx+2가 문서 끝 이후면 표 뒤에 이어쓸 빈 단락이 없으므로 강제 추가.
+        // 표 다음 위치(idx+2)가 문서 끝이면 빈 단락을 강제 추가해 표 아래를 항상 편집 가능하게 보장.
         const newLen = quill.getLength();
         if (idx + 2 >= newLen) {
+          // 문서 마지막 \n 바로 앞에 새 빈 단락 삽입
           quill.insertText(newLen - 1, "\n", "user");
         }
-        quill.setSelection(idx + 2, 0);
+        // Quill 렌더링 완료 후 커서 배치 (즉시 호출 시 커서가 표 위에 올라가는 현상 방지)
+        setTimeout(() => {
+          quill.setSelection(idx + 2, 0);
+        }, 50);
       } else {
         // Fallback: 소스 모드로 추가
         const newContent = content + html;
