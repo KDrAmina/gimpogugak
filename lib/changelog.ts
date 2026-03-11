@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.23",
+    date: "2026-03-11",
+    changes: [
+      "이미지 관리 페이지 전면 개편: '업로드 현황' 별도 섹션을 제거하고 업로드 진행 상태를 '저장된 이미지' 그리드 상단에 통합. 업로드 완료 후 목록 갱신 시 업로드 카드 자동 소멸.",
+      "다중 삭제 기능 추가: 갤러리 이미지에 체크박스 추가, '전체 선택/해제' 토글, 선택된 항목 수 표시 삭제 버튼. Supabase Storage remove(array) + DB .in('id', [...]) 동시 삭제.",
+      "사후 편집 기능 추가: 갤러리 이미지 카드 클릭 시 하단에 Caption·Category 수정 패널 표시. [수정 완료] 클릭 시 gallery 테이블 UPDATE 후 로컬 상태 즉시 반영(재로딩 없음).",
+      "SEO 최적화: 수정된 Caption이 해당 이미지의 alt 속성에 즉시 반영되도록 로컬 상태 동기화 처리.",
+    ],
+  },
+  {
     version: "2.22",
     date: "2026-03-10",
     changes: [

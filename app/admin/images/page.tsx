@@ -24,7 +24,7 @@ type GalleryItem = {
   caption?: string;
   category?: string;
   created_at: string;
-  storageName: string; // URL에서 추출한 파일명
+  storageName: string;
 };
 
 function extractStorageName(imageUrl: string): string {
@@ -41,7 +41,17 @@ export default function AdminImagesPage() {
   const [loadingImages, setLoadingImages] = useState(true);
   const [caption, setCaption] = useState("");
   const [category, setCategory] = useState("");
-  // 업로드 진행 중 여부 — 중복 업로드 방지
+
+  // 다중 선택
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deletingMultiple, setDeletingMultiple] = useState(false);
+
+  // 사후 편집
+  const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const isUploadingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
@@ -50,7 +60,6 @@ export default function AdminImagesPage() {
     loadGalleryItems();
   }, []);
 
-  /** gallery DB 테이블에서 최신 데이터를 불러와 화면 갱신 */
   async function loadGalleryItems() {
     setLoadingImages(true);
     try {
@@ -82,8 +91,6 @@ export default function AdminImagesPage() {
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
-    // 이미 업로드 중이면 무시 (중복 업로드 방지)
     if (isUploadingRef.current) return;
 
     const newUploads: UploadItem[] = Array.from(files).map((file) => ({
@@ -95,10 +102,7 @@ export default function AdminImagesPage() {
 
     setUploads((prev) => [...prev, ...newUploads]);
 
-    // 같은 파일 재선택 가능하도록 input 초기화
     if (fileInputRef.current) fileInputRef.current.value = "";
-
-    // caption/category는 클릭 시점의 값을 캡처해서 넘김
     processUploads(newUploads, caption, category);
   }
 
@@ -114,8 +118,8 @@ export default function AdminImagesPage() {
       }
     } finally {
       isUploadingRef.current = false;
-      // 업로드 완료 후 DB에서 최신 데이터 재조회
       await loadGalleryItems();
+      setUploads([]);
     }
   }
 
@@ -133,7 +137,6 @@ export default function AdminImagesPage() {
     };
 
     try {
-      // 1. WebP 압축
       updateItem({ status: "compressing" });
 
       const compressedFile = await imageCompression(item.file, {
@@ -143,18 +146,16 @@ export default function AdminImagesPage() {
         fileType: "image/webp" as const,
       });
 
-      // 2. 고유 파일명 생성
       const baseName = item.name.replace(/\.[^/.]+$/, "");
       const fileName = `${baseName}_${Date.now()}.webp`;
 
-      // 3. Storage 업로드
       updateItem({ status: "uploading" });
 
       const { error: storageError } = await supabase.storage
         .from("images")
         .upload(fileName, compressedFile, {
           contentType: "image/webp",
-          upsert: false, // 동일 파일명 덮어쓰기 금지
+          upsert: false,
         });
 
       if (storageError) throw storageError;
@@ -165,7 +166,6 @@ export default function AdminImagesPage() {
 
       const publicUrl = urlData.publicUrl;
 
-      // 4. gallery DB에 중복 체크 후 insert
       const { data: existing } = await supabase
         .from("gallery")
         .select("id")
@@ -173,7 +173,6 @@ export default function AdminImagesPage() {
         .maybeSingle();
 
       if (existing) {
-        // 이미 DB에 있으면 insert 건너뜀 (Storage 업로드는 위에서 완료됨)
         console.warn("[gallery insert] 이미 DB에 존재, insert 건너뜀:", publicUrl);
         updateItem({ status: "done", url: publicUrl, dbSaved: true });
         return;
@@ -211,43 +210,101 @@ export default function AdminImagesPage() {
     }
   }
 
-  function removeUploadItem(preview: string) {
-    setUploads((prev) => {
-      const item = prev.find((u) => u.preview === preview);
-      if (item?.preview) URL.revokeObjectURL(item.preview);
-      return prev.filter((u) => u.preview !== preview);
+  // ── 다중 선택 ──────────────────────────────────────────────────────────────
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   }
 
-  /** Storage 파일 + gallery DB 행 동시 삭제 */
-  async function handleDeleteImage(item: GalleryItem) {
-    if (!confirm(`"${item.storageName}" 이미지를 삭제하시겠습니까?`)) return;
+  function toggleSelectAll() {
+    if (selectedIds.size === galleryItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(galleryItems.map((i) => i.id)));
+    }
+  }
 
+  /** Storage 파일 + gallery DB 행 일괄 삭제 */
+  async function handleDeleteSelected() {
+    if (selectedIds.size === 0) return;
+    if (
+      !confirm(`선택한 ${selectedIds.size}개의 이미지를 삭제하시겠습니까?`)
+    )
+      return;
+
+    setDeletingMultiple(true);
     const errors: string[] = [];
 
-    // 1. Storage 삭제
+    const toDelete = galleryItems.filter((i) => selectedIds.has(i.id));
+    const storageNames = toDelete.map((i) => i.storageName);
+
     const { error: storageError } = await supabase.storage
       .from("images")
-      .remove([item.storageName]);
-    if (storageError) {
+      .remove(storageNames);
+    if (storageError)
       errors.push(`Storage 삭제 실패: ${storageError.message}`);
-    }
 
-    // 2. DB 행 삭제
     const { error: dbError } = await supabase
       .from("gallery")
       .delete()
-      .eq("id", item.id);
-    if (dbError) {
-      errors.push(`DB 삭제 실패: ${dbError.message}`);
-    }
+      .in("id", Array.from(selectedIds));
+    if (dbError) errors.push(`DB 삭제 실패: ${dbError.message}`);
 
-    if (errors.length > 0) {
-      alert(`삭제 중 오류가 발생했습니다:\n${errors.join("\n")}`);
-    }
+    if (errors.length > 0) alert(`삭제 중 오류:\n${errors.join("\n")}`);
 
-    // 성공 여부와 관계없이 DB 기준으로 화면 갱신
+    if (editingItem && selectedIds.has(editingItem.id)) setEditingItem(null);
+    setSelectedIds(new Set());
+    setDeletingMultiple(false);
     await loadGalleryItems();
+  }
+
+  // ── 사후 편집 ──────────────────────────────────────────────────────────────
+
+  function handleItemClick(item: GalleryItem) {
+    if (editingItem?.id === item.id) {
+      setEditingItem(null);
+      return;
+    }
+    setEditingItem(item);
+    setEditCaption(item.caption ?? "");
+    setEditCategory(item.category ?? "");
+  }
+
+  async function handleSaveEdit() {
+    if (!editingItem) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("gallery")
+        .update({
+          caption: editCaption.trim() || null,
+          category: editCategory.trim() || null,
+        })
+        .eq("id", editingItem.id);
+
+      if (error) throw error;
+
+      // 로컬 상태 즉시 반영 (alt 속성 SEO 동기화)
+      const updatedItem: GalleryItem = {
+        ...editingItem,
+        caption: editCaption.trim() || undefined,
+        category: editCategory.trim() || undefined,
+      };
+      setGalleryItems((prev) =>
+        prev.map((i) => (i.id === editingItem.id ? updatedItem : i))
+      );
+      setEditingItem(updatedItem);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "저장 실패";
+      alert(`저장 실패: ${msg}`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleCopyUrl(url: string) {
@@ -259,11 +316,12 @@ export default function AdminImagesPage() {
     }
   }
 
+  const isUploading = uploads.some(
+    (u) => u.status !== "done" && u.status !== "error"
+  );
   const pendingCount = uploads.filter(
     (u) => u.status !== "done" && u.status !== "error"
   ).length;
-
-  const isUploading = pendingCount > 0;
 
   return (
     <div>
@@ -277,7 +335,6 @@ export default function AdminImagesPage() {
 
       {/* Upload Area */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        {/* Caption / Category inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -329,31 +386,71 @@ export default function AdminImagesPage() {
         >
           <div className="text-5xl mb-3">{isUploading ? "⏳" : "📷"}</div>
           <p className="text-lg font-medium text-gray-700">
-            {isUploading ? "업로드 중... 잠시 기다려주세요" : "클릭하여 사진 선택"}
+            {isUploading
+              ? `업로드 중... (${pendingCount}개 처리 중)`
+              : "클릭하여 사진 선택"}
           </p>
           <p className="text-sm text-gray-500 mt-1">
-            여러 장을 한 번에 선택할 수 있습니다 (자동 WebP 변환, 갤러리 DB 자동
-            저장)
+            여러 장을 한 번에 선택할 수 있습니다 (자동 WebP 변환, 갤러리 DB
+            자동 저장)
           </p>
         </label>
       </div>
 
-      {/* Upload Progress */}
-      {uploads.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">업로드 현황</h2>
-            {isUploading && (
-              <span className="text-sm text-blue-600 font-medium">
-                {pendingCount}개 처리 중...
-              </span>
+      {/* Gallery + Upload Progress (통합) */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-lg font-bold text-gray-900">
+              저장된 이미지 ({galleryItems.length})
+              {isUploading && (
+                <span className="text-sm text-blue-600 font-medium ml-2">
+                  + {pendingCount}개 업로드 중...
+                </span>
+              )}
+            </h2>
+            {galleryItems.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="text-xs text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-2 py-1"
+              >
+                {selectedIds.size === galleryItems.length
+                  ? "전체 해제"
+                  : "전체 선택"}
+              </button>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="flex items-center gap-2">
+            {selectedIds.size > 0 && (
+              <button
+                type="button"
+                onClick={handleDeleteSelected}
+                disabled={deletingMultiple}
+                className="bg-red-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+              >
+                {deletingMultiple ? "삭제 중..." : `${selectedIds.size}개 삭제`}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={loadGalleryItems}
+              disabled={loadingImages}
+              className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
+
+        {/* Uploading items (업로드 현황 통합) */}
+        {uploads.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4 pb-4 border-b border-gray-100">
             {uploads.map((item) => (
               <div
                 key={item.preview}
-                className="relative group rounded-lg overflow-hidden border border-gray-200"
+                className="relative rounded-lg overflow-hidden border-2 border-blue-200 bg-blue-50/30"
               >
                 {item.preview && (
                   <div className="aspect-square relative">
@@ -366,7 +463,6 @@ export default function AdminImagesPage() {
                     />
                   </div>
                 )}
-                {/* Status overlay */}
                 <div
                   className={`absolute inset-0 flex items-center justify-center ${
                     item.status === "done"
@@ -402,56 +498,15 @@ export default function AdminImagesPage() {
                     </span>
                   )}
                 </div>
-                {/* DB save status badge */}
-                {item.status === "done" && (
-                  <div className="absolute bottom-1 left-1">
-                    {item.dbSaved === true && (
-                      <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
-                        DB ✓
-                      </span>
-                    )}
-                    {item.dbSaved === false && (
-                      <span
-                        className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium cursor-help"
-                        title={item.dbError}
-                      >
-                        DB 실패
-                      </span>
-                    )}
-                  </div>
-                )}
-                {/* Remove button */}
-                {(item.status === "done" || item.status === "error") && (
-                  <button
-                    type="button"
-                    onClick={() => removeUploadItem(item.preview!)}
-                    className="absolute top-1 right-1 bg-black/60 text-white w-6 h-6 rounded-full text-xs hover:bg-black/80 transition-colors"
-                    aria-label="제거"
-                  >
-                    ✕
-                  </button>
-                )}
+                <div className="p-1.5">
+                  <p className="text-xs text-gray-500 truncate">{item.name}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Gallery from DB */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">
-            갤러리 ({galleryItems.length})
-          </h2>
-          <button
-            type="button"
-            onClick={loadGalleryItems}
-            disabled={loadingImages}
-            className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
-          >
-            새로고침
-          </button>
-        </div>
+        {/* Gallery grid */}
         {loadingImages ? (
           <p className="text-center text-gray-500 py-8">로딩 중...</p>
         ) : galleryItems.length === 0 ? (
@@ -459,57 +514,152 @@ export default function AdminImagesPage() {
             저장된 이미지가 없습니다.
           </p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {galleryItems.map((item) => (
-              <div
-                key={item.id}
-                className="relative group rounded-lg overflow-hidden border border-gray-200"
-              >
-                <div className="aspect-square relative">
-                  <Image
-                    src={item.image_url}
-                    alt={item.caption ?? item.storageName}
-                    fill
-                    className="object-cover"
-                    sizes="200px"
-                  />
-                </div>
-                {/* Hover actions */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-center opacity-0 group-hover:opacity-100">
-                  <div className="flex gap-1 p-2 w-full">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyUrl(item.image_url)}
-                      className="flex-1 bg-white text-gray-700 text-xs py-1.5 rounded hover:bg-gray-100 transition-colors font-medium"
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {galleryItems.map((item) => {
+                const isSelected = selectedIds.has(item.id);
+                const isEditing = editingItem?.id === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleItemClick(item)}
+                    className={`relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                      isEditing
+                        ? "border-blue-500 shadow-md"
+                        : isSelected
+                        ? "border-red-400"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <div
+                      className="absolute top-2 left-2 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(item.id);
+                      }}
                     >
-                      URL 복사
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteImage(item)}
-                      className="bg-red-600 text-white text-xs px-2 py-1.5 rounded hover:bg-red-700 transition-colors font-medium"
-                    >
-                      삭제
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="w-4 h-4 rounded border-2 border-white shadow accent-red-500 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="aspect-square relative">
+                      <Image
+                        src={item.image_url}
+                        alt={item.caption ?? item.storageName}
+                        fill
+                        className="object-cover"
+                        sizes="200px"
+                      />
+                    </div>
+
+                    {/* Hover: URL 복사 */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-center opacity-0 group-hover:opacity-100">
+                      <div className="flex gap-1 p-2 w-full">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyUrl(item.image_url);
+                          }}
+                          className="flex-1 bg-white text-gray-700 text-xs py-1.5 rounded hover:bg-gray-100 transition-colors font-medium"
+                        >
+                          URL 복사
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Caption / filename */}
+                    <div className="p-1.5">
+                      <p
+                        className="text-xs text-gray-500 truncate"
+                        title={item.caption ?? item.storageName}
+                      >
+                        {item.caption ?? item.storageName}
+                      </p>
+                      {item.category && (
+                        <p className="text-[10px] text-blue-500 truncate">
+                          {item.category}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 사후 편집 패널 */}
+            {editingItem && (
+              <div className="mt-6 p-4 border border-blue-200 rounded-xl bg-blue-50/40">
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-gray-200">
+                    <Image
+                      src={editingItem.image_url}
+                      alt={editCaption || editingItem.storageName}
+                      width={64}
+                      height={64}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800 mb-3">
+                      사진 정보 수정
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Caption{" "}
+                          <span className="text-gray-400 font-normal">
+                            (alt 속성에 즉시 반영)
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editCaption}
+                          onChange={(e) => setEditCaption(e.target.value)}
+                          placeholder="예: 2025 김포예술제 공연"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Category
+                        </label>
+                        <input
+                          type="text"
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          placeholder="예: 공연, 수업, 행사"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveEdit}
+                        disabled={saving}
+                        className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+                      >
+                        {saving ? "저장 중..." : "수정 완료"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(null)}
+                        className="border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        닫기
+                      </button>
+                    </div>
                   </div>
                 </div>
-                {/* Caption / filename */}
-                <div className="p-1.5">
-                  <p
-                    className="text-xs text-gray-500 truncate"
-                    title={item.caption ?? item.storageName}
-                  >
-                    {item.caption ?? item.storageName}
-                  </p>
-                  {item.category && (
-                    <p className="text-[10px] text-blue-500 truncate">
-                      {item.category}
-                    </p>
-                  )}
-                </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
