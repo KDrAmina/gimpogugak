@@ -7,7 +7,21 @@ export function sanitizeHtml(html: string): string {
   let s = html;
   // 위험 태그 완전 제거 (내용 포함)
   s = s.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-  s = s.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, "");
+  // 신뢰 도메인(YouTube, 네이버TV) iframe은 허용, 나머지는 제거
+  s = s.replace(/<iframe\b([^>]*)>([\s\S]*?)<\/iframe>/gi, (_, attrs: string) => {
+    const srcMatch = attrs.match(/src\s*=\s*["']([^"']+)["']/i);
+    if (!srcMatch) return "";
+    const src = srcMatch[1];
+    const trusted = ["youtube.com/embed/", "tv.naver.com/embed/"];
+    if (trusted.some((d) => src.includes(d))) {
+      // 이벤트 핸들러만 제거하고 안전한 속성 유지
+      const cleanAttrs = attrs
+        .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "")
+        .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, "");
+      return `<iframe${cleanAttrs}></iframe>`;
+    }
+    return "";
+  });
   s = s.replace(/<object\b[^>]*>[\s\S]*?<\/object>/gi, "");
   s = s.replace(/<embed\b[^>]*\/?>/gi, "");
   s = s.replace(/<form\b[^>]*>[\s\S]*?<\/form>/gi, "");

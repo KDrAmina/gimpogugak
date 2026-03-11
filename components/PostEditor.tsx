@@ -36,7 +36,7 @@ type QuillEditor = {
   blur?: () => void;
 };
 
-const QUILL_MODULES = (imageHandler: () => void) => ({
+const QUILL_MODULES = (imageHandler: () => void, videoHandler: () => void) => ({
   toolbar: {
     container: [
       [{ font: [false, "gowunDodum", "nanumMyeongjo"] }],
@@ -44,10 +44,10 @@ const QUILL_MODULES = (imageHandler: () => void) => ({
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
       [{ align: [] }],
-      ["link", "image"],
+      ["link", "image", "video"],
       ["clean"],
     ],
-    handlers: { image: imageHandler },
+    handlers: { image: imageHandler, video: videoHandler },
   },
   resize: {
     modules: ["DisplaySize", "Toolbar", "Resize", "Keyboard"],
@@ -71,6 +71,8 @@ const QUILL_FORMATS = [
   "image",
   "resize-inline",
   "resize-block",
+  "table-embed",
+  "video-embed",
 ];
 
 export type PostForEdit = {
@@ -122,9 +124,13 @@ export default function PostEditor({ editingPost = null }: Props) {
   const [floatingTableBar, setFloatingTableBar] = useState<{
     top: number;
     left: number;
-    tableEl: HTMLTableElement;
+    tableEl: HTMLElement;
     tableIndex: number;
   } | null>(null);
+  const [videoPopup, setVideoPopup] = useState<{ url: string; visible: boolean }>({
+    url: "",
+    visible: false,
+  });
   const [imageTooltip, setImageTooltip] = useState<ImageTooltipState>({
     visible: false, imgEl: null, alt: "", caption: "", top: 0, left: 0,
   });
@@ -227,6 +233,61 @@ export default function PostEditor({ editingPost = null }: Props) {
       const QuillResize = (await import("quill-resize-module")).default;
       QuillModule.register("modules/resize", QuillResize);
 
+      // ── TableEmbedBlot: 표를 에디터 내에서 실제 격자로 렌더링 ──
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const BlockEmbed = QuillCore.import("blots/block/embed") as any;
+      class TableEmbedBlot extends BlockEmbed {
+        static blotName = "table-embed";
+        static tagName = "div";
+        static className = "ql-table-embed";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        static create(value: string): any {
+          const node = super.create();
+          node.setAttribute("contenteditable", "false");
+          node.innerHTML = value;
+          return node;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        static value(node: any): string {
+          return node.innerHTML ?? "";
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      QuillCore.register(TableEmbedBlot as any, true);
+
+      // ── VideoEmbedBlot: YouTube/NaverTV iframe 임베드 ──
+      class VideoEmbedBlot extends BlockEmbed {
+        static blotName = "video-embed";
+        static tagName = "div";
+        static className = "ql-video-embed";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        static create(value: string): any {
+          const node = super.create();
+          node.setAttribute("contenteditable", "false");
+          node.setAttribute("data-embed-url", value);
+          const iframe = document.createElement("iframe");
+          iframe.setAttribute("src", value);
+          iframe.setAttribute("frameborder", "0");
+          iframe.setAttribute("allowfullscreen", "true");
+          iframe.setAttribute(
+            "allow",
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          );
+          node.appendChild(iframe);
+          return node;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        static value(node: any): string {
+          return (
+            node.getAttribute("data-embed-url") ||
+            node.querySelector("iframe")?.getAttribute("src") ||
+            ""
+          );
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      QuillCore.register(VideoEmbedBlot as any, true);
+
       // @ts-ignore
       await import("react-quill-new/dist/quill.snow.css");
       // @ts-ignore
@@ -286,20 +347,43 @@ export default function PostEditor({ editingPost = null }: Props) {
 
     function handleTableClick(e: MouseEvent) {
       const target = e.target as HTMLElement;
+      // 1순위: .ql-table-embed 래퍼 (새 방식)
+      const embedEl = target.closest(".ql-table-embed");
+      if (embedEl && embedEl.closest(".ql-editor")) {
+        const allEmbeds = [
+          ...wrapper!.querySelectorAll(".ql-editor .ql-table-embed"),
+        ];
+        const tableIndex = allEmbeds.indexOf(embedEl);
+        const wrapperRect = wrapper!.getBoundingClientRect();
+        const embedRect = embedEl.getBoundingClientRect();
+        setFloatingTableBar({
+          top: embedRect.top - wrapperRect.top - 44,
+          left: embedRect.left - wrapperRect.left,
+          tableEl: embedEl as HTMLElement,
+          tableIndex,
+        });
+        e.stopPropagation();
+        return;
+      }
+      // 2순위: 래퍼 없는 raw <table> (하위 호환)
       const tableEl = target.closest("table");
       if (tableEl && tableEl.closest(".ql-editor")) {
-        const allTables = [...wrapper!.querySelectorAll(".ql-editor table")];
+        const allTables = [
+          ...wrapper!.querySelectorAll(".ql-editor table"),
+        ].filter((t) => !t.closest(".ql-table-embed"));
         const tableIndex = allTables.indexOf(tableEl as HTMLTableElement);
         const wrapperRect = wrapper!.getBoundingClientRect();
         const tableRect = tableEl.getBoundingClientRect();
         setFloatingTableBar({
           top: tableRect.top - wrapperRect.top - 44,
           left: tableRect.left - wrapperRect.left,
-          tableEl: tableEl as HTMLTableElement,
+          tableEl: tableEl as HTMLElement,
           tableIndex,
         });
         e.stopPropagation();
-      } else if (!target.closest(".floating-table-bar")) {
+        return;
+      }
+      if (!target.closest(".floating-table-bar")) {
         setFloatingTableBar(null);
       }
     }
@@ -452,17 +536,35 @@ export default function PostEditor({ editingPost = null }: Props) {
     }
   }, [sourceMode, sourceDraft, content]);
 
-  // Helper: DOM으로 content HTML의 특정 인덱스 table을 교체
+  // Helper: content HTML에서 idx번째 표(ql-table-embed 래퍼 또는 raw table)를 newHtml로 교체
+  // newHtml이 빈 문자열이면 해당 표를 제거
   const replaceTableInContent = useCallback(
     (currentContent: string, idx: number, newHtml: string): string => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(currentContent, "text/html");
+
+      // 1순위: ql-table-embed 래퍼
+      const embeds = doc.querySelectorAll("div.ql-table-embed");
+      if (embeds.length > 0 && idx >= 0 && idx < embeds.length) {
+        if (newHtml === "") {
+          embeds[idx].remove();
+        } else {
+          embeds[idx].innerHTML = newHtml.trim();
+        }
+        return doc.body.innerHTML;
+      }
+
+      // 2순위: raw <table>
       const tables = doc.querySelectorAll("table");
       if (idx >= 0 && idx < tables.length) {
-        const tpl = document.createElement("template");
-        tpl.innerHTML = newHtml.trim();
-        const newTable = tpl.content.firstElementChild;
-        if (newTable) tables[idx].replaceWith(newTable);
+        if (newHtml === "") {
+          tables[idx].remove();
+        } else {
+          const tpl = document.createElement("template");
+          tpl.innerHTML = `<div class="ql-table-embed">${newHtml.trim()}</div>`;
+          const newEl = tpl.content.firstElementChild;
+          if (newEl) tables[idx].replaceWith(newEl);
+        }
       }
       return doc.body.innerHTML;
     },
@@ -472,18 +574,37 @@ export default function PostEditor({ editingPost = null }: Props) {
   // TableEditor에서 "에디터에 삽입" 클릭 시
   const handleTableInsert = useCallback(
     (html: string) => {
-      let newContent: string;
+      const quill = (
+        quillRef.current as { getEditor?: () => QuillEditor } | null
+      )?.getEditor?.();
+
       if (editingTableIndex !== null) {
-        newContent = replaceTableInContent(content, editingTableIndex, html);
+        // 기존 표 교체: content 문자열의 해당 인덱스 표를 업데이트
+        const newContent = replaceTableInContent(
+          content,
+          editingTableIndex,
+          html
+        );
+        setContent(newContent);
+      } else if (quill) {
+        // 새 표: Quill insertEmbed → 에디터 내에서 실제 격자로 렌더링
+        const range = quill.getSelection(true) ?? {
+          index: quill.getLength() - 1,
+          length: 0,
+        };
+        quill.insertEmbed(range.index, "table-embed", html, "user");
+        quill.setSelection(range.index + 1, 0);
       } else {
-        newContent = content + html;
+        // Fallback: 소스 모드로 추가
+        const newContent = content + html;
+        setContent(newContent);
+        setSourceDraft(newContent);
+        setSourceMode(true);
       }
-      setContent(newContent);
-      setSourceDraft(newContent);
+
       setTableMode(false);
       setTableInitialData(null);
       setEditingTableIndex(null);
-      setSourceMode(true); // 표 보존을 위해 소스 모드 유지
     },
     [content, editingTableIndex, replaceTableInContent]
   );
@@ -506,24 +627,25 @@ export default function PostEditor({ editingPost = null }: Props) {
     (op: "addRow" | "addCol" | "delRow" | "delCol" | "del") => {
       if (!floatingTableBar) return;
       const { tableEl, tableIndex } = floatingTableBar;
+
+      // tableEl이 .ql-table-embed 래퍼면 내부 <table>을 추출
+      const isWrapper = tableEl.classList.contains("ql-table-embed");
+      const innerTable = isWrapper
+        ? (tableEl.querySelector("table") as HTMLTableElement | null)
+        : (tableEl as HTMLTableElement);
+
       let newContent = content;
 
       if (op === "del") {
         newContent = replaceTableInContent(content, tableIndex, "");
-        // replaceTableInContent에 빈 문자열 → table 요소 제거 처리
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(content, "text/html");
-        const tables = doc.querySelectorAll("table");
-        if (tables[tableIndex]) tables[tableIndex].remove();
-        newContent = doc.body.innerHTML;
+      } else if (!innerTable) {
+        // 내부 테이블 없음 → no-op
       } else if (op === "addRow") {
-        const tbody =
-          tableEl.querySelector("tbody") ||
-          tableEl;
+        const tbody = innerTable.querySelector("tbody") || innerTable;
         const lastRow = tbody.querySelector("tr:last-child");
         const colCount =
           lastRow?.querySelectorAll("td, th").length ??
-          tableEl.rows[0]?.cells.length ??
+          innerTable.rows[0]?.cells.length ??
           1;
         const newRow = document.createElement("tr");
         for (let i = 0; i < colCount; i++) {
@@ -532,36 +654,54 @@ export default function PostEditor({ editingPost = null }: Props) {
           newRow.appendChild(td);
         }
         tbody.appendChild(newRow);
-        newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+        newContent = replaceTableInContent(
+          content,
+          tableIndex,
+          innerTable.outerHTML
+        );
       } else if (op === "addCol") {
-        tableEl.querySelectorAll("tr").forEach((tr, ri) => {
-          const cell = ri === 0
-            ? document.createElement("th")
-            : document.createElement("td");
-          cell.textContent = ri === 0 ? `열 ${tr.cells.length + 1}` : "내용";
+        innerTable.querySelectorAll("tr").forEach((tr, ri) => {
+          const cell =
+            ri === 0
+              ? document.createElement("th")
+              : document.createElement("td");
+          cell.textContent =
+            ri === 0 ? `열 ${tr.cells.length + 1}` : "내용";
           tr.appendChild(cell);
         });
-        newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+        newContent = replaceTableInContent(
+          content,
+          tableIndex,
+          innerTable.outerHTML
+        );
       } else if (op === "delRow") {
-        const tbody = tableEl.querySelector("tbody");
+        const tbody = innerTable.querySelector("tbody");
         const lastRow = tbody?.querySelector("tr:last-child");
         if (lastRow && tbody && tbody.querySelectorAll("tr").length > 1) {
           lastRow.remove();
-          newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+          newContent = replaceTableInContent(
+            content,
+            tableIndex,
+            innerTable.outerHTML
+          );
         }
       } else if (op === "delCol") {
-        const maxCols = Math.max(...[...tableEl.rows].map((r) => r.cells.length));
+        const maxCols = Math.max(
+          ...[...innerTable.rows].map((r) => r.cells.length)
+        );
         if (maxCols > 1) {
-          tableEl.querySelectorAll("tr").forEach((tr) => {
+          innerTable.querySelectorAll("tr").forEach((tr) => {
             if (tr.cells.length > 0) tr.deleteCell(tr.cells.length - 1);
           });
-          newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+          newContent = replaceTableInContent(
+            content,
+            tableIndex,
+            innerTable.outerHTML
+          );
         }
       }
 
       setContent(newContent);
-      setSourceDraft(newContent);
-      setSourceMode(true);
       setFloatingTableBar(null);
     },
     [floatingTableBar, content, replaceTableInContent]
@@ -570,12 +710,68 @@ export default function PostEditor({ editingPost = null }: Props) {
   // 플로팅 툴바 "편집" → TableEditor로 열기
   const handleEditFromToolbar = useCallback(() => {
     if (!floatingTableBar) return;
-    const data = tableElToData(floatingTableBar.tableEl);
+    const { tableEl, tableIndex } = floatingTableBar;
+    // .ql-table-embed 래퍼면 내부 <table>을 사용
+    const innerTableEl = tableEl.classList.contains("ql-table-embed")
+      ? tableEl.querySelector("table")
+      : tableEl;
+    const data = innerTableEl
+      ? tableElToData(innerTableEl as HTMLTableElement)
+      : null;
     setTableInitialData(data);
-    setEditingTableIndex(floatingTableBar.tableIndex);
+    setEditingTableIndex(tableIndex);
     setFloatingTableBar(null);
     setTableMode(true);
   }, [floatingTableBar]);
+
+  // YouTube / 네이버TV URL → embed URL 변환
+  function toEmbedUrl(url: string): string | null {
+    const s = url.trim();
+    // YouTube watch
+    const ytId = s.match(
+      /(?:youtube\.com\/watch\?[^#]*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    )?.[1];
+    if (ytId) return `https://www.youtube.com/embed/${ytId}`;
+    // YouTube Shorts
+    const ytShort = s.match(
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    )?.[1];
+    if (ytShort) return `https://www.youtube.com/embed/${ytShort}`;
+    // YouTube embed (이미 변환됨)
+    if (/youtube\.com\/embed\//.test(s)) return s;
+    // 네이버TV
+    const naverTV = s.match(/tv\.naver\.com\/v\/(\d+)/)?.[1];
+    if (naverTV) return `https://tv.naver.com/embed/${naverTV[1]}`;
+    // 네이버TV embed (이미 변환됨)
+    if (/tv\.naver\.com\/embed\//.test(s)) return s;
+    return null;
+  }
+
+  const videoHandler = useCallback(() => {
+    setVideoPopup({ url: "", visible: true });
+  }, []);
+
+  const handleVideoInsert = useCallback(() => {
+    const embedUrl = toEmbedUrl(videoPopup.url);
+    if (!embedUrl) {
+      alert(
+        "지원하지 않는 URL 형식입니다.\nYouTube 또는 네이버TV URL을 입력해 주세요.\n\n예시:\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      );
+      return;
+    }
+    const quill = (
+      quillRef.current as { getEditor?: () => QuillEditor } | null
+    )?.getEditor?.();
+    if (quill) {
+      const range = quill.getSelection(true) ?? {
+        index: quill.getLength() - 1,
+        length: 0,
+      };
+      quill.insertEmbed(range.index, "video-embed", embedUrl, "user");
+      quill.setSelection(range.index + 1, 0);
+    }
+    setVideoPopup({ url: "", visible: false });
+  }, [videoPopup.url]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -630,7 +826,10 @@ export default function PostEditor({ editingPost = null }: Props) {
     [uploadImageAndInsert, sourceMode]
   );
 
-  const modules = useMemo(() => QUILL_MODULES(imageHandler), [imageHandler]);
+  const modules = useMemo(
+    () => QUILL_MODULES(imageHandler, videoHandler),
+    [imageHandler, videoHandler]
+  );
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -838,7 +1037,8 @@ export default function PostEditor({ editingPost = null }: Props) {
             ) : (
               <>
                 {/* 표 감지됨 배너 */}
-                {/<table[\s>]/i.test(content) && (
+                {(/<table[\s>]/i.test(content) ||
+                  /ql-table-embed/.test(content)) && (
                   <div className="mx-auto max-w-2xl mb-1 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
                     <span>⊞</span>
                     <span>
@@ -848,17 +1048,13 @@ export default function PostEditor({ editingPost = null }: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        // 첫 번째 표를 편집으로 열기
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(content, "text/html");
-                        const firstTable = doc.querySelector("table");
-                        if (firstTable) {
-                          setTableInitialData(tableElToData(firstTable as HTMLTableElement));
-                          setEditingTableIndex(0);
-                        } else {
-                          setTableInitialData(null);
-                          setEditingTableIndex(null);
-                        }
+                        const embed = doc.querySelector("div.ql-table-embed");
+                        const rawTable = doc.querySelector("table");
+                        const tEl = (embed?.querySelector("table") ?? rawTable) as HTMLTableElement | null;
+                        setTableInitialData(tEl ? tableElToData(tEl) : null);
+                        setEditingTableIndex(0);
                         setTableMode(true);
                       }}
                       className="ml-auto px-2 py-1 bg-amber-100 hover:bg-amber-200 rounded font-medium transition-colors"
@@ -953,6 +1149,66 @@ export default function PostEditor({ editingPost = null }: Props) {
                   </button>
                 </div>
               </>
+            )}
+
+            {/* 동영상 삽입 팝업 */}
+            {videoPopup.visible && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                onClick={() => setVideoPopup({ url: "", visible: false })}
+              >
+                <div
+                  className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md mx-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="text-base font-semibold text-gray-900 mb-4">
+                    🎬 동영상 삽입
+                  </h3>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      동영상 URL
+                    </label>
+                    <input
+                      type="url"
+                      value={videoPopup.url}
+                      onChange={(e) =>
+                        setVideoPopup((prev) => ({
+                          ...prev,
+                          url: e.target.value,
+                        }))
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleVideoInsert();
+                        if (e.key === "Escape")
+                          setVideoPopup({ url: "", visible: false });
+                      }}
+                    />
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      YouTube (watch / shorts / youtu.be), 네이버TV URL을
+                      지원합니다.
+                    </p>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVideoPopup({ url: "", visible: false })}
+                      className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleVideoInsert}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      삽입
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Image Tooltip Popover — Triple isolation:

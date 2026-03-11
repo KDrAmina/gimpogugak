@@ -220,6 +220,54 @@ body {
   padding-right: 24px !important;
 }
 
+/* Quill 에디터: 표 임베드 래퍼 (.ql-table-embed) */
+.ql-editor .ql-table-embed,
+.blog-detail-article .ql-editor .ql-table-embed {
+  display: block !important;
+  margin: 1.2em 0 !important;
+  overflow-x: auto !important;
+  cursor: pointer !important;
+}
+.ql-editor .ql-table-embed:hover,
+.quill-editor-wrapper .ql-editor .ql-table-embed:hover {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+}
+
+/* Quill 에디터: 동영상 임베드 래퍼 (.ql-video-embed) — 16:9 반응형 */
+.ql-editor .ql-video-embed,
+.blog-detail-article .ql-editor .ql-video-embed {
+  position: relative !important;
+  display: block !important;
+  padding-bottom: 56.25% !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 1.5em 0 !important;
+  border-radius: 8px !important;
+  background: #000 !important;
+}
+.ql-editor .ql-video-embed iframe,
+.blog-detail-article .ql-editor .ql-video-embed iframe {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  border-radius: 8px !important;
+}
+/* 에디터 내 video-embed 높이 고정 (소스 모드 외) */
+.quill-editor-wrapper .ql-editor .ql-video-embed {
+  padding-bottom: 0 !important;
+  height: 320px !important;
+}
+.quill-editor-wrapper .ql-editor .ql-video-embed iframe {
+  position: static !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Quill 에디터 & 뷰어 표(Table) 스타일 */
 .ql-editor table,
 .ql-snow .ql-editor table {

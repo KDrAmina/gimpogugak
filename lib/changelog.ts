@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.29",
+    date: "2026-03-11",
+    changes: [
+      "[블로그 에디터] 표 렌더링 버그 수정: 표 삽입 시 HTML 텍스트로 노출되던 문제를 해결. Quill 커스텀 BlockEmbed 블롯(TableEmbedBlot/ql-table-embed)을 등록하여 insertEmbed() 호출 시 에디터 내에서 실제 격자 형태의 표가 즉시 렌더링되도록 수정. 기존 표 편집·행/열 추가·삭제 플로팅 툴바도 새 블롯 구조에 맞게 업데이트.",
+      "[블로그 에디터] 동영상 임베드 기능 추가: Quill 툴바에 '동영상(▶)' 버튼 추가. 클릭 시 URL 입력 팝업이 표시되며, YouTube(watch/shorts/youtu.be) 및 네이버TV URL을 입력하면 자동으로 embed URL로 변환. Quill 커스텀 BlockEmbed 블롯(VideoEmbedBlot/ql-video-embed)으로 에디터 내 16:9 비율 iframe 즉시 미리보기 가능.",
+      "[블로그 뷰어] 동영상 CSS 개선: .ql-video-embed에 padding-bottom:56.25% 반응형 16:9 비율 적용, border-radius 8px, 검정 배경. 블로그 상세 페이지에서 유튜브·네이버TV 영상이 전체 폭으로 재생됨.",
+      "[보안] sanitizeHtml 업데이트: 기존에 모든 iframe을 제거하던 로직을 개선. youtube.com/embed/ 및 tv.naver.com/embed/ 도메인의 iframe은 이벤트 핸들러만 제거 후 허용, 그 외 iframe은 기존과 동일하게 차단.",
+    ],
+  },
+  {
     version: "2.28",
     date: "2026-03-11",
     changes: [
