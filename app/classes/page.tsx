@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "수업 및 체험 | 김포국악원 (Classes)",
   description:
-    "서도/경기민요 정규 수업 및 대취타, 국악기 만들기 체험 학습. 네이버 예약 가능.",
+    "서도/경기민요 정규 수업, 성악 발성반 및 대취타, 국악기 만들기 체험 학습. 네이버 예약 가능.",
 };
 
 export default function ClassesPage() {
@@ -57,11 +57,34 @@ export default function ClassesPage() {
         </div>
       </div>
 
-      {/* 2. 국악 문화 체험 (2종 분리) */}
+      {/* 2. 성악 발성반 */}
+      <div className="mb-20">
+        <h2 className="text-xl font-bold text-[#111] mb-6 border-b border-[#111]/10 pb-2">
+          2. 성악 발성반
+        </h2>
+        <p className="text-[#666] text-sm leading-relaxed mb-6">
+          한양대 성악과 출신 부원장이 전하는 정통 발성법으로, 목소리의 깊이와 아름다움을 체계적으로 완성해 드립니다.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-[#111]/10 bg-[#111]/[0.02] p-6 text-center">
+            <p className="text-xs font-bold text-[#999] mb-2 tracking-widest uppercase">개인 레슨</p>
+            <p className="text-3xl font-bold text-[#111] tabular-nums">200,000원</p>
+            <p className="text-xs text-[#999] mt-1">/ 1시간</p>
+          </div>
+          <div className="rounded-xl border border-[#111]/10 bg-[#111]/[0.02] p-6 text-center">
+            <p className="text-xs font-bold text-[#999] mb-2 tracking-widest uppercase">단체 수업</p>
+            <p className="text-3xl font-bold text-[#111] tabular-nums">100,000원</p>
+            <p className="text-xs text-[#999] mt-1">/ 월 (주 1회)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. 국악 문화 체험 (2종 분리) */}
       <div className="mb-20">
         <div className="flex flex-wrap items-end justify-between gap-2 mb-6 border-b border-[#111]/10 pb-2">
           <h2 className="text-xl font-bold text-[#111]">
-            2. 국악 문화 체험
+            3. 국악 문화 체험
           </h2>
           <span className="text-sm text-[#666] font-medium tabular-nums">
             1시간 / 20,000원 (1인)
@@ -110,22 +133,28 @@ export default function ClassesPage() {
         </div>
 
         {/* 예약 CTA */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <a
             href="https://booking.naver.com/booking/6/bizes/937607"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#03C75A] text-white font-bold rounded-lg hover:bg-[#02b150] transition-colors shadow-sm"
+            className="flex-1 flex items-center justify-center gap-2 px-5 py-4 bg-[#03C75A] text-white font-bold rounded-lg hover:bg-[#02b150] transition-colors shadow-sm"
           >
-            <span aria-hidden>📅</span> 네이버 예약하기
+            <span aria-hidden>📅</span> 네이버 예약
           </a>
           <a
             href="http://pf.kakao.com/_xfKTHxj/chat"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#FAE100] text-[#371D1E] font-bold rounded-lg hover:bg-[#ebd300] transition-colors shadow-sm"
+            className="flex-1 flex items-center justify-center gap-2 px-5 py-4 bg-[#FAE100] text-[#371D1E] font-bold rounded-lg hover:bg-[#ebd300] transition-colors shadow-sm"
           >
-            <span aria-hidden>💬</span> 카카오톡 상담하기
+            <span aria-hidden>💬</span> 카카오톡 상담
+          </a>
+          <a
+            href="tel:010-5943-1843"
+            className="flex-1 flex items-center justify-center gap-2 px-5 py-4 bg-[#111] text-white font-bold rounded-lg hover:bg-[#333] transition-colors shadow-sm"
+          >
+            <span aria-hidden>📞</span> 전화 & 문자
           </a>
         </div>
         <p className="mt-3 text-center text-xs text-[#999]">
