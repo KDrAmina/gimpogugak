@@ -66,17 +66,21 @@ export default function ClassesPage() {
           한양대 성악과 출신 부원장이 전하는 정통 발성법으로, 목소리의 깊이와 아름다움을 체계적으로 완성해 드립니다.
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-[#111]/10 bg-[#111]/[0.02] p-6 text-center">
-            <p className="text-xs font-bold text-[#999] mb-2 tracking-widest uppercase">개인 레슨</p>
-            <p className="text-3xl font-bold text-[#111] tabular-nums">200,000원</p>
-            <p className="text-xs text-[#999] mt-1">/ 1시간</p>
-          </div>
-          <div className="rounded-xl border border-[#111]/10 bg-[#111]/[0.02] p-6 text-center">
-            <p className="text-xs font-bold text-[#999] mb-2 tracking-widest uppercase">단체 수업</p>
-            <p className="text-3xl font-bold text-[#111] tabular-nums">100,000원</p>
-            <p className="text-xs text-[#999] mt-1">/ 월 (주 1회)</p>
-          </div>
+        <div className="border-t border-[#111]/10">
+          <ClassRow
+            category="성악 개인 레슨"
+            target="부원장 직강 / 1:1 맞춤형"
+            time="개인 레슨"
+            price="200,000원"
+            unit="/ 1시간"
+          />
+          <ClassRow
+            category="성악 소그룹 반"
+            target="왕초보 환영 / 기초 발성"
+            time="주 1회 단체 수업"
+            price="100,000원"
+            unit="/ 월 (주 1회)"
+          />
         </div>
       </div>
 

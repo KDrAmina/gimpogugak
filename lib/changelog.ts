@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.27",
+    date: "2026-03-11",
+    changes: [
+      "[수업 안내] 성악 발성반 UI 통일: 기존 카드형(grid) 레이아웃을 제거하고 민요 정규반과 동일한 ClassRow 리스트/테이블 형식으로 변경. '성악 개인 레슨(부원장 직강 / 1:1 맞춤형, 200,000원/1시간)'과 '성악 소그룹 반(왕초보 환영 / 기초 발성, 주 1회 단체 수업, 100,000원/월)' 2개 행으로 구성.",
+    ],
+  },
+  {
     version: "2.26",
     date: "2026-03-11",
     changes: [
