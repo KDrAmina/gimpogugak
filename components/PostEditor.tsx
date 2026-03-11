@@ -34,6 +34,10 @@ type QuillEditor = {
   insertEmbed: (i: number, t: string, u: string, s: string) => void;
   setSelection: (i: number, l: number) => void;
   blur?: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on?: (event: string, handler: (...args: any[]) => void) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  off?: (event: string, handler: (...args: any[]) => void) => void;
 };
 
 const QUILL_MODULES = (imageHandler: () => void, videoHandler: () => void) => ({
@@ -566,6 +570,25 @@ export default function PostEditor({ editingPost = null }: Props) {
     return () => clearTimeout(timer);
   }, [editorReady]);
 
+  // 커서 위치를 지속 추적 (selection-change 이벤트)
+  // → 표 삽입 버튼 클릭 시 editor blur가 먼저 일어나 getSelection()이 null을 반환하는 문제 해결
+  // → range !== null인 경우에만 갱신해 blur 직전 위치를 보존
+  useEffect(() => {
+    if (!editorReady) return;
+    const timer = setTimeout(() => {
+      const quill = (quillRef.current as { getEditor?: () => QuillEditor })?.getEditor?.();
+      if (!quill?.on) return;
+      const handler = (range: { index: number; length: number } | null) => {
+        if (range !== null) {
+          savedCursorIndex.current = range.index;
+        }
+      };
+      quill.on("selection-change", handler);
+      return () => { quill.off?.("selection-change", handler); };
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [editorReady]);
+
   const toggleSourceMode = useCallback(() => {
     if (sourceMode) {
       // 소스 → 에디터: raw <table>을 ql-table-embed로 변환 후 적용 (경고 없음)
@@ -630,11 +653,11 @@ export default function PostEditor({ editingPost = null }: Props) {
         );
         setContent(newContent);
       } else if (quill) {
-        // 새 표: 저장된 커서 위치 우선 사용 (tableMode 진입 시 blur로 getSelection()이 null이 되기 때문)
+        // 새 표: selection-change로 추적된 마지막 커서 위치에 삽입
+        // (tableMode 진입 시 blur로 getSelection()이 null이 되므로 savedCursorIndex 사용)
         const idx = savedCursorIndex.current ?? quill.getLength() - 1;
         quill.insertEmbed(idx, "table-embed", html, "user");
         quill.setSelection(idx + 1, 0);
-        savedCursorIndex.current = null;
       } else {
         // Fallback: 소스 모드로 추가
         const newContent = content + html;
@@ -657,10 +680,8 @@ export default function PostEditor({ editingPost = null }: Props) {
   }, []);
 
   // "표 삽입" 버튼 → TableEditor 열기 (새 표)
-  // 커서 위치를 미리 저장: tableMode 진입 시 에디터가 blur되어 getSelection()이 null 반환하기 때문
+  // savedCursorIndex는 selection-change 이벤트가 지속 갱신하므로 별도 캡처 불필요
   const handleInsertTable = useCallback(() => {
-    const quill = (quillRef.current as { getEditor?: () => QuillEditor } | null)?.getEditor?.();
-    savedCursorIndex.current = quill?.getSelection(false)?.index ?? null;
     setTableInitialData(null);
     setEditingTableIndex(null);
     setTableMode(true);

@@ -10,20 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "2.31",
-    date: "2026-03-11",
-    changes: [
-      "[블로그 에디터] 커서 위치에 표 삽입: '표 삽입' 버튼 클릭 시 Quill 커서 위치(index)를 미리 저장(savedCursorIndex ref)하여, TableEditor에서 '에디터에 삽입' 클릭 시 글 맨 아래가 아닌 원래 커서 위치에 정확히 표가 삽입되도록 수정. (tableMode 진입 후 에디터가 blur되어 getSelection()이 null을 반환하는 문제 해결)",
-      "[블로그 에디터] 등록/수정 후 리다이렉트 안정화: 게시글 저장 후 router.push() 대신 router.replace()를 사용하여 브라우저 히스토리 스택 중복 방지 및 뒤로 가기 시 폼 재노출 문제 해결. '취소' 버튼도 동일하게 router.replace() 적용.",
-    ],
-  },
-  {
     version: "2.30",
     date: "2026-03-11",
     changes: [
       "[블로그 에디터] 수정 모드 표 데이터 보존: 게시글 수정 시 DB에서 가져온 raw <table> 태그가 Quill에 의해 삭제되던 문제 해결. preprocessContentForEditor() 함수로 초기 로딩·editorReady 시점에 모든 <table>을 .ql-table-embed 래퍼로 자동 변환하여 TableEmbedBlot으로 인식시킴.",
       "[블로그 에디터] Quill 화이트리스트 확장: Clipboard addMatcher('TABLE', ...) 추가로 붙여넣기 또는 HTML 파싱 시 <table>/<tr>/<td>/<tbody>/<thead> 태그가 Quill sanitize에 의해 제거되지 않고 table-embed 블롯으로 보존됨.",
       "[블로그 에디터] 모드 전환 안정화: 소스 모드 → 에디터 모드 전환 시 표 경고 다이얼로그 제거. preprocessContentForEditor()가 소스 HTML의 raw 표를 자동으로 ql-table-embed로 변환해 데이터 손실 없이 양방향 전환 가능.",
+      "[블로그 에디터] 커서 위치에 표 삽입 완결: Quill selection-change 이벤트로 커서 위치를 지속 추적(savedCursorIndex ref). 표 삽입 버튼 클릭 시 editor blur가 먼저 일어나 getSelection()이 null을 반환하는 문제를 근본적으로 해결. TableEditor '에디터에 삽입' 클릭 시 글 맨 아래가 아닌 원래 커서 위치에 정확히 삽입됨.",
+      "[블로그 에디터] 등록/수정 후 리다이렉트 안정화: 게시글 저장 후 router.push() 대신 router.replace()를 사용하여 브라우저 히스토리 스택 중복 방지 및 뒤로 가기 시 폼 재노출 문제 해결.",
+      "[이미지 관리] GIF 업로드 지원: 갤러리 이미지 관리 페이지에서 GIF 파일을 업로드할 때 WebP 변환 없이 원본 그대로 보존. 애니메이션 GIF가 손상 없이 Storage에 저장되고 갤러리에 정상 노출됨. (lib/upload-image.ts의 normalizeImage도 동일하게 GIF 원본 보존 처리)",
     ],
   },
   {

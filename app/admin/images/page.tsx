@@ -157,24 +157,33 @@ export default function AdminImagesPage() {
     };
 
     try {
-      updateItem({ status: "compressing" });
-
-      const compressedFile = await imageCompression(item.file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-        fileType: "image/webp" as const,
-      });
-
+      const isGif = item.file.type === "image/gif";
       const baseName = item.name.replace(/\.[^/.]+$/, "");
-      const fileName = `${baseName}_${Date.now()}.webp`;
+      let uploadFile: Blob;
+      let fileName: string;
 
-      updateItem({ status: "uploading" });
+      if (isGif) {
+        // GIF: 애니메이션 보존을 위해 압축·변환 없이 원본 그대로 업로드
+        uploadFile = item.file;
+        fileName = `${baseName}_${Date.now()}.gif`;
+        updateItem({ status: "uploading" });
+      } else {
+        updateItem({ status: "compressing" });
+        const compressedFile = await imageCompression(item.file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: "image/webp" as const,
+        });
+        uploadFile = compressedFile;
+        fileName = `${baseName}_${Date.now()}.webp`;
+        updateItem({ status: "uploading" });
+      }
 
       const { error: storageError } = await supabase.storage
         .from("images")
-        .upload(fileName, compressedFile, {
-          contentType: "image/webp",
+        .upload(fileName, uploadFile, {
+          contentType: isGif ? "image/gif" : "image/webp",
           upsert: false,
         });
 
