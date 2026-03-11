@@ -8,6 +8,7 @@ import { sanitizeHtml } from "@/lib/html-utils";
 import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
 import { toDatetimeLocalKST, parseDatetimeLocalAsKST } from "@/lib/date-utils";
 import { getBlogPostPath } from "@/lib/blog-utils";
+import TableEditor, { tableElToData, tableDataToHtml, type TableData } from "@/components/TableEditor";
 
 // ⚠️ react-quill-new / quill are NOT statically imported here.
 // All Quill module loading and format registration happens inside the
@@ -115,6 +116,15 @@ export default function PostEditor({ editingPost = null }: Props) {
   const [editorReady, setEditorReady] = useState(false);
   const [sourceMode, setSourceMode] = useState(false);
   const [sourceDraft, setSourceDraft] = useState("");
+  const [tableMode, setTableMode] = useState(false);
+  const [tableInitialData, setTableInitialData] = useState<TableData | null>(null);
+  const [editingTableIndex, setEditingTableIndex] = useState<number | null>(null);
+  const [floatingTableBar, setFloatingTableBar] = useState<{
+    top: number;
+    left: number;
+    tableEl: HTMLTableElement;
+    tableIndex: number;
+  } | null>(null);
   const [imageTooltip, setImageTooltip] = useState<ImageTooltipState>({
     visible: false, imgEl: null, alt: "", caption: "", top: 0, left: 0,
   });
@@ -124,6 +134,7 @@ export default function PostEditor({ editingPost = null }: Props) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipAltRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const floatingTableBarRef = useRef<HTMLDivElement>(null);
   const clipboardMatcherAdded = useRef(false);
   const supabase = createClient();
   const router = useRouter();
@@ -267,6 +278,36 @@ export default function PostEditor({ editingPost = null }: Props) {
     return () => wrapper.removeEventListener("click", handleClick, true);
   }, [editorReady, sourceMode]);
 
+  // Table click → floating toolbar
+  useEffect(() => {
+    if (!editorReady || sourceMode || tableMode) return;
+    const wrapper = editorWrapperRef.current;
+    if (!wrapper) return;
+
+    function handleTableClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      const tableEl = target.closest("table");
+      if (tableEl && tableEl.closest(".ql-editor")) {
+        const allTables = [...wrapper!.querySelectorAll(".ql-editor table")];
+        const tableIndex = allTables.indexOf(tableEl as HTMLTableElement);
+        const wrapperRect = wrapper!.getBoundingClientRect();
+        const tableRect = tableEl.getBoundingClientRect();
+        setFloatingTableBar({
+          top: tableRect.top - wrapperRect.top - 44,
+          left: tableRect.left - wrapperRect.left,
+          tableEl: tableEl as HTMLTableElement,
+          tableIndex,
+        });
+        e.stopPropagation();
+      } else if (!target.closest(".floating-table-bar")) {
+        setFloatingTableBar(null);
+      }
+    }
+
+    wrapper.addEventListener("click", handleTableClick, true);
+    return () => wrapper.removeEventListener("click", handleTableClick, true);
+  }, [editorReady, sourceMode, tableMode]);
+
   const handleTooltipAltChange = useCallback((value: string) => {
     setImageTooltip((prev) => {
       if (prev.imgEl) prev.imgEl.setAttribute("alt", value);
@@ -393,6 +434,16 @@ export default function PostEditor({ editingPost = null }: Props) {
 
   const toggleSourceMode = useCallback(() => {
     if (sourceMode) {
+      if (
+        /<table[\s>]/i.test(sourceDraft) &&
+        !confirm(
+          "표(테이블)가 포함되어 있습니다.\n" +
+            "에디터 모드로 전환하면 표 내용이 사라질 수 있습니다.\n\n" +
+            "계속하시겠습니까? (취소하면 소스 모드 유지)"
+        )
+      ) {
+        return;
+      }
       setContent(sanitizeHtml(sourceDraft));
       setSourceMode(false);
     } else {
@@ -401,28 +452,130 @@ export default function PostEditor({ editingPost = null }: Props) {
     }
   }, [sourceMode, sourceDraft, content]);
 
-  const handleInsertTable = useCallback(() => {
-    const tableHtml =
-      "\n<table>\n  <thead>\n    <tr><th>열 1</th><th>열 2</th><th>열 3</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>내용</td><td>내용</td><td>내용</td></tr>\n    <tr><td>내용</td><td>내용</td><td>내용</td></tr>\n  </tbody>\n</table>\n";
-    if (sourceMode) {
-      const ta = textareaRef.current;
-      if (ta) {
-        const start = ta.selectionStart ?? sourceDraft.length;
-        const end = ta.selectionEnd ?? start;
-        const newVal = sourceDraft.slice(0, start) + tableHtml + sourceDraft.slice(end);
-        setSourceDraft(newVal);
-        setTimeout(() => {
-          ta.selectionStart = ta.selectionEnd = start + tableHtml.length;
-          ta.focus();
-        }, 0);
-      } else {
-        setSourceDraft((prev) => prev + tableHtml);
+  // Helper: DOM으로 content HTML의 특정 인덱스 table을 교체
+  const replaceTableInContent = useCallback(
+    (currentContent: string, idx: number, newHtml: string): string => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(currentContent, "text/html");
+      const tables = doc.querySelectorAll("table");
+      if (idx >= 0 && idx < tables.length) {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = newHtml.trim();
+        const newTable = tpl.content.firstElementChild;
+        if (newTable) tables[idx].replaceWith(newTable);
       }
-    } else {
-      setSourceDraft(content + tableHtml);
+      return doc.body.innerHTML;
+    },
+    []
+  );
+
+  // TableEditor에서 "에디터에 삽입" 클릭 시
+  const handleTableInsert = useCallback(
+    (html: string) => {
+      let newContent: string;
+      if (editingTableIndex !== null) {
+        newContent = replaceTableInContent(content, editingTableIndex, html);
+      } else {
+        newContent = content + html;
+      }
+      setContent(newContent);
+      setSourceDraft(newContent);
+      setTableMode(false);
+      setTableInitialData(null);
+      setEditingTableIndex(null);
+      setSourceMode(true); // 표 보존을 위해 소스 모드 유지
+    },
+    [content, editingTableIndex, replaceTableInContent]
+  );
+
+  const handleTableCancel = useCallback(() => {
+    setTableMode(false);
+    setTableInitialData(null);
+    setEditingTableIndex(null);
+  }, []);
+
+  // "표 삽입" 버튼 → TableEditor 열기 (새 표)
+  const handleInsertTable = useCallback(() => {
+    setTableInitialData(null);
+    setEditingTableIndex(null);
+    setTableMode(true);
+  }, []);
+
+  // 플로팅 툴바 조작 helpers
+  const applyTableOp = useCallback(
+    (op: "addRow" | "addCol" | "delRow" | "delCol" | "del") => {
+      if (!floatingTableBar) return;
+      const { tableEl, tableIndex } = floatingTableBar;
+      let newContent = content;
+
+      if (op === "del") {
+        newContent = replaceTableInContent(content, tableIndex, "");
+        // replaceTableInContent에 빈 문자열 → table 요소 제거 처리
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, "text/html");
+        const tables = doc.querySelectorAll("table");
+        if (tables[tableIndex]) tables[tableIndex].remove();
+        newContent = doc.body.innerHTML;
+      } else if (op === "addRow") {
+        const tbody =
+          tableEl.querySelector("tbody") ||
+          tableEl;
+        const lastRow = tbody.querySelector("tr:last-child");
+        const colCount =
+          lastRow?.querySelectorAll("td, th").length ??
+          tableEl.rows[0]?.cells.length ??
+          1;
+        const newRow = document.createElement("tr");
+        for (let i = 0; i < colCount; i++) {
+          const td = document.createElement("td");
+          td.textContent = "내용";
+          newRow.appendChild(td);
+        }
+        tbody.appendChild(newRow);
+        newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+      } else if (op === "addCol") {
+        tableEl.querySelectorAll("tr").forEach((tr, ri) => {
+          const cell = ri === 0
+            ? document.createElement("th")
+            : document.createElement("td");
+          cell.textContent = ri === 0 ? `열 ${tr.cells.length + 1}` : "내용";
+          tr.appendChild(cell);
+        });
+        newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+      } else if (op === "delRow") {
+        const tbody = tableEl.querySelector("tbody");
+        const lastRow = tbody?.querySelector("tr:last-child");
+        if (lastRow && tbody && tbody.querySelectorAll("tr").length > 1) {
+          lastRow.remove();
+          newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+        }
+      } else if (op === "delCol") {
+        const maxCols = Math.max(...[...tableEl.rows].map((r) => r.cells.length));
+        if (maxCols > 1) {
+          tableEl.querySelectorAll("tr").forEach((tr) => {
+            if (tr.cells.length > 0) tr.deleteCell(tr.cells.length - 1);
+          });
+          newContent = replaceTableInContent(content, tableIndex, tableEl.outerHTML);
+        }
+      }
+
+      setContent(newContent);
+      setSourceDraft(newContent);
       setSourceMode(true);
-    }
-  }, [sourceMode, sourceDraft, content]);
+      setFloatingTableBar(null);
+    },
+    [floatingTableBar, content, replaceTableInContent]
+  );
+
+  // 플로팅 툴바 "편집" → TableEditor로 열기
+  const handleEditFromToolbar = useCallback(() => {
+    if (!floatingTableBar) return;
+    const data = tableElToData(floatingTableBar.tableEl);
+    setTableInitialData(data);
+    setEditingTableIndex(floatingTableBar.tableIndex);
+    setFloatingTableBar(null);
+    setTableMode(true);
+  }, [floatingTableBar]);
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -631,6 +784,26 @@ export default function PostEditor({ editingPost = null }: Props) {
               <div className="min-h-[500px] flex items-center justify-center border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
                 에디터 로딩 중...
               </div>
+            ) : tableMode ? (
+              /* ── TableEditor Mode ── */
+              <div className="flex flex-col gap-3 py-2">
+                <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <span>⊞</span>
+                  <span>
+                    {editingTableIndex !== null
+                      ? `표 ${editingTableIndex + 1} 편집 중`
+                      : "새 표 만들기"}
+                  </span>
+                  <span className="ml-auto text-xs text-blue-500">
+                    내용을 채우고 &apos;에디터에 삽입&apos;을 누르세요
+                  </span>
+                </div>
+                <TableEditor
+                  initialData={tableInitialData}
+                  onInsert={handleTableInsert}
+                  onCancel={handleTableCancel}
+                />
+              </div>
             ) : sourceMode ? (
               <>
                 <textarea
@@ -664,6 +837,88 @@ export default function PostEditor({ editingPost = null }: Props) {
               </>
             ) : (
               <>
+                {/* 표 감지됨 배너 */}
+                {/<table[\s>]/i.test(content) && (
+                  <div className="mx-auto max-w-2xl mb-1 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                    <span>⊞</span>
+                    <span>
+                      표가 포함되어 있습니다. 에디터에서 직접 보이지 않을 수
+                      있습니다.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // 첫 번째 표를 편집으로 열기
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(content, "text/html");
+                        const firstTable = doc.querySelector("table");
+                        if (firstTable) {
+                          setTableInitialData(tableElToData(firstTable as HTMLTableElement));
+                          setEditingTableIndex(0);
+                        } else {
+                          setTableInitialData(null);
+                          setEditingTableIndex(null);
+                        }
+                        setTableMode(true);
+                      }}
+                      className="ml-auto px-2 py-1 bg-amber-100 hover:bg-amber-200 rounded font-medium transition-colors"
+                    >
+                      표 편집
+                    </button>
+                  </div>
+                )}
+
+                {/* 플로팅 테이블 툴바 */}
+                {floatingTableBar && (
+                  <div
+                    ref={floatingTableBarRef}
+                    className="floating-table-bar absolute z-20 flex items-center gap-1 px-2 py-1.5 bg-white border border-blue-200 rounded-lg shadow-lg text-xs"
+                    style={{
+                      top: Math.max(0, floatingTableBar.top),
+                      left: floatingTableBar.left,
+                    }}
+                  >
+                    <span className="text-blue-600 font-semibold mr-1">⊞ 표</span>
+                    {(
+                      [
+                        { label: "편집", op: "edit" as const, color: "blue" },
+                        { label: "+ 행", op: "addRow" as const, color: "gray" },
+                        { label: "+ 열", op: "addCol" as const, color: "gray" },
+                        { label: "행 삭제", op: "delRow" as const, color: "red" },
+                        { label: "열 삭제", op: "delCol" as const, color: "red" },
+                        { label: "표 삭제", op: "del" as const, color: "red" },
+                      ] as const
+                    ).map(({ label, op, color }) => (
+                      <button
+                        key={op}
+                        type="button"
+                        onClick={() =>
+                          op === "edit"
+                            ? handleEditFromToolbar()
+                            : applyTableOp(op)
+                        }
+                        className={`px-2 py-1 rounded border font-medium transition-colors ${
+                          color === "blue"
+                            ? "border-blue-300 text-blue-700 hover:bg-blue-50"
+                            : color === "red"
+                            ? "border-red-200 text-red-600 hover:bg-red-50"
+                            : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setFloatingTableBar(null)}
+                      className="ml-1 px-1.5 py-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                      title="닫기"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
                 <div className="mx-auto max-w-2xl">
                   <ReactQuill
                     {...({ ref: quillRef } as object)}
