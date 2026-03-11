@@ -142,6 +142,7 @@ export default function PostEditor({ editingPost = null }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const floatingTableBarRef = useRef<HTMLDivElement>(null);
   const clipboardMatcherAdded = useRef(false);
+  const savedCursorIndex = useRef<number | null>(null);
   const supabase = createClient();
   const router = useRouter();
 
@@ -629,13 +630,11 @@ export default function PostEditor({ editingPost = null }: Props) {
         );
         setContent(newContent);
       } else if (quill) {
-        // 새 표: Quill insertEmbed → 에디터 내에서 실제 격자로 렌더링
-        const range = quill.getSelection(true) ?? {
-          index: quill.getLength() - 1,
-          length: 0,
-        };
-        quill.insertEmbed(range.index, "table-embed", html, "user");
-        quill.setSelection(range.index + 1, 0);
+        // 새 표: 저장된 커서 위치 우선 사용 (tableMode 진입 시 blur로 getSelection()이 null이 되기 때문)
+        const idx = savedCursorIndex.current ?? quill.getLength() - 1;
+        quill.insertEmbed(idx, "table-embed", html, "user");
+        quill.setSelection(idx + 1, 0);
+        savedCursorIndex.current = null;
       } else {
         // Fallback: 소스 모드로 추가
         const newContent = content + html;
@@ -658,7 +657,10 @@ export default function PostEditor({ editingPost = null }: Props) {
   }, []);
 
   // "표 삽입" 버튼 → TableEditor 열기 (새 표)
+  // 커서 위치를 미리 저장: tableMode 진입 시 에디터가 blur되어 getSelection()이 null 반환하기 때문
   const handleInsertTable = useCallback(() => {
+    const quill = (quillRef.current as { getEditor?: () => QuillEditor } | null)?.getEditor?.();
+    savedCursorIndex.current = quill?.getSelection(false)?.index ?? null;
     setTableInitialData(null);
     setEditingTableIndex(null);
     setTableMode(true);
@@ -980,7 +982,7 @@ export default function PostEditor({ editingPost = null }: Props) {
         fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
       }
 
-      router.push("/admin/posts/manage");
+      router.replace("/admin/posts/manage");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("Save error:", err);
@@ -994,7 +996,7 @@ export default function PostEditor({ editingPost = null }: Props) {
     if (title.trim() || content.replace(/<p><br><\/p>/g, "").trim()) {
       if (!confirm("작성 중인 내용이 있습니다. 정말 나가시겠습니까?")) return;
     }
-    router.push("/admin/posts/manage");
+    router.replace("/admin/posts/manage");
   }
 
   return (

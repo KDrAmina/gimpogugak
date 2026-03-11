@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.31",
+    date: "2026-03-11",
+    changes: [
+      "[블로그 에디터] 커서 위치에 표 삽입: '표 삽입' 버튼 클릭 시 Quill 커서 위치(index)를 미리 저장(savedCursorIndex ref)하여, TableEditor에서 '에디터에 삽입' 클릭 시 글 맨 아래가 아닌 원래 커서 위치에 정확히 표가 삽입되도록 수정. (tableMode 진입 후 에디터가 blur되어 getSelection()이 null을 반환하는 문제 해결)",
+      "[블로그 에디터] 등록/수정 후 리다이렉트 안정화: 게시글 저장 후 router.push() 대신 router.replace()를 사용하여 브라우저 히스토리 스택 중복 방지 및 뒤로 가기 시 폼 재노출 문제 해결. '취소' 버튼도 동일하게 router.replace() 적용.",
+    ],
+  },
+  {
     version: "2.30",
     date: "2026-03-11",
     changes: [
