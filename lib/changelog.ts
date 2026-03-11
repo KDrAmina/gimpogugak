@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.32",
+    date: "2026-03-12",
+    changes: [
+      "[블로그 에디터] 표 하단 글쓰기 불가 버그 수정: 표(TableEmbedBlot) 삽입 후 BlockEmbed의 Delta 포지션 계산을 idx+1→idx+2로 교정. 표가 문서 끝에 삽입될 때 자동으로 빈 단락을 추가하여 표 다음에 즉시 이어쓸 수 있도록 개선.",
+      "[블로그 에디터] 드래그 핸들 레이아웃 수정: 기존 position:absolute top:-24px 방식이 주변 텍스트와 겹치는 문제를 해결. 핸들을 인라인(display:block, height:22px) 방식으로 변경하여 레이아웃을 깨뜨리지 않고 표 hover 시만 파란 핸들 바가 표시되도록 수정.",
+      "[관리자] 외부 수입 관리 기능 신설(/admin/income): '체험비(단발성)' · '외부강의(정기성)' 두 유형을 구분하여 날짜/내용/금액/메모를 기록·조회·수정·삭제 가능. 구분·월 이중 필터, 유형별/전체 합계 요약 카드, 클릭 시 상세 모달 표시. Supabase external_income 테이블 마이그레이션 SQL 내장 안내.",
+      "[관리자] 대시보드 월별 실수령 수강료 카드 추가: '총 등록 수강료' 옆에 '월 실수령 수강료' 카드를 병렬 배치. 월 선택기(month input)로 원하는 달을 선택하면 lesson_history의 4회차 완료(개인반) 및 결제 완료(단체반) 기록을 합산하여 실시간 표시.",
+    ],
+  },
+  {
     version: "2.31",
     date: "2026-03-12",
     changes: [

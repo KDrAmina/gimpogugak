@@ -789,10 +789,15 @@ export default function PostEditor({ editingPost = null }: Props) {
         setContent(newContent);
       } else if (quill) {
         // 새 표: selection-change로 추적된 마지막 커서 위치에 삽입
-        // (tableMode 진입 시 blur로 getSelection()이 null이 되므로 savedCursorIndex 사용)
         const idx = savedCursorIndex.current ?? quill.getLength() - 1;
         quill.insertEmbed(idx, "table-embed", html, "user");
-        quill.setSelection(idx + 1, 0);
+        // BlockEmbed는 Delta에서 embed(1) + \n(1) = 2 포지션을 차지.
+        // idx+2가 문서 끝 이후면 표 뒤에 이어쓸 빈 단락이 없으므로 강제 추가.
+        const newLen = quill.getLength();
+        if (idx + 2 >= newLen) {
+          quill.insertText(newLen - 1, "\n", "user");
+        }
+        quill.setSelection(idx + 2, 0);
       } else {
         // Fallback: 소스 모드로 추가
         const newContent = content + html;

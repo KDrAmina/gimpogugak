@@ -20,6 +20,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [totalTuition, setTotalTuition] = useState<number>(0);
+  const [monthlyTuition, setMonthlyTuition] = useState<number>(0);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [tuitionDueList, setTuitionDueList] = useState<{ id: string; student_name: string; category: string; phone: string | null }[]>([]);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
@@ -32,6 +37,13 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     checkAdminAccess();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      fetchMonthlyTuition(selectedMonth);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth]);
 
   async function checkAdminAccess() {
     try {
@@ -55,7 +67,7 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      await Promise.all([fetchPendingCount(), fetchTotalTuition(), fetchTuitionDue()]);
+      await Promise.all([fetchPendingCount(), fetchTotalTuition(), fetchTuitionDue(), fetchMonthlyTuition(selectedMonth)]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -140,6 +152,36 @@ export default function AdminDashboardPage() {
     } catch (error) {
       console.error("Error fetching tuition due:", error);
       setTuitionDueList([]);
+    }
+  }
+
+  async function fetchMonthlyTuition(month: string) {
+    try {
+      const [year, mon] = month.split("-").map(Number);
+      const startDate = `${year}-${String(mon).padStart(2, "0")}-01`;
+      const endDate = new Date(year, mon, 1).toISOString().split("T")[0];
+
+      const { data, error } = await supabase
+        .from("lesson_history")
+        .select("session_number, status, lessons!inner(tuition_amount, category)")
+        .gte("completed_date", startDate)
+        .lt("completed_date", endDate);
+
+      if (error) throw error;
+
+      const sum = (data || []).reduce((acc, record: any) => {
+        const tuition = record.lessons?.tuition_amount || 0;
+        // 단체반: status = '결제 완료'
+        if (record.status === "결제 완료") return acc + tuition;
+        // 개인반: 4회차 배수 (4, 8, 12, ...)
+        if (record.session_number > 0 && record.session_number % 4 === 0) return acc + tuition;
+        return acc;
+      }, 0);
+
+      setMonthlyTuition(sum);
+    } catch (error) {
+      console.error("Error fetching monthly tuition:", error);
+      setMonthlyTuition(0);
     }
   }
 
@@ -249,17 +291,41 @@ export default function AdminDashboardPage() {
         </a>
       </div>
 
-      {/* Total Tuition Card */}
-      <div className="mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow-sm border border-emerald-200 p-6">
-        <h3 className="text-sm font-medium text-emerald-800 mb-1">
-          총 등록 수강료 (Total Tuition)
-        </h3>
-        <p className="text-3xl md:text-4xl font-bold text-emerald-900">
-          ₩ {totalTuition.toLocaleString()}
-        </p>
-        <p className="mt-1 text-xs text-emerald-700">
-          현재 등록된 모든 수강생의 수강료 합계
-        </p>
+      {/* Tuition Cards */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 총 등록 수강료 */}
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow-sm border border-emerald-200 p-6">
+          <h3 className="text-sm font-medium text-emerald-800 mb-1">
+            총 등록 수강료 (Total Tuition)
+          </h3>
+          <p className="text-3xl font-bold text-emerald-900">
+            ₩ {totalTuition.toLocaleString()}
+          </p>
+          <p className="mt-1 text-xs text-emerald-700">
+            현재 등록된 모든 수강생의 수강료 합계
+          </p>
+        </div>
+
+        {/* 월별 수강료 */}
+        <div className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-xl shadow-sm border border-violet-200 p-6">
+          <div className="flex items-start justify-between mb-1">
+            <h3 className="text-sm font-medium text-violet-800">
+              월 실수령 수강료
+            </h3>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="text-xs px-2 py-1 border border-violet-300 rounded-lg bg-white text-violet-700 focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+            />
+          </div>
+          <p className="text-3xl font-bold text-violet-900">
+            ₩ {monthlyTuition.toLocaleString()}
+          </p>
+          <p className="mt-1 text-xs text-violet-700">
+            {selectedMonth.replace("-", "년 ")}월 · 4회차 완료 + 단체 납부 합산
+          </p>
+        </div>
       </div>
 
       {/* Status Widgets Grid */}

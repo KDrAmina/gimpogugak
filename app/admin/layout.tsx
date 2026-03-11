@@ -10,6 +10,7 @@ const ADMIN_NAV = [
   { href: "/admin/posts", label: "공지사항" },
   { href: "/admin/students", label: "회원관리" },
   { href: "/admin/lessons", label: "수업관리" },
+  { href: "/admin/income", label: "외부수입" },
   { href: "/admin/posts/manage", label: "소식관리" },
   { href: "/admin/images", label: "이미지" },
 ];
