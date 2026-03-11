@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
@@ -55,6 +55,9 @@ export default function AdminImagesPage() {
   const [editCategory, setEditCategory] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // 목록 필터
+  const [listFilter, setListFilter] = useState<string>("전체");
+
   const isUploadingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
@@ -90,6 +93,12 @@ export default function AdminImagesPage() {
       setLoadingImages(false);
     }
   }
+
+  // 현재 필터 기준 목록
+  const filteredItems =
+    listFilter === "전체"
+      ? galleryItems
+      : galleryItems.filter((item) => item.category === listFilter);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -225,10 +234,21 @@ export default function AdminImagesPage() {
   }
 
   function toggleSelectAll() {
-    if (selectedIds.size === galleryItems.length) {
-      setSelectedIds(new Set());
+    const allFilteredSelected =
+      filteredItems.length > 0 &&
+      filteredItems.every((i) => selectedIds.has(i.id));
+    if (allFilteredSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredItems.forEach((i) => next.delete(i.id));
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(galleryItems.map((i) => i.id)));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredItems.forEach((i) => next.add(i.id));
+        return next;
+      });
     }
   }
 
@@ -292,7 +312,7 @@ export default function AdminImagesPage() {
 
       if (error) throw error;
 
-      // 로컬 상태 즉시 반영 (alt 속성 SEO 동기화)
+      // 로컬 상태 즉시 반영
       const updatedItem: GalleryItem = {
         ...editingItem,
         caption: editCaption.trim() || undefined,
@@ -326,6 +346,15 @@ export default function AdminImagesPage() {
     (u) => u.status !== "done" && u.status !== "error"
   ).length;
 
+  // 필터별 카운트
+  const categoryCounts = MASTER_CATEGORIES.reduce<Record<string, number>>(
+    (acc, cat) => {
+      acc[cat] = galleryItems.filter((i) => i.category === cat).length;
+      return acc;
+    },
+    {}
+  );
+
   return (
     <div>
       {/* Page Header */}
@@ -340,7 +369,6 @@ export default function AdminImagesPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
 
         {/* ── 마스터 카테고리 선택 ───────────────────────────────────────────── */}
-        {/* 사진 선택 전에 카테고리를 미리 고르면 모든 사진에 일괄 적용됩니다. */}
         <div className="mb-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             카테고리{" "}
@@ -355,7 +383,6 @@ export default function AdminImagesPage() {
                 type="button"
                 disabled={isUploading}
                 onClick={() =>
-                  // 같은 버튼 재클릭 시 선택 해제 (토글)
                   setCategory((prev) => (prev === cat ? "" : cat))
                 }
                 className={`px-5 py-2 rounded-full text-sm font-medium border-2 transition-all duration-150 ${
@@ -369,7 +396,6 @@ export default function AdminImagesPage() {
               </button>
             ))}
           </div>
-          {/* 선택된 카테고리 안내 문구 */}
           {category ? (
             <p className="text-xs text-blue-600 mt-2">
               <strong>{category}</strong> 카테고리가 선택됐습니다. 이제 사진을
@@ -435,20 +461,27 @@ export default function AdminImagesPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-lg font-bold text-gray-900">
-              저장된 이미지 ({galleryItems.length})
+              저장된 이미지 ({filteredItems.length}
+              {listFilter !== "전체" && (
+                <span className="text-sm font-normal text-gray-500">
+                  {" "}/ 전체 {galleryItems.length}
+                </span>
+              )}
+              )
               {isUploading && (
                 <span className="text-sm text-blue-600 font-medium ml-2">
                   + {pendingCount}개 업로드 중...
                 </span>
               )}
             </h2>
-            {galleryItems.length > 0 && (
+            {filteredItems.length > 0 && (
               <button
                 type="button"
                 onClick={toggleSelectAll}
                 className="text-xs text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-2 py-1"
               >
-                {selectedIds.size === galleryItems.length
+                {filteredItems.every((i) => selectedIds.has(i.id)) &&
+                filteredItems.length > 0
                   ? "전체 해제"
                   : "전체 선택"}
               </button>
@@ -474,6 +507,30 @@ export default function AdminImagesPage() {
               새로고침
             </button>
           </div>
+        </div>
+
+        {/* ── 목록 카테고리 필터 ─────────────────────────────────────────────── */}
+        <div className="flex gap-2 flex-wrap mb-5">
+          {(["전체", ...MASTER_CATEGORIES] as const).map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => {
+                setListFilter(cat);
+                setEditingItem(null);
+              }}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                listFilter === cat
+                  ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                  : "bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600"
+              }`}
+            >
+              {cat}
+              <span className="ml-1.5 text-xs opacity-70">
+                ({cat === "전체" ? galleryItems.length : (categoryCounts[cat] ?? 0)})
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Uploading items (업로드 현황 통합) */}
@@ -541,19 +598,21 @@ export default function AdminImagesPage() {
         {/* Gallery grid */}
         {loadingImages ? (
           <p className="text-center text-gray-500 py-8">로딩 중...</p>
-        ) : galleryItems.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
-            저장된 이미지가 없습니다.
+            {listFilter === "전체"
+              ? "저장된 이미지가 없습니다."
+              : `'${listFilter}' 카테고리 이미지가 없습니다.`}
           </p>
         ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {galleryItems.map((item) => {
-                const isSelected = selectedIds.has(item.id);
-                const isEditing = editingItem?.id === item.id;
-                return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {filteredItems.map((item) => {
+              const isSelected = selectedIds.has(item.id);
+              const isEditing = editingItem?.id === item.id;
+              return (
+                <Fragment key={item.id}>
+                  {/* 이미지 카드 */}
                   <div
-                    key={item.id}
                     onClick={() => handleItemClick(item)}
                     className={`relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                       isEditing
@@ -620,99 +679,98 @@ export default function AdminImagesPage() {
                       )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* 사후 편집 패널 */}
-            {editingItem && (
-              <div className="mt-6 p-4 border border-blue-200 rounded-xl bg-blue-50/40">
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-gray-200">
-                    <Image
-                      src={editingItem.image_url}
-                      alt={editCaption || editingItem.storageName}
-                      width={64}
-                      height={64}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800 mb-3">
-                      사진 정보 수정
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Caption{" "}
-                          <span className="text-gray-400 font-normal">
-                            (alt 속성에 즉시 반영)
-                          </span>
-                        </label>
-                        <input
-                          type="text"
-                          value={editCaption}
-                          onChange={(e) => setEditCaption(e.target.value)}
-                          placeholder="예: 2025 김포예술제 공연"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Category
-                        </label>
-                        {/* 카테고리 빠른 선택 버튼 */}
-                        <div className="flex gap-1.5 flex-wrap mb-2">
-                          {MASTER_CATEGORIES.map((cat) => (
-                            <button
-                              key={cat}
-                              type="button"
-                              onClick={() =>
-                                setEditCategory((prev) =>
-                                  prev === cat ? "" : cat
-                                )
-                              }
-                              className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                                editCategory === cat
-                                  ? "bg-blue-600 border-blue-600 text-white"
-                                  : "bg-white border-gray-300 text-gray-500 hover:border-blue-400"
-                              }`}
-                            >
-                              {cat}
-                            </button>
-                          ))}
+                  {/* 인라인 수정 패널 (선택된 카드 바로 뒤 전체 너비) */}
+                  {isEditing && (
+                    <div className="col-span-full border border-blue-200 rounded-xl bg-blue-50/40 p-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-gray-200">
+                          <Image
+                            src={editingItem.image_url}
+                            alt={editCaption || editingItem.storageName}
+                            width={64}
+                            height={64}
+                            className="object-cover w-full h-full"
+                          />
                         </div>
-                        <input
-                          type="text"
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          placeholder="직접 입력 (예: 행사)"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800 mb-3">
+                            사진 정보 수정
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Caption{" "}
+                                <span className="text-gray-400 font-normal">
+                                  (alt 속성에 즉시 반영)
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                value={editCaption}
+                                onChange={(e) => setEditCaption(e.target.value)}
+                                placeholder="예: 2025 김포예술제 공연"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Category
+                              </label>
+                              <div className="flex gap-1.5 flex-wrap mb-2">
+                                {MASTER_CATEGORIES.map((cat) => (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() =>
+                                      setEditCategory((prev) =>
+                                        prev === cat ? "" : cat
+                                      )
+                                    }
+                                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                      editCategory === cat
+                                        ? "bg-blue-600 border-blue-600 text-white"
+                                        : "bg-white border-gray-300 text-gray-500 hover:border-blue-400"
+                                    }`}
+                                  >
+                                    {cat}
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                type="text"
+                                value={editCategory}
+                                onChange={(e) => setEditCategory(e.target.value)}
+                                placeholder="직접 입력 (예: 행사)"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSaveEdit}
+                              disabled={saving}
+                              className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+                            >
+                              {saving ? "저장 중..." : "수정 완료"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingItem(null)}
+                              className="border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              닫기
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleSaveEdit}
-                        disabled={saving}
-                        className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
-                      >
-                        {saving ? "저장 중..." : "수정 완료"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingItem(null)}
-                        className="border border-gray-300 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        닫기
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
+                  )}
+                </Fragment>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
