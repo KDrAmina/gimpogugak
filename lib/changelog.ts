@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.31",
+    date: "2026-03-12",
+    changes: [
+      "[블로그 에디터] 표 드래그 이동 기능 추가: TableEmbedBlot 상단에 드래그 핸들(⠿)이 표시되며, 핸들을 잡고 에디터 내 원하는 위치로 드래그하면 표가 이동함. 드래그 중에는 파란색 드롭 인디케이터 선으로 삽입 위치를 시각적으로 표시. 핸들은 표 위에 마우스를 올렸을 때만 나타나고, 저장 시 DB에는 포함되지 않음.",
+      "[블로그 에디터] 커서 위치 삽입 로직 최종 강화: savedCursorIndex 초기값을 null에서 0으로 변경하여 에디터 마운트 직후에도 올바른 위치에 삽입 가능. 표 삽입 버튼 클릭 시 getSelection(true)로 강제 캡처를 먼저 시도 후 selection-change로 추적된 savedCursorIndex를 fallback으로 사용하는 이중 보장 구조 적용. stripEditorArtifacts() 함수 추가로 저장 시 드래그 핸들 등 에디터 전용 DOM 요소가 DB에 저장되지 않도록 정제.",
+    ],
+  },
+  {
     version: "2.30",
     date: "2026-03-11",
     changes: [

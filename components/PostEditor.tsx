@@ -146,7 +146,7 @@ export default function PostEditor({ editingPost = null }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const floatingTableBarRef = useRef<HTMLDivElement>(null);
   const clipboardMatcherAdded = useRef(false);
-  const savedCursorIndex = useRef<number | null>(null);
+  const savedCursorIndex = useRef<number>(0);
   const supabase = createClient();
   const router = useRouter();
 
@@ -271,12 +271,26 @@ export default function PostEditor({ editingPost = null }: Props) {
         static create(value: string): any {
           const node = super.create();
           node.setAttribute("contenteditable", "false");
-          node.innerHTML = value;
+          // 드래그 이동 핸들 (⠿) — 상단에 고정
+          const handle = document.createElement("div");
+          handle.className = "ql-table-drag-handle";
+          handle.setAttribute("draggable", "true");
+          handle.setAttribute("title", "드래그하여 표 위치 이동");
+          handle.setAttribute("contenteditable", "false");
+          handle.textContent = "⠿";
+          node.appendChild(handle);
+          // 테이블 HTML
+          const div = document.createElement("div");
+          div.innerHTML = value;
+          while (div.firstChild) node.appendChild(div.firstChild);
           return node;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         static value(node: any): string {
-          return node.innerHTML ?? "";
+          // 핸들을 제외한 순수 테이블 HTML 반환
+          const clone = (node as HTMLElement).cloneNode(true) as HTMLElement;
+          clone.querySelector(".ql-table-drag-handle")?.remove();
+          return clone.innerHTML ?? "";
         }
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -424,6 +438,127 @@ export default function PostEditor({ editingPost = null }: Props) {
 
     wrapper.addEventListener("click", handleTableClick, true);
     return () => wrapper.removeEventListener("click", handleTableClick, true);
+  }, [editorReady, sourceMode, tableMode]);
+
+  // ── 표 드래그 앤 드롭: ⠿ 핸들을 잡고 에디터 내 다른 위치로 이동 ──
+  // content를 ref로 추적하여 이벤트 핸들러에서 항상 최신값 참조
+  const contentRef = useRef(content);
+  useEffect(() => { contentRef.current = content; }, [content]);
+  const setContentRef = useRef(setContent);
+  setContentRef.current = setContent;
+
+  useEffect(() => {
+    if (!editorReady || sourceMode || tableMode) return;
+    const wrapper = editorWrapperRef.current;
+    if (!wrapper) return;
+
+    let draggingEmbedEl: HTMLElement | null = null;
+    let draggingIndex = -1;
+    const indicator = document.createElement("div");
+    indicator.className = "ql-table-drop-indicator";
+
+    function getEditorEl() {
+      return wrapper?.querySelector(".ql-editor") as HTMLElement | null;
+    }
+
+    function handleDragStart(e: DragEvent) {
+      const handle = (e.target as HTMLElement).closest?.(".ql-table-drag-handle") as HTMLElement | null;
+      if (!handle) return;
+      const embed = handle.closest(".ql-table-embed") as HTMLElement | null;
+      if (!embed) return;
+      draggingEmbedEl = embed;
+      const allEmbeds = [...(wrapper!.querySelectorAll(".ql-editor .ql-table-embed"))] as HTMLElement[];
+      draggingIndex = allEmbeds.indexOf(embed);
+      e.dataTransfer!.effectAllowed = "move";
+      e.dataTransfer!.setData("application/x-table-index", String(draggingIndex));
+      e.dataTransfer!.setDragImage(embed, 20, 10);
+      // 비동기로 처리해야 drag ghost image가 opacity 적용 전에 캡처됨
+      setTimeout(() => { if (draggingEmbedEl) draggingEmbedEl.style.opacity = "0.35"; }, 0);
+    }
+
+    function handleDragEnd(e: DragEvent) {
+      if ((e.target as HTMLElement).closest?.(".ql-table-drag-handle")) {
+        if (draggingEmbedEl) draggingEmbedEl.style.opacity = "";
+      }
+      draggingEmbedEl = null;
+      draggingIndex = -1;
+      indicator.remove();
+    }
+
+    function handleDragOver(e: DragEvent) {
+      if (draggingIndex < 0) return;
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = "move";
+      const editorEl = getEditorEl();
+      if (!editorEl) return;
+      const children = [...editorEl.children] as HTMLElement[];
+      let insertBefore: HTMLElement | null = null;
+      for (const child of children) {
+        if (child === indicator || child === draggingEmbedEl) continue;
+        const rect = child.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height * 0.5) {
+          insertBefore = child;
+          break;
+        }
+      }
+      if (insertBefore) {
+        editorEl.insertBefore(indicator, insertBefore);
+      } else {
+        editorEl.appendChild(indicator);
+      }
+    }
+
+    function handleDragLeave(e: DragEvent) {
+      const editorEl = getEditorEl();
+      if (editorEl && !editorEl.contains(e.relatedTarget as Node | null)) {
+        indicator.remove();
+      }
+    }
+
+    function handleDrop(e: DragEvent) {
+      if (draggingIndex < 0 || !draggingEmbedEl) {
+        indicator.remove();
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const editorEl = getEditorEl();
+      if (!editorEl) { indicator.remove(); return; }
+
+      // 인디케이터 다음 형제 요소 위치로 드래그 대상 이동
+      const insertBeforeEl = indicator.nextSibling as HTMLElement | null;
+      draggingEmbedEl.style.opacity = "";
+      if (insertBeforeEl && insertBeforeEl !== draggingEmbedEl) {
+        editorEl.insertBefore(draggingEmbedEl, insertBeforeEl);
+      } else if (!insertBeforeEl) {
+        editorEl.appendChild(draggingEmbedEl);
+      }
+      indicator.remove();
+
+      // 에디터 DOM에서 핸들/인디케이터를 제거한 순수 HTML로 content 동기화
+      const clone = editorEl.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll(".ql-table-drag-handle").forEach((el) => el.remove());
+      clone.querySelectorAll(".ql-table-drop-indicator").forEach((el) => el.remove());
+      setContentRef.current(clone.innerHTML);
+
+      draggingEmbedEl = null;
+      draggingIndex = -1;
+    }
+
+    wrapper.addEventListener("dragstart", handleDragStart, true);
+    wrapper.addEventListener("dragend", handleDragEnd, true);
+    wrapper.addEventListener("dragover", handleDragOver);
+    wrapper.addEventListener("dragleave", handleDragLeave);
+    wrapper.addEventListener("drop", handleDrop);
+
+    return () => {
+      wrapper.removeEventListener("dragstart", handleDragStart, true);
+      wrapper.removeEventListener("dragend", handleDragEnd, true);
+      wrapper.removeEventListener("dragover", handleDragOver);
+      wrapper.removeEventListener("dragleave", handleDragLeave);
+      wrapper.removeEventListener("drop", handleDrop);
+      indicator.remove();
+    };
   }, [editorReady, sourceMode, tableMode]);
 
   const handleTooltipAltChange = useCallback((value: string) => {
@@ -680,8 +815,16 @@ export default function PostEditor({ editingPost = null }: Props) {
   }, []);
 
   // "표 삽입" 버튼 → TableEditor 열기 (새 표)
-  // savedCursorIndex는 selection-change 이벤트가 지속 갱신하므로 별도 캡처 불필요
+  // 버튼 클릭 시 blur가 먼저 일어나도 savedCursorIndex에 직전 위치가 보존됨
+  // getSelection(true)로 한 번 더 강제 캡처를 시도하여 이중 보장
   const handleInsertTable = useCallback(() => {
+    const quill = (quillRef.current as { getEditor?: () => QuillEditor } | null)?.getEditor?.();
+    if (quill) {
+      const sel = quill.getSelection(true);
+      if (sel !== null) {
+        savedCursorIndex.current = sel.index;
+      }
+    }
     setTableInitialData(null);
     setEditingTableIndex(null);
     setTableMode(true);
@@ -919,6 +1062,14 @@ export default function PostEditor({ editingPost = null }: Props) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  // 저장 전 드래그 핸들 등 에디터 전용 DOM 요소를 제거
+  function stripEditorArtifacts(html: string): string {
+    if (typeof window === "undefined") return html;
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelectorAll(".ql-table-drag-handle, .ql-table-drop-indicator").forEach((el) => el.remove());
+    return doc.body.innerHTML;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
@@ -963,7 +1114,7 @@ export default function PostEditor({ editingPost = null }: Props) {
       const publishedAtValue = parseDatetimeLocalAsKST(publishedAt);
       const payload = {
         title: title.trim(),
-        content: sanitizeHtml(content.trim()),
+        content: sanitizeHtml(stripEditorArtifacts(content.trim())),
         category: postCategory,
         tag: postCategory,
         thumbnail_url: thumbnailUrl,
