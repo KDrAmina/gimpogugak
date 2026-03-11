@@ -49,6 +49,14 @@ export default function AdminImagesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deletingMultiple, setDeletingMultiple] = useState(false);
 
+  // 일괄 수정 (Bulk Edit)
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkEditCaption, setBulkEditCaption] = useState("");
+  const [bulkEditCategory, setBulkEditCategory] = useState("");
+  const [bulkApplyCaption, setBulkApplyCaption] = useState(false);
+  const [bulkApplyCategory, setBulkApplyCategory] = useState(true);
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   // 사후 편집
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [editCaption, setEditCaption] = useState("");
@@ -286,6 +294,60 @@ export default function AdminImagesPage() {
     await loadGalleryItems();
   }
 
+  // ── 일괄 수정 ──────────────────────────────────────────────────────────────
+
+  function openBulkEdit() {
+    setBulkEditCaption("");
+    setBulkEditCategory("");
+    setBulkApplyCaption(false);
+    setBulkApplyCategory(true);
+    setBulkEditOpen(true);
+    setEditingItem(null); // 개별 수정 패널 닫기
+  }
+
+  async function handleBulkEdit() {
+    if (selectedIds.size === 0) return;
+    if (!bulkApplyCaption && !bulkApplyCategory) {
+      alert("수정할 항목(Caption 또는 Category)을 하나 이상 선택하세요.");
+      return;
+    }
+
+    setBulkSaving(true);
+    try {
+      const updatePayload: Record<string, string | null> = {};
+      if (bulkApplyCaption) updatePayload.caption = bulkEditCaption.trim() || null;
+      if (bulkApplyCategory) updatePayload.category = bulkEditCategory.trim() || null;
+
+      const { error } = await supabase
+        .from("gallery")
+        .update(updatePayload)
+        .in("id", Array.from(selectedIds));
+
+      if (error) throw error;
+
+      // 로컬 상태 즉시 반영
+      setGalleryItems((prev) =>
+        prev.map((item) =>
+          selectedIds.has(item.id)
+            ? {
+                ...item,
+                ...(bulkApplyCaption ? { caption: bulkEditCaption.trim() || undefined } : {}),
+                ...(bulkApplyCategory ? { category: bulkEditCategory.trim() || undefined } : {}),
+              }
+            : item
+        )
+      );
+
+      setBulkEditOpen(false);
+      setSelectedIds(new Set());
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "저장 실패";
+      alert(`일괄 수정 실패: ${msg}`);
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
   // ── 사후 편집 ──────────────────────────────────────────────────────────────
 
   function handleItemClick(item: GalleryItem) {
@@ -293,6 +355,7 @@ export default function AdminImagesPage() {
       setEditingItem(null);
       return;
     }
+    setBulkEditOpen(false); // 일괄 수정 패널 닫기
     setEditingItem(item);
     setEditCaption(item.caption ?? "");
     setEditCategory(item.category ?? "");
@@ -489,14 +552,27 @@ export default function AdminImagesPage() {
           </div>
           <div className="flex items-center gap-2">
             {selectedIds.size > 0 && (
-              <button
-                type="button"
-                onClick={handleDeleteSelected}
-                disabled={deletingMultiple}
-                className="bg-red-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
-              >
-                {deletingMultiple ? "삭제 중..." : `${selectedIds.size}개 삭제`}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={openBulkEdit}
+                  className={`text-sm px-3 py-1.5 rounded-lg transition-colors font-medium border ${
+                    bulkEditOpen
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white border-blue-400 text-blue-600 hover:bg-blue-50"
+                  }`}
+                >
+                  {bulkEditOpen ? "✓ 일괄 수정 중" : `${selectedIds.size}개 일괄 수정`}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteSelected}
+                  disabled={deletingMultiple}
+                  className="bg-red-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+                >
+                  {deletingMultiple ? "삭제 중..." : `${selectedIds.size}개 삭제`}
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -532,6 +608,122 @@ export default function AdminImagesPage() {
             </button>
           ))}
         </div>
+
+        {/* ── 일괄 수정 패널 ──────────────────────────────────────────────── */}
+        {bulkEditOpen && selectedIds.size > 0 && (
+          <div className="mb-5 border border-blue-300 rounded-xl bg-blue-50/60 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-blue-800">선택 항목 일괄 수정</span>
+                <span className="bg-blue-600 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                  {selectedIds.size}개 선택됨
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBulkEditOpen(false)}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                닫기
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              {/* Caption 일괄 적용 */}
+              <div>
+                <label className="flex items-center gap-2 text-xs font-medium text-gray-700 mb-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bulkApplyCaption}
+                    onChange={(e) => setBulkApplyCaption(e.target.checked)}
+                    className="accent-blue-600 w-3.5 h-3.5"
+                  />
+                  Caption 일괄 적용
+                </label>
+                <input
+                  type="text"
+                  value={bulkEditCaption}
+                  onChange={(e) => setBulkEditCaption(e.target.value)}
+                  disabled={!bulkApplyCaption}
+                  placeholder="예: 2025 김포예술제 공연"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                />
+                {bulkApplyCaption && (
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    빈칸으로 두면 선택한 이미지의 Caption을 모두 제거합니다.
+                  </p>
+                )}
+              </div>
+
+              {/* Category 일괄 적용 */}
+              <div>
+                <label className="flex items-center gap-2 text-xs font-medium text-gray-700 mb-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bulkApplyCategory}
+                    onChange={(e) => setBulkApplyCategory(e.target.checked)}
+                    className="accent-blue-600 w-3.5 h-3.5"
+                  />
+                  Category 일괄 적용
+                </label>
+                <div className="flex gap-1.5 flex-wrap mb-1.5">
+                  {MASTER_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      disabled={!bulkApplyCategory}
+                      onClick={() =>
+                        setBulkEditCategory((prev) => (prev === cat ? "" : cat))
+                      }
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                        bulkEditCategory === cat
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-white border-gray-300 text-gray-500 hover:border-blue-400"
+                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={bulkEditCategory}
+                  onChange={(e) => setBulkEditCategory(e.target.value)}
+                  disabled={!bulkApplyCategory}
+                  placeholder="직접 입력 또는 위 버튼 선택"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleBulkEdit}
+                disabled={bulkSaving || (!bulkApplyCaption && !bulkApplyCategory)}
+                className="bg-blue-600 text-white text-sm px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+              >
+                {bulkSaving ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    저장 중...
+                  </span>
+                ) : (
+                  `${selectedIds.size}개 일괄 적용`
+                )}
+              </button>
+              <p className="text-xs text-gray-400">
+                {bulkApplyCaption && bulkApplyCategory
+                  ? "Caption과 Category를 동시에 수정합니다."
+                  : bulkApplyCaption
+                  ? "Caption만 수정합니다."
+                  : bulkApplyCategory
+                  ? "Category만 수정합니다."
+                  : "수정할 항목을 체크하세요."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Uploading items (업로드 현황 통합) */}
         {uploads.length > 0 && (
