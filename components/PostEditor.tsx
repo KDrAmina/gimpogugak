@@ -123,6 +123,7 @@ export default function PostEditor({ editingPost = null }: Props) {
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipAltRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const clipboardMatcherAdded = useRef(false);
   const supabase = createClient();
   const router = useRouter();
@@ -400,6 +401,29 @@ export default function PostEditor({ editingPost = null }: Props) {
     }
   }, [sourceMode, sourceDraft, content]);
 
+  const handleInsertTable = useCallback(() => {
+    const tableHtml =
+      "\n<table>\n  <thead>\n    <tr><th>열 1</th><th>열 2</th><th>열 3</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>내용</td><td>내용</td><td>내용</td></tr>\n    <tr><td>내용</td><td>내용</td><td>내용</td></tr>\n  </tbody>\n</table>\n";
+    if (sourceMode) {
+      const ta = textareaRef.current;
+      if (ta) {
+        const start = ta.selectionStart ?? sourceDraft.length;
+        const end = ta.selectionEnd ?? start;
+        const newVal = sourceDraft.slice(0, start) + tableHtml + sourceDraft.slice(end);
+        setSourceDraft(newVal);
+        setTimeout(() => {
+          ta.selectionStart = ta.selectionEnd = start + tableHtml.length;
+          ta.focus();
+        }, 0);
+      } else {
+        setSourceDraft((prev) => prev + tableHtml);
+      }
+    } else {
+      setSourceDraft(content + tableHtml);
+      setSourceMode(true);
+    }
+  }, [sourceMode, sourceDraft, content]);
+
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
@@ -610,13 +634,23 @@ export default function PostEditor({ editingPost = null }: Props) {
             ) : sourceMode ? (
               <>
                 <textarea
+                  ref={textareaRef}
                   value={sourceDraft}
                   onChange={(e) => setSourceDraft(e.target.value)}
                   className="w-full min-h-[500px] p-4 font-mono text-sm border border-gray-300 rounded-t-lg bg-[#23241f] text-[#f8f8f2] resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="HTML 코드를 직접 입력하세요. <style> 태그도 사용 가능합니다."
                   spellCheck={false}
                 />
-                <div className="flex items-center justify-end gap-2 px-3 py-2 bg-[#f8f9fa] border border-t-0 border-gray-300 rounded-b-lg">
+                <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#f8f9fa] border border-t-0 border-gray-300 rounded-b-lg">
+                  <button
+                    type="button"
+                    onClick={handleInsertTable}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="표(테이블) 삽입 — HTML 커서 위치에 삽입"
+                  >
+                    <span>⊞</span>
+                    표 삽입
+                  </button>
                   <button
                     type="button"
                     onClick={toggleSourceMode}
@@ -643,7 +677,16 @@ export default function PostEditor({ editingPost = null }: Props) {
                     className="bg-white [&_.ql-toolbar]:rounded-t-lg [&_.ql-container]:rounded-b-none [&_.ql-editor]:rounded-b-none"
                   />
                 </div>
-                <div className="flex items-center justify-end gap-2 px-3 py-2 bg-[#f8f9fa] border border-t-0 border-gray-300 rounded-b-lg max-w-2xl mx-auto">
+                <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#f8f9fa] border border-t-0 border-gray-300 rounded-b-lg max-w-2xl mx-auto">
+                  <button
+                    type="button"
+                    onClick={handleInsertTable}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="표(테이블) 삽입 — HTML 소스 모드로 전환 후 표 삽입"
+                  >
+                    <span>⊞</span>
+                    표 삽입
+                  </button>
                   <button
                     type="button"
                     onClick={toggleSourceMode}

@@ -15,6 +15,7 @@ export type BlogPost = {
   created_at: string;
   published_at: string | null;
   category: string;
+  is_notice?: boolean | null;
 };
 
 const TABS = [
@@ -67,10 +68,17 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
   });
 
   const tabFiltered = useMemo(() => {
-    return posts.filter((post) => {
+    const filtered = posts.filter((post) => {
+      if (post.is_notice) return true; // 공지는 모든 탭에서 항상 표시
       if (activeTab === "전체") return true;
       if (activeTab === "음악교실") return post.category === "음악교실";
       return post.category === "국악원소식" || post.category === "소식";
+    });
+    // 공지를 최상단으로 (DB 정렬 보조)
+    return filtered.sort((a, b) => {
+      if (a.is_notice && !b.is_notice) return -1;
+      if (!a.is_notice && b.is_notice) return 1;
+      return 0;
     });
   }, [posts, activeTab]);
 
@@ -156,7 +164,13 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
       ) : (
         <ul>
           {visiblePosts.map((post, idx) => {
-            const num = filteredPosts.length - idx;
+            const isNotice = !!post.is_notice;
+            // 공지는 번호 대신 배지 표시; 일반 글은 공지 수를 제외한 번호
+            const noticeCount = visiblePosts.filter((p) => p.is_notice).length;
+            const num = isNotice
+              ? null
+              : filteredPosts.filter((p) => !p.is_notice).length -
+                (idx - noticeCount);
             const href =
               post.external_url ||
               `/blog/${getBlogPostPath(post.slug ?? null, post.id)}`;
@@ -169,15 +183,25 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
 
             const content = (
               <>
-                <span className="w-10 shrink-0 text-center text-sm text-gray-400 tabular-nums">
-                  {num}
+                <span className="w-10 shrink-0 text-center text-sm tabular-nums">
+                  {isNotice ? (
+                    <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded leading-none">
+                      공지
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">{num}</span>
+                  )}
                 </span>
-                {!isRead && (
+                {!isRead && !isNotice && (
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
                 )}
                 <span
                   className={`truncate min-w-0 flex-1 group-hover:text-blue-600 group-hover:underline ${
-                    isRead ? "text-gray-500" : "text-[#111] font-medium"
+                    isNotice
+                      ? "text-[#111] font-bold"
+                      : isRead
+                      ? "text-gray-500"
+                      : "text-[#111] font-medium"
                   }`}
                 >
                   {post.title}
@@ -193,7 +217,11 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
             );
 
             const itemClassName = `flex items-baseline gap-2 py-2.5 group w-full text-left border-b border-gray-100 ${
-              !isRead ? "bg-blue-50/40" : ""
+              isNotice
+                ? "bg-amber-50/60 border-l-4 border-l-amber-400 pl-2"
+                : !isRead
+                ? "bg-blue-50/40"
+                : ""
             }`;
 
             return (

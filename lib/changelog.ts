@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.26",
+    date: "2026-03-11",
+    changes: [
+      "[블로그] 표(Table) 삽입 기능 추가: 에디터 하단에 '⊞ 표 삽입' 버튼을 추가하여 3×2 기본 HTML 표 템플릿을 HTML 소스 모드로 즉시 삽입 가능. HTML 소스 모드 진입 시에는 현재 커서 위치에 정확히 삽입되며, 에디터 모드에서 클릭하면 소스 모드로 전환 후 콘텐츠 끝에 표 삽입.",
+      "[블로그] 표 스타일 개선: .ql-editor 내 table/th/td 에 border-collapse, 헤더 배경(#e8f0fe), 짝수 행 음영, hover 강조, 모바일 가로 스크롤 등 접근성·가독성 중심 CSS 적용. 에디터와 블로그 뷰어 모두 동일한 스타일로 WYSIWYG 동기화.",
+      "[공지사항] is_notice 컬럼 기반 공지 상단 고정 기능 구현: Supabase posts 테이블에 is_notice BOOLEAN(DEFAULT false) 컬럼 추가 마이그레이션(migrations/add-is-notice-to-posts.sql) 제공.",
+      "[공지사항] 관리자 소식 관리 페이지에 '공지' 체크박스 컬럼 추가: No. 컬럼 옆에 체크박스를 배치하여 클릭 한 번으로 공지 설정·해제 토글 가능. 공지 글은 행 배경색(amber-50)으로 시각 구분, 제목 좌측에 빨간 '공지' 배지 표시. 페이지 새로고침 없이 로컬 상태 즉시 반영.",
+      "[공지사항] 사용자 블로그 목록 페이지에서 공지 글 최상단 고정: 탭(음악교실/국악원소식) 필터와 무관하게 공지 글을 항상 상단에 표시. 왼쪽 amber 보더라인과 배경색으로 일반 글과 시각 구분, 번호 위치에 빨간 '공지' 배지 표시. DB 쿼리에서도 is_notice DESC → published_at DESC 이중 정렬 적용.",
+    ],
+  },
+  {
     version: "2.25",
     date: "2026-03-11",
     changes: [

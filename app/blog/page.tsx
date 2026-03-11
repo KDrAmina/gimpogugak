@@ -15,9 +15,10 @@ export default async function BlogListPage() {
   const supabase = await createClient();
   const { data: posts } = await supabase
     .from("posts")
-    .select("id, slug, title, external_url, created_at, published_at, category")
+    .select("id, slug, title, external_url, created_at, published_at, category, is_notice")
     .in("category", ["소식", "음악교실", "국악원소식"])
     .lte("published_at", new Date().toISOString())
+    .order("is_notice", { ascending: false })
     .order("published_at", { ascending: false });
 
   return (

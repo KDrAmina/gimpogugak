@@ -17,6 +17,7 @@ type Post = {
   created_at: string;
   published_at: string | null;
   views: number | null;
+  is_notice: boolean;
 };
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 15, 30, 50, 100] as const;
@@ -71,8 +72,9 @@ export default function AdminPostsManagePage() {
     try {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, slug, title, content, category, created_at, published_at, views")
+        .select("id, slug, title, content, category, created_at, published_at, views, is_notice")
         .in("category", ["소식", "음악교실", "국악원소식"])
+        .order("is_notice", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -109,6 +111,23 @@ export default function AdminPostsManagePage() {
     } catch (error) {
       console.error("Delete error:", error);
       alert("삭제 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function toggleNotice(post: Post) {
+    const newValue = !post.is_notice;
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({ is_notice: newValue })
+        .eq("id", post.id);
+      if (error) throw error;
+      setPosts((prev) =>
+        prev.map((p) => (p.id === post.id ? { ...p, is_notice: newValue } : p))
+      );
+    } catch (error) {
+      console.error("Toggle notice error:", error);
+      alert("공지 설정 중 오류가 발생했습니다.");
     }
   }
 
@@ -224,6 +243,7 @@ export default function AdminPostsManagePage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="w-12 text-center px-4 py-3 font-semibold text-gray-700">No.</th>
+                    <th className="w-10 text-center px-2 py-3 font-semibold text-gray-700" title="공지 설정">공지</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">제목</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">카테고리</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">작성일</th>
@@ -238,11 +258,25 @@ export default function AdminPostsManagePage() {
                     return (
                       <tr
                         key={post.id}
-                        className={`border-b border-gray-100 hover:bg-gray-50/50 ${isScheduled ? "opacity-50" : ""}`}
+                        className={`border-b border-gray-100 hover:bg-gray-50/50 ${isScheduled ? "opacity-50" : ""} ${post.is_notice ? "bg-amber-50/40" : ""}`}
                       >
                         <td className="w-12 px-4 py-3 text-center text-gray-500">{rowNumber}</td>
+                        <td className="w-10 px-2 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={post.is_notice}
+                            onChange={() => toggleNotice(post)}
+                            className="w-4 h-4 accent-amber-500 cursor-pointer"
+                            title={post.is_notice ? "공지 해제" : "공지로 설정"}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
+                            {post.is_notice && (
+                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded leading-none">
+                                공지
+                              </span>
+                            )}
                             <Link
                               href={`/blog/${getBlogPostPath(post.slug ?? null, post.id)}`}
                               target="_blank"
