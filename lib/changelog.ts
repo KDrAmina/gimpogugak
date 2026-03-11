@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.30",
+    date: "2026-03-11",
+    changes: [
+      "[블로그 에디터] 수정 모드 표 데이터 보존: 게시글 수정 시 DB에서 가져온 raw <table> 태그가 Quill에 의해 삭제되던 문제 해결. preprocessContentForEditor() 함수로 초기 로딩·editorReady 시점에 모든 <table>을 .ql-table-embed 래퍼로 자동 변환하여 TableEmbedBlot으로 인식시킴.",
+      "[블로그 에디터] Quill 화이트리스트 확장: Clipboard addMatcher('TABLE', ...) 추가로 붙여넣기 또는 HTML 파싱 시 <table>/<tr>/<td>/<tbody>/<thead> 태그가 Quill sanitize에 의해 제거되지 않고 table-embed 블롯으로 보존됨.",
+      "[블로그 에디터] 모드 전환 안정화: 소스 모드 → 에디터 모드 전환 시 표 경고 다이얼로그 제거. preprocessContentForEditor()가 소스 HTML의 raw 표를 자동으로 ql-table-embed로 변환해 데이터 손실 없이 양방향 전환 가능.",
+    ],
+  },
+  {
     version: "2.29",
     date: "2026-03-11",
     changes: [

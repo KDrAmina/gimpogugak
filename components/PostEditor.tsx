@@ -147,6 +147,27 @@ export default function PostEditor({ editingPost = null }: Props) {
 
   const isEdit = !!editingPost;
 
+  /**
+   * DB에서 가져온 raw HTML 속의 <table>을 .ql-table-embed 래퍼로 감싸서
+   * Quill이 TableEmbedBlot으로 인식하게 변환한다.
+   * 이미 래퍼가 있는 표는 건드리지 않는다.
+   */
+  const preprocessContentForEditor = useCallback((html: string): string => {
+    if (!html || typeof window === "undefined") return html;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const rawTables = [
+      ...doc.querySelectorAll("table"),
+    ].filter((t) => !t.closest(".ql-table-embed"));
+    rawTables.forEach((table) => {
+      const wrapper = doc.createElement("div");
+      wrapper.className = "ql-table-embed";
+      table.parentNode?.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    });
+    return doc.body.innerHTML;
+  }, []);
+
   useEffect(() => {
     if (editingPost) {
       setTitle(editingPost.title);
@@ -155,7 +176,8 @@ export default function PostEditor({ editingPost = null }: Props) {
           ? (editingPost.category as BlogCategory)
           : "음악교실"
       );
-      setContent(editingPost.content);
+      // DB 콘텐츠의 raw <table>을 ql-table-embed로 미리 변환 → Quill 삭제 방지
+      setContent(preprocessContentForEditor(editingPost.content));
       setExternalUrl(editingPost.external_url || "");
       setThumbnailPreview(editingPost.thumbnail_url);
       setMetaTitle(editingPost.meta_title || "");
@@ -177,7 +199,7 @@ export default function PostEditor({ editingPost = null }: Props) {
       setSlug("");
       setPublishedAt(toDatetimeLocalKST(new Date().toISOString()));
     }
-  }, [editingPost]);
+  }, [editingPost, preprocessContentForEditor]);
 
   const uploadImageAndInsert = useCallback(
     async (file: File, atIndex?: number) => {
@@ -297,6 +319,13 @@ export default function PostEditor({ editingPost = null }: Props) {
     };
     init();
   }, []);
+
+  // 에디터가 준비되면 현재 content의 raw <table>도 ql-table-embed로 변환
+  // (editingPost 로딩이 init()보다 먼저 실행된 경우 대비)
+  useEffect(() => {
+    if (!editorReady) return;
+    setContent((prev) => preprocessContentForEditor(prev));
+  }, [editorReady, preprocessContentForEditor]);
 
   // Image click → floating tooltip
   useEffect(() => {
@@ -499,17 +528,37 @@ export default function PostEditor({ editingPost = null }: Props) {
     return () => clearTimeout(timer);
   }, [imageTooltip.visible]);
 
-  // Clipboard matcher: IMG paste 시 Base64 삽입 차단
+  // Clipboard matchers:
+  //  - IMG: base64 붙여넣기 차단
+  //  - TABLE: table-embed 블롯으로 자동 변환 → Quill이 <table> 태그를 제거하지 못하게 방지
   useEffect(() => {
     if (!editorReady || clipboardMatcherAdded.current) return;
     const timer = setTimeout(() => {
-      const editor = (quillRef.current as { getEditor?: () => { clipboard?: { addMatcher: (sel: string, fn: (node: Node, delta: unknown) => unknown) => void } } })?.getEditor?.();
+      const editor = (
+        quillRef.current as {
+          getEditor?: () => {
+            clipboard?: {
+              addMatcher: (
+                sel: string,
+                fn: (node: Node, delta: unknown) => unknown
+              ) => void;
+            };
+          };
+        }
+      )?.getEditor?.();
       const clipboard = editor?.clipboard;
       if (clipboard && !clipboardMatcherAdded.current) {
         clipboardMatcherAdded.current = true;
         import("quill").then(({ default: Quill }) => {
-          const Delta = Quill.import("delta");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const Delta = Quill.import("delta") as any;
+          // IMG: base64 차단
           clipboard.addMatcher("IMG", () => new Delta());
+          // TABLE → table-embed 블롯으로 보존 (Quill 기본 sanitize 우회)
+          clipboard.addMatcher("TABLE", (node: Node) => {
+            const tableHtml = (node as HTMLElement).outerHTML;
+            return new Delta([{ insert: { "table-embed": tableHtml } }]);
+          });
         });
       }
     }, 100);
@@ -518,23 +567,16 @@ export default function PostEditor({ editingPost = null }: Props) {
 
   const toggleSourceMode = useCallback(() => {
     if (sourceMode) {
-      if (
-        /<table[\s>]/i.test(sourceDraft) &&
-        !confirm(
-          "표(테이블)가 포함되어 있습니다.\n" +
-            "에디터 모드로 전환하면 표 내용이 사라질 수 있습니다.\n\n" +
-            "계속하시겠습니까? (취소하면 소스 모드 유지)"
-        )
-      ) {
-        return;
-      }
-      setContent(sanitizeHtml(sourceDraft));
+      // 소스 → 에디터: raw <table>을 ql-table-embed로 변환 후 적용 (경고 없음)
+      const sanitized = sanitizeHtml(sourceDraft);
+      setContent(preprocessContentForEditor(sanitized));
       setSourceMode(false);
     } else {
+      // 에디터 → 소스: content에는 이미 ql-table-embed 래퍼가 포함됨
       setSourceDraft(content);
       setSourceMode(true);
     }
-  }, [sourceMode, sourceDraft, content]);
+  }, [sourceMode, sourceDraft, content, preprocessContentForEditor]);
 
   // Helper: content HTML에서 idx번째 표(ql-table-embed 래퍼 또는 raw table)를 newHtml로 교체
   // newHtml이 빈 문자열이면 해당 표를 제거
