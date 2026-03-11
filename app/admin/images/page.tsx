@@ -27,6 +27,9 @@ type GalleryItem = {
   storageName: string;
 };
 
+// 마스터 카테고리 목록: 갤러리 필터 버튼(activities 페이지)과 반드시 동일하게 유지하세요.
+const MASTER_CATEGORIES = ["공연", "체험", "수업"] as const;
+
 function extractStorageName(imageUrl: string): string {
   try {
     return new URL(imageUrl).pathname.split("/").pop() ?? imageUrl;
@@ -335,35 +338,64 @@ export default function AdminImagesPage() {
 
       {/* Upload Area */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              설명 (caption){" "}
-              <span className="text-gray-400 font-normal">선택</span>
-            </label>
-            <input
-              type="text"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              disabled={isUploading}
-              placeholder="예: 2025 김포예술제 공연"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-50 disabled:text-gray-400"
-            />
+
+        {/* ── 마스터 카테고리 선택 ───────────────────────────────────────────── */}
+        {/* 사진 선택 전에 카테고리를 미리 고르면 모든 사진에 일괄 적용됩니다. */}
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            카테고리{" "}
+            <span className="text-gray-400 font-normal text-xs">
+              사진 업로드 전에 먼저 선택하세요 — 모든 사진에 일괄 적용됩니다
+            </span>
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {MASTER_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                disabled={isUploading}
+                onClick={() =>
+                  // 같은 버튼 재클릭 시 선택 해제 (토글)
+                  setCategory((prev) => (prev === cat ? "" : cat))
+                }
+                className={`px-5 py-2 rounded-full text-sm font-medium border-2 transition-all duration-150 ${
+                  category === cat
+                    ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
+                    : "bg-white border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {category === cat ? "✓ " : ""}
+                {cat}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              카테고리 (category){" "}
-              <span className="text-gray-400 font-normal">선택</span>
-            </label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              disabled={isUploading}
-              placeholder="예: 공연, 수업, 행사"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-50 disabled:text-gray-400"
-            />
-          </div>
+          {/* 선택된 카테고리 안내 문구 */}
+          {category ? (
+            <p className="text-xs text-blue-600 mt-2">
+              <strong>{category}</strong> 카테고리가 선택됐습니다. 이제 사진을
+              업로드하면 자동으로 적용됩니다.
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 mt-2">
+              카테고리를 선택하지 않으면 미분류로 업로드됩니다.
+            </p>
+          )}
+        </div>
+
+        {/* ── 설명(Caption) 입력 ─────────────────────────────────────────────── */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            설명 (caption){" "}
+            <span className="text-gray-400 font-normal">선택</span>
+          </label>
+          <input
+            type="text"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            disabled={isUploading}
+            placeholder="예: 2025 김포예술제 공연"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-50 disabled:text-gray-400"
+          />
         </div>
 
         <input
@@ -629,11 +661,32 @@ export default function AdminImagesPage() {
                         <label className="block text-xs font-medium text-gray-600 mb-1">
                           Category
                         </label>
+                        {/* 카테고리 빠른 선택 버튼 */}
+                        <div className="flex gap-1.5 flex-wrap mb-2">
+                          {MASTER_CATEGORIES.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() =>
+                                setEditCategory((prev) =>
+                                  prev === cat ? "" : cat
+                                )
+                              }
+                              className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                editCategory === cat
+                                  ? "bg-blue-600 border-blue-600 text-white"
+                                  : "bg-white border-gray-300 text-gray-500 hover:border-blue-400"
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
                         <input
                           type="text"
                           value={editCategory}
                           onChange={(e) => setEditCategory(e.target.value)}
-                          placeholder="예: 공연, 수업, 행사"
+                          placeholder="직접 입력 (예: 행사)"
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       </div>
