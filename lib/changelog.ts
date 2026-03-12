@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.4",
+    date: "2026-03-12",
+    changes: [
+      "[블로그] 표 인라인 고정 크기 완전 무력화: TinyMCE가 삽입한 table·th·td의 고정 width/height 인라인 스타일을 !important로 덮어써 모바일 세로·가로 스크롤 완전 제거. table-layout:fixed로 열 너비를 컨테이너 기준으로 균등 분배.",
+      "[블로그] TinyMCE figure.table 래퍼 스크롤 제거: 에디터가 표를 감싸는 <figure class=\"table\">에 overflow:visible을 강제 적용하여 래퍼 레벨 가로 스크롤바 원천 차단.",
+      "[블로그] 셀 텍스트 강제 줄바꿈: th·td에 white-space:normal·overflow-wrap:break-word 추가로 긴 텍스트나 URL이 셀 밖으로 삐져나오지 않도록 처리.",
+    ],
+  },
+  {
     version: "3.3",
     date: "2026-03-12",
     changes: [

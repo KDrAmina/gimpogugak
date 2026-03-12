@@ -120,18 +120,29 @@ body {
   border-radius: 4px;
 }
 
-/* 표(Table) */
+/* 표(Table) — TinyMCE 인라인 고정 크기 완전 무력화 */
+/* TinyMCE figure.table 래퍼 스크롤 제거 */
+.blog-content figure.table {
+  overflow: visible !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
 .blog-content table {
   border-collapse: collapse !important;
   width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
   margin: 1.2em 0 !important;
   font-size: 0.95em !important;
-  table-layout: auto !important;
-  overflow-x: auto;
-  display: block; /* 모바일 가로 스크롤 */
+  table-layout: fixed !important; /* 가로 스크롤 방지, 열 너비 균등 분배 */
+  overflow: visible !important;
+  display: table !important;
 }
-@media (min-width: 640px) {
-  .blog-content table { display: table; }
+.blog-content tbody,
+.blog-content thead,
+.blog-content tr {
+  width: auto !important;
+  height: auto !important;
 }
 .blog-content th {
   background-color: #e8f0fe !important;
@@ -140,14 +151,22 @@ body {
   padding: 10px 14px !important;
   border: 1px solid #a8c0e8 !important;
   text-align: left !important;
-  word-break: keep-all;
+  width: auto !important;
+  height: auto !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
 }
 .blog-content td {
   padding: 8px 14px !important;
   border: 1px solid #cbd5e1 !important;
   vertical-align: top !important;
   line-height: 1.6 !important;
-  word-break: keep-all;
+  width: auto !important;
+  height: auto !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
 }
 .blog-content tr:nth-child(even) td {
   background-color: #f8fafc !important;
