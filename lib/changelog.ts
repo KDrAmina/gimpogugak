@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.2",
+    date: "2026-03-12",
+    changes: [
+      "[에디터] TinyMCE 폰트 크기 선택기 추가: 툴바에 fontsize 버튼 신설. 8px~48px 총 13단계(8·10·11·12·14·16·18·20·24·28·32·36·48)를 숫자로 직관적으로 선택 가능. PostEditor · PostModal 동일 적용.",
+      "[에디터] 폰트 패밀리 목록 간소화: 프리텐다드·나눔명조·나눔고딕 3종 한글 이름으로 정리. 블로그 본문에서 실제 렌더링되는 폰트와 동일한 이름으로 통일.",
+    ],
+  },
+  {
     version: "3.1",
     date: "2026-03-12",
     changes: [

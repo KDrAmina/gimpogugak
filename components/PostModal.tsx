@@ -348,17 +348,16 @@ export default function PostModal({ editingPost, onClose, onSaved }: Props) {
                     "fullscreen", "autolink",
                   ],
                   toolbar:
-                    "undo redo | styles fontfamily | bold italic underline | " +
+                    "undo redo | styles fontfamily fontsize | bold italic underline | " +
                     "alignleft aligncenter alignright | " +
                     "bullist numlist | link image media table | code fullscreen | removeformat",
                   toolbar_mode: "sliding",
                   font_family_formats:
-                    "프리텐다드=Pretendard,'Noto Sans KR',-apple-system,sans-serif; " +
-                    "나눔명조='Nanum Myeongjo','Noto Serif KR',Georgia,serif; " +
-                    "나눔고딕='Nanum Gothic','Noto Sans KR',sans-serif; " +
-                    "Noto Sans KR='Noto Sans KR',sans-serif; " +
-                    "Arial=arial,helvetica,sans-serif; " +
-                    "Times New Roman=times new roman,times,serif",
+                    "프리텐다드=Pretendard,sans-serif; " +
+                    "나눔명조='Nanum Myeongjo',serif; " +
+                    "나눔고딕='Nanum Gothic',sans-serif",
+                  fontsize_formats:
+                    "8px 10px 11px 12px 14px 16px 18px 20px 24px 28px 32px 36px 48px",
                   table_toolbar:
                     "tableprops tabledelete | " +
                     "tableinsertrowbefore tableinsertrowafter tabledeleterow | " +

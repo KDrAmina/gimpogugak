@@ -333,19 +333,19 @@ export default function PostEditor({ editingPost = null }: Props) {
               "charmap", "autolink",
             ],
             toolbar:
-              "undo redo | styles fontfamily | bold italic underline strikethrough | " +
+              "undo redo | styles fontfamily fontsize | bold italic underline strikethrough | " +
               "forecolor backcolor | alignleft aligncenter alignright alignjustify | " +
               "bullist numlist | outdent indent | " +
               "link image media table | code fullscreen | removeformat",
             toolbar_mode: "sliding",
             // ── 폰트 패밀리 목록 ────────────────────────────────────────
             font_family_formats:
-              "프리텐다드=Pretendard,'Noto Sans KR',-apple-system,sans-serif; " +
-              "나눔명조='Nanum Myeongjo','Noto Serif KR',Georgia,serif; " +
-              "나눔고딕='Nanum Gothic','Noto Sans KR',sans-serif; " +
-              "Noto Sans KR='Noto Sans KR',sans-serif; " +
-              "Arial=arial,helvetica,sans-serif; " +
-              "Times New Roman=times new roman,times,serif",
+              "프리텐다드=Pretendard,sans-serif; " +
+              "나눔명조='Nanum Myeongjo',serif; " +
+              "나눔고딕='Nanum Gothic',sans-serif",
+            // ── 폰트 크기 목록 (px 직접 지정) ───────────────────────────
+            fontsize_formats:
+              "8px 10px 11px 12px 14px 16px 18px 20px 24px 28px 32px 36px 48px",
             // ── 표(Table) 플러그인 ──────────────────────────────────────
             table_toolbar:
               "tableprops tabledelete | " +
