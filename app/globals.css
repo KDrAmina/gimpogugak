@@ -28,8 +28,7 @@ body {
 
 /* ── 블로그 상세 페이지 기본 폰트 ── */
 .blog-detail-article {
-  font-family: ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: 'Pretendard', 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
   word-break: keep-all;
 }
 
@@ -39,6 +38,7 @@ body {
    ══════════════════════════════════════════════════════════════════════ */
 
 .blog-content {
+  font-family: 'Pretendard', 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.75;
   color: #111;
@@ -53,6 +53,7 @@ body {
 }
 
 .blog-content h1 {
+  font-family: 'Nanum Myeongjo', var(--font-nanum-myeongjo), 'Noto Serif KR', Georgia, serif;
   font-size: 2em;
   font-weight: 700;
   margin-top: 1em;
@@ -60,6 +61,7 @@ body {
   line-height: 1.3;
 }
 .blog-content h2 {
+  font-family: 'Nanum Myeongjo', var(--font-nanum-myeongjo), 'Noto Serif KR', Georgia, serif;
   font-size: 1.5em;
   font-weight: 700;
   margin-top: 0.85em;
@@ -67,6 +69,7 @@ body {
   line-height: 1.35;
 }
 .blog-content h3 {
+  font-family: 'Nanum Myeongjo', var(--font-nanum-myeongjo), 'Noto Serif KR', Georgia, serif;
   font-size: 1.25em;
   font-weight: 600;
   margin-top: 0.7em;

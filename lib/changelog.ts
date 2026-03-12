@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.1",
+    date: "2026-03-12",
+    changes: [
+      "[폰트] Pretendard Dynamic Subset 도입(CDN·font-display:swap): 사용된 글자만 분할 로딩하는 다이나믹 서브셋 방식을 적용하여 블로그 본문·에디터 기본 폰트로 설정. 전체 폰트 파일 대비 최소 용량으로 로딩되며 공개 LCP에 영향 없음.",
+      "[폰트] Nanum Gothic next/font/google 최적화 추가: preload:false 설정으로 LCP 크리티컬 패스에서 제외하고 에디터·블로그 전용으로만 로딩. layout.tsx CSS 변수(--font-nanum-gothic) 등록.",
+      "[에디터] TinyMCE 폰트 패밀리 선택기 추가: 툴바에 fontfamily 버튼 신설, 프리텐다드·나눔명조·나눔고딕·Noto Sans KR 4종 한글 이름으로 목록 표시. content_css로 에디터 iframe 내 폰트 CSS 직접 주입.",
+      "[에디터] 에디터 내부 기본 폰트 → Pretendard, 제목(h1/h2/h3) → Nanum Myeongjo로 통일하여 블로그 공개 페이지와 동일한 타이포그래피 미리보기 가능.",
+      "[블로그] .blog-content 본문 폰트 Pretendard로 업데이트, h1/h2/h3 제목 Nanum Myeongjo 적용 — 에디터와 독자 화면 간 폰트 일관성 확보.",
+    ],
+  },
+  {
     version: "3.0",
     date: "2026-03-12",
     changes: [

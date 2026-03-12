@@ -32,9 +32,15 @@ const BUCKET = "public-media";
 const BLOG_CATEGORIES = ["음악교실", "국악원소식"] as const;
 type BlogCategory = (typeof BLOG_CATEGORIES)[number];
 
+// 에디터 iframe 내부에 로드할 폰트 CSS
+const TINYMCE_CONTENT_CSS = [
+  "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css",
+  "https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap",
+];
+
 const TINYMCE_CONTENT_STYLE = `
   body {
-    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 16px;
     line-height: 1.7;
     color: #111;
@@ -50,9 +56,9 @@ const TINYMCE_CONTENT_STYLE = `
   tr:nth-child(even) td { background-color: #f8fafc; }
   tr:hover td { background-color: #eff6ff; }
   a { color: #2563eb; text-decoration: underline; text-underline-offset: 3px; }
-  h1 { font-size: 2em; font-weight: 700; margin: 1em 0 0.4em; }
-  h2 { font-size: 1.5em; font-weight: 700; margin: 0.8em 0 0.3em; }
-  h3 { font-size: 1.25em; font-weight: 600; margin: 0.6em 0 0.25em; }
+  h1 { font-family: 'Nanum Myeongjo', 'Noto Serif KR', Georgia, serif; font-size: 2em; font-weight: 700; margin: 1em 0 0.4em; }
+  h2 { font-family: 'Nanum Myeongjo', 'Noto Serif KR', Georgia, serif; font-size: 1.5em; font-weight: 700; margin: 0.8em 0 0.3em; }
+  h3 { font-family: 'Nanum Myeongjo', 'Noto Serif KR', Georgia, serif; font-size: 1.25em; font-weight: 600; margin: 0.6em 0 0.25em; }
   ul { list-style: disc; padding-left: 1.5em; margin-bottom: 0.8em; }
   ol { list-style: decimal; padding-left: 1.5em; margin-bottom: 0.8em; }
   li { margin-bottom: 0.2em; }
@@ -327,11 +333,19 @@ export default function PostEditor({ editingPost = null }: Props) {
               "charmap", "autolink",
             ],
             toolbar:
-              "undo redo | styles | bold italic underline strikethrough | " +
+              "undo redo | styles fontfamily | bold italic underline strikethrough | " +
               "forecolor backcolor | alignleft aligncenter alignright alignjustify | " +
               "bullist numlist | outdent indent | " +
               "link image media table | code fullscreen | removeformat",
             toolbar_mode: "sliding",
+            // ── 폰트 패밀리 목록 ────────────────────────────────────────
+            font_family_formats:
+              "프리텐다드=Pretendard,'Noto Sans KR',-apple-system,sans-serif; " +
+              "나눔명조='Nanum Myeongjo','Noto Serif KR',Georgia,serif; " +
+              "나눔고딕='Nanum Gothic','Noto Sans KR',sans-serif; " +
+              "Noto Sans KR='Noto Sans KR',sans-serif; " +
+              "Arial=arial,helvetica,sans-serif; " +
+              "Times New Roman=times new roman,times,serif",
             // ── 표(Table) 플러그인 ──────────────────────────────────────
             table_toolbar:
               "tableprops tabledelete | " +
@@ -351,7 +365,8 @@ export default function PostEditor({ editingPost = null }: Props) {
             file_picker_types: "image",
             // ── 미디어(동영상) ────────────────────────────────────────
             media_live_embeds: true,
-            // ── 에디터 내부 스타일 ────────────────────────────────────
+            // ── 에디터 내부 폰트 및 스타일 ──────────────────────────
+            content_css: TINYMCE_CONTENT_CSS,
             content_style: TINYMCE_CONTENT_STYLE,
             skin: "oxide",
             branding: false,

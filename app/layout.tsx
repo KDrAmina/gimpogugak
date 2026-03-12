@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Serif_KR, Noto_Sans_KR, Gowun_Dodum, Nanum_Myeongjo } from "next/font/google";
+import { Noto_Serif_KR, Noto_Sans_KR, Gowun_Dodum, Nanum_Myeongjo, Nanum_Gothic } from "next/font/google";
 import GoogleAnalyticsWrapper from "../components/GoogleAnalyticsWrapper";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
@@ -38,6 +38,15 @@ const nanumMyeongjo = Nanum_Myeongjo({
   variable: "--font-nanum-myeongjo",
   display: "swap",
   // preload: false — same rationale as gowunDodum above.
+  preload: false,
+});
+
+const nanumGothic = Nanum_Gothic({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-nanum-gothic",
+  display: "swap",
+  // preload: false — editor/blog only, not on public critical path.
   preload: false,
 });
 
@@ -144,7 +153,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable}`}>
+    <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable} ${nanumGothic.variable}`}>
+      <head>
+        {/* Pretendard Dynamic Subset — font-display:swap 내장, 실제 사용 글자만 로딩 */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css"
+        />
+      </head>
       <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111] antialiased">
         <script
           type="application/ld+json"
