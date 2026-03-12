@@ -26,7 +26,7 @@ const gowunDodum = Gowun_Dodum({
   weight: ["400"],
   variable: "--font-gowun-dodum",
   display: "swap",
-  // preload: false — this font is only used inside the Quill editor / blog
+  // preload: false — this font is only used inside the TinyMCE editor / blog
   // viewer, not on public pages. Skipping the <link rel="preload"> removes
   // a bandwidth competitor that delayed the hero-image LCP fetch.
   preload: false,
