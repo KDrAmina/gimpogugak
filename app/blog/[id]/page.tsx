@@ -7,7 +7,6 @@ import { notFound } from "next/navigation";
 import { stripHtml, sanitizeHtml } from "@/lib/html-utils";
 import { formatDateKST } from "@/lib/date-utils";
 import { getBlogPostPath } from "@/lib/blog-utils";
-import "react-quill-new/dist/quill.snow.css";
 
 import ShareButtonLazy from "@/components/ShareButtonLazy";
 import BlogContent from "@/components/BlogContent";

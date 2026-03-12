@@ -16,7 +16,8 @@
       "Bash(git:*)",
       "Bash(npx next:*)",
       "Bash(npm i:*)",
-      "Bash(find \"C:\\\\Users\\\\JUN\\\\gimpo-gugak\" -type f \\\\\\( -name \"*.sql\" -o -name \"*schema*\" -o -name \"*database*\" \\\\\\) 2>/dev/null | head -20)"
+      "Bash(find \"C:\\\\Users\\\\JUN\\\\gimpo-gugak\" -type f \\\\\\( -name \"*.sql\" -o -name \"*schema*\" -o -name \"*database*\" \\\\\\) 2>/dev/null | head -20)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

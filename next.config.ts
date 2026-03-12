@@ -4,7 +4,10 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 // 1. 기본 Next.js 설정
 const nextConfig: NextConfig = {
   compress: true, // 압축 유지 (Good)
-  
+
+  // Turbopack 설정 (Next.js 16 기본값) — 빈 객체로 경고 억제
+  turbopack: {},
+
   images: {
     unoptimized: true,
     remotePatterns: [

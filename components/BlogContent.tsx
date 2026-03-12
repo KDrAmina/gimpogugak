@@ -1,17 +1,11 @@
 /**
  * BlogContent — Server Component
  *
- * Parses sanitized Quill HTML and renders <img> tags as plain HTML img elements
- * (no Next.js Image optimization). All other tags are rendered as-is.
- *
+ * Parses sanitized TinyMCE HTML and renders <img> tags as native img elements.
  * Caller is responsible for running sanitizeHtml() before passing `html`.
  */
 
-import parse, {
-  HTMLReactParserOptions,
-  Element,
-  DOMNode,
-} from "html-react-parser";
+import parse, { HTMLReactParserOptions, Element, DOMNode } from "html-react-parser";
 
 interface BlogContentProps {
   html: string;
@@ -19,25 +13,18 @@ interface BlogContentProps {
 
 const parserOptions: HTMLReactParserOptions = {
   replace(domNode: DOMNode) {
-    // Only intercept <img> elements.
     if (!(domNode instanceof Element) || domNode.name !== "img") return;
-
-    const { src, alt } = domNode.attribs;
+    const { src, alt, width, height } = domNode.attribs;
     if (!src) return;
-
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt ?? ""}
+        width={width ? Number(width) : undefined}
+        height={height ? Number(height) : undefined}
         loading="lazy"
-        style={{
-          display: "block",
-          margin: "0 auto",
-          width: "100%",
-          height: "auto",
-          maxWidth: "800px",
-        }}
+        style={{ display: "block", margin: "0.6em auto", maxWidth: "100%", height: "auto" }}
       />
     );
   },
@@ -45,13 +32,8 @@ const parserOptions: HTMLReactParserOptions = {
 
 export default function BlogContent({ html }: BlogContentProps) {
   return (
-    <div className="ql-snow">
-      <div
-        className="ql-editor"
-        style={{ padding: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-      >
-        {parse(html, parserOptions)}
-      </div>
+    <div className="blog-content">
+      {parse(html, parserOptions)}
     </div>
   );
 }

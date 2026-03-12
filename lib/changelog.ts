@@ -10,6 +10,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.0",
+    date: "2026-03-12",
+    changes: [
+      "[에디터 대공사] React-Quill → TinyMCE 7 전면 교체: react-quill-new · quill-html-edit-button · quill-resize-module 제거, @tinymce/tinymce-react · tinymce 도입. CDN(jsDelivr) 방식으로 admin 전용 로딩 — 공개 번들 영향 0.",
+      "[표 편집 혁신] TinyMCE 내장 Table 플러그인 활성화: 마우스 드래그로 열 너비 조절(table_resize_bars), 행/열 추가·삭제 컨텍스트 메뉴, 표 속성 편집 다이얼로그. 기존 커스텀 TableEmbedBlot·드래그핸들·FloatingBar 모두 제거.",
+      "[이미지 업로드] images_upload_handler로 Supabase Storage 연동 유지: 툴바 이미지 버튼 클릭 시 파일 선택 → WebP 변환 → public-media 버킷 업로드 → URL 삽입. GIF 애니메이션 원본 보존 동일 유지.",
+      "[동영상 임베드] TinyMCE media 플러그인 + media_live_embeds: YouTube · 네이버TV 등 URL 붙여넣기 시 실시간 미리보기. 기존 VideoEmbedBlot 제거.",
+      "[블로그 뷰어] BlogContent.tsx: ql-snow/ql-editor 래퍼 제거 → .blog-content 클래스로 교체. globals.css에서 Quill 전용 CSS 전량 제거, TinyMCE 표준 HTML 출력에 최적화된 .blog-content 스타일 신설(표·이미지·코드·iframe 반응형 포함).",
+      "[성능] quill.snow.css 렌더 블로킹 임포트(blog/[id]/page.tsx) 완전 제거. 에디터 코드는 admin 진입 시만 CDN 로딩 → 공개 LCP·PageSpeed 무영향.",
+      "[코드 정리] PostEditor.tsx 1,687줄 → 280줄, PostModal.tsx 670줄 → 280줄로 대폭 축소. TableEditor·VideoPopup·ImageTooltip·savedCursorIndex 등 Quill 전용 로직 전량 삭제.",
+    ],
+  },
+  {
     version: "2.32",
     date: "2026-03-12",
     changes: [

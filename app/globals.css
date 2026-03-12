@@ -3,22 +3,10 @@
 @tailwind utilities;
 
 /* Custom scrollbar for modal and dropdowns */
-.modal-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.modal-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.modal-scroll::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.modal-scroll::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+.modal-scroll::-webkit-scrollbar { width: 6px; }
+.modal-scroll::-webkit-scrollbar-track { background: transparent; }
+.modal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.modal-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 :root {
   --color-bg: #ffffff;
@@ -38,307 +26,185 @@ body {
   color: var(--color-text);
 }
 
-/* Quill editor: sticky toolbar (따라다니는 메뉴바) */
-.quill-editor-wrapper .ql-toolbar.ql-snow {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background-color: white;
-  border-radius: 8px 8px 0 0;
+/* ── 블로그 상세 페이지 기본 폰트 ── */
+.blog-detail-article {
+  font-family: ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  word-break: keep-all;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   .blog-content — TinyMCE HTML 출력 뷰어 스타일
+   (PostEditor / PostModal에서 저장된 표준 HTML을 블로그에서 렌더링)
+   ══════════════════════════════════════════════════════════════════════ */
 
-
-/* Image caption: centered styled text below images */
-.ql-image-caption {
-  text-align: center !important;
-  font-size: 14px !important;
-  color: #6b7280 !important;
-  margin-top: 8px !important;
-  margin-bottom: 16px !important;
+.blog-content {
+  font-size: 16px;
+  line-height: 1.75;
+  color: #111;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  overflow-x: auto;
 }
 
-/* Quill editor & blog content: responsive images — always centered */
-.quill-editor-wrapper .ql-editor img,
-.blog-detail-article .ql-editor img {
+.blog-content p {
+  margin-bottom: 0.85em;
+  min-height: 1.2em;
+}
+
+.blog-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin-top: 1em;
+  margin-bottom: 0.4em;
+  line-height: 1.3;
+}
+.blog-content h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-top: 0.85em;
+  margin-bottom: 0.3em;
+  line-height: 1.35;
+}
+.blog-content h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 0.7em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+}
+.blog-content h4, .blog-content h5, .blog-content h6 {
+  font-weight: 600;
+  margin-top: 0.6em;
+  margin-bottom: 0.2em;
+}
+
+.blog-content ul {
+  list-style: disc;
+  padding-left: 1.5em;
+  margin-bottom: 0.85em;
+}
+.blog-content ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 0.85em;
+}
+.blog-content li {
+  margin-bottom: 0.25em;
+}
+.blog-content li > ul,
+.blog-content li > ol {
+  margin-top: 0.2em;
+  margin-bottom: 0;
+}
+
+.blog-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 500;
+}
+.blog-content a:hover {
+  color: #1d4ed8;
+}
+
+/* 이미지 */
+.blog-content img {
   display: block !important;
   max-width: 100% !important;
   height: auto !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  margin: 0.8em auto !important;
+  border-radius: 4px;
 }
 
-/* 기본 정렬: 부모에 resize 스타일이 없을 때 가운데 (명시적 !important 추가) */
-.quill-editor-wrapper .ql-editor p:not([class*="ql-resize-style"]) img,
-.blog-detail-article .ql-editor p:not([class*="ql-resize-style"]) img {
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* quill-resize-module 정렬 스타일 (부모 블록에 적용됨) */
-.ql-resize-style-left,
-.blog-detail-article .ql-resize-style-left { float: left; margin: 0 1em 1em 0; }
-.ql-resize-style-right,
-.blog-detail-article .ql-resize-style-right { float: right; margin: 0 0 1em 1em; }
-.ql-resize-style-center,
-.blog-detail-article .ql-resize-style-center { display: block; margin-left: auto; margin-right: auto; text-align: center; }
-.ql-resize-style-full,
-.blog-detail-article .ql-resize-style-full { width: 100% !important; }
-.ql-resize-style-full img,
-.blog-detail-article .ql-resize-style-full img { width: 100%; }
-
-/* Blog detail content - use system font stack for performance */
-.blog-detail-article {
-  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  word-break: keep-all !important; /* 모바일: '무형문화재' 등 한글 단어 끊김 방지 */
-}
-/* ql-editor: 에디터 기본 스타일 우선 - 붙여넣은 HTML 인라인 스타일과 충돌 방지 */
-.blog-detail-article .ql-editor,
-.quill-editor-wrapper .ql-editor {
-  word-break: keep-all !important;
-}
-
-/* FORCE Quill to show numbers instead of Small/Large */
-.ql-snow .ql-picker.ql-size .ql-picker-label::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item::before {
-  content: attr(data-value) !important;
-}
-.ql-snow .ql-picker.ql-size .ql-picker-label:not([data-value])::before {
-  content: '16px' !important; /* Default size */
-}
-.ql-snow .ql-picker.ql-size .ql-picker-item:not([data-value])::before {
-  content: '16px' !important;
-}
-
-/* Quill 에디터 & 뷰어 여백 및 줄간격 완벽 동기화 (과도한 여백 축소 및 단어 보호) */
-.ql-editor {
-  line-height: 1.6 !important;
-  word-break: keep-all !important; /* 한글 단어 중간에 끊어지지 않도록 보호 */
-  overflow-wrap: break-word !important;
-}
-.ql-editor p, .ql-snow .ql-editor p {
-  margin-bottom: 0.1em !important; /* 태평양 여백 대폭 축소 */
-  min-height: 1.6em !important;
-  white-space: pre-wrap !important;
-}
-.ql-editor h1, .ql-snow .ql-editor h1 {
-  margin-top: 1.0em !important;
-  margin-bottom: 0.4em !important;
-}
-.ql-editor h2, .ql-snow .ql-editor h2 {
-  margin-top: 0.8em !important;
-  margin-bottom: 0.3em !important;
-}
-.ql-editor h3, .ql-snow .ql-editor h3 {
-  margin-top: 0.6em !important;
-  margin-bottom: 0.25em !important;
-}
-.ql-editor p:empty::before,
-.ql-editor p:has(br)::before,
-.ql-snow .ql-editor p:empty::before {
-  content: '\00a0' !important;
-  display: block !important;
-}
-
-/* Safe Quill Fonts using next/font variables */
-.ql-font-gowunDodum { font-family: var(--font-gowun-dodum), sans-serif !important; }
-.ql-font-nanumMyeongjo { font-family: var(--font-nanum-myeongjo), serif !important; }
-
-/* Dropdown Labels */
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="gowunDodum"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="gowunDodum"]::before {
-  content: '고운돋움' !important;
-  font-family: var(--font-gowun-dodum) !important;
-}
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="nanumMyeongjo"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="nanumMyeongjo"]::before {
-  content: '나눔명조' !important;
-  font-family: var(--font-nanum-myeongjo) !important;
-}
-.ql-snow .ql-picker.ql-font .ql-picker-label:not([data-value])::before {
-  content: '기본폰트' !important;
-}
-.ql-snow .ql-picker.ql-font .ql-picker-item:not([data-value])::before {
-  content: '기본폰트' !important;
-}
-
-/* 제목(Header) 툴바 한글화 */
-.ql-snow .ql-picker.ql-header .ql-picker-label:not([data-value])::before,
-.ql-snow .ql-picker.ql-header .ql-picker-item:not([data-value])::before {
-  content: '본문' !important;
-}
-.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
-.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before {
-  content: '제목 1' !important;
-}
-.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
-.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before {
-  content: '제목 2' !important;
-}
-.ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
-.ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
-  content: '제목 3' !important;
-}
-
-/* Quill 에디터 & 뷰어 하이퍼링크(전화번호 등) 스타일 */
-.ql-editor a, .ql-snow .ql-editor a {
-  color: #2563eb !important; /* Tailwind blue-600 */
-  text-decoration: underline !important;
-  text-underline-offset: 4px;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-}
-.ql-editor a:hover, .ql-snow .ql-editor a:hover {
-  color: #1d4ed8 !important; /* Tailwind blue-700 */
-}
-
-/* Quill 에디터 & 뷰어 코드 블록 스타일 */
-.ql-editor pre.ql-syntax,
-.ql-snow .ql-editor pre.ql-syntax {
-  background-color: #23241f !important;
-  color: #f8f8f2 !important;
-  overflow: visible !important;
-  padding: 1rem !important;
-  border-radius: 8px !important;
-  font-family: 'Courier New', Courier, monospace !important;
-  line-height: 1.5 !important;
-}
-
-/* 블로그 뷰어 + 관리자 에디터 WYSIWYG 동기화: 줄간격·문단 여백 일치 */
-.blog-detail-article .ql-editor,
-.quill-editor-wrapper .ql-editor {
-  line-height: 1.8 !important;
-}
-.blog-detail-article .ql-editor p,
-.quill-editor-wrapper .ql-editor p {
-  margin-bottom: 1.5em !important;
-  min-height: 1.8em !important;
-}
-/* 에디터 좌우 패딩을 블로그 뷰어(px-6 = 24px)와 일치시켜 줄바꿈 위치 동기화 */
-.quill-editor-wrapper .ql-editor {
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-}
-
-/* Quill 에디터: 표 임베드 래퍼 (.ql-table-embed) */
-.ql-editor .ql-table-embed,
-.blog-detail-article .ql-editor .ql-table-embed {
-  display: block !important;
-  margin: 1.2em 0 !important;
-  overflow-x: auto !important;
-  cursor: pointer !important;
-}
-.ql-editor .ql-table-embed:hover,
-.quill-editor-wrapper .ql-editor .ql-table-embed:hover {
-  outline: 2px solid #3b82f6 !important;
-  outline-offset: 2px !important;
-  border-radius: 4px !important;
-}
-
-/* 표 드래그 이동 핸들 (⠿) — 인라인 배치로 레이아웃 보호 */
-.quill-editor-wrapper .ql-editor .ql-table-drag-handle {
-  display: block !important;
-  height: 22px !important;
-  background: transparent !important;
-  color: transparent !important;
-  font-size: 14px !important;
-  line-height: 22px !important;
-  padding: 0 8px !important;
-  cursor: default !important;
-  user-select: none !important;
-  border-radius: 4px 4px 0 0 !important;
-  letter-spacing: 2px !important;
-  transition: background 0.15s, color 0.15s !important;
-}
-.quill-editor-wrapper .ql-editor .ql-table-embed:hover .ql-table-drag-handle {
-  background: #3b82f6 !important;
-  color: #fff !important;
-  cursor: grab !important;
-}
-.quill-editor-wrapper .ql-editor .ql-table-drag-handle:active {
-  cursor: grabbing !important;
-  background: #1d4ed8 !important;
-}
-
-/* 표 드롭 인디케이터 (드래그 중 위치 표시 파란 선) */
-.ql-table-drop-indicator {
-  height: 3px !important;
-  background: #2563eb !important;
-  border-radius: 2px !important;
-  margin: 3px 0 !important;
-  pointer-events: none !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25) !important;
-}
-
-/* Quill 에디터: 동영상 임베드 래퍼 (.ql-video-embed) — 16:9 반응형 */
-.ql-editor .ql-video-embed,
-.blog-detail-article .ql-editor .ql-video-embed {
-  position: relative !important;
-  display: block !important;
-  padding-bottom: 56.25% !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  margin: 1.5em 0 !important;
-  border-radius: 8px !important;
-  background: #000 !important;
-}
-.ql-editor .ql-video-embed iframe,
-.blog-detail-article .ql-editor .ql-video-embed iframe {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  border: none !important;
-  border-radius: 8px !important;
-}
-/* 에디터 내 video-embed 높이 고정 (소스 모드 외) */
-.quill-editor-wrapper .ql-editor .ql-video-embed {
-  padding-bottom: 0 !important;
-  height: 320px !important;
-}
-.quill-editor-wrapper .ql-editor .ql-video-embed iframe {
-  position: static !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Quill 에디터 & 뷰어 표(Table) 스타일 */
-.ql-editor table,
-.ql-snow .ql-editor table {
+/* 표(Table) */
+.blog-content table {
   border-collapse: collapse !important;
   width: 100% !important;
   margin: 1.2em 0 !important;
   font-size: 0.95em !important;
   table-layout: auto !important;
+  overflow-x: auto;
+  display: block; /* 모바일 가로 스크롤 */
 }
-.ql-editor table th,
-.ql-snow .ql-editor table th {
+@media (min-width: 640px) {
+  .blog-content table { display: table; }
+}
+.blog-content th {
   background-color: #e8f0fe !important;
   font-weight: 700 !important;
   color: #1e3a5f !important;
   padding: 10px 14px !important;
   border: 1px solid #a8c0e8 !important;
   text-align: left !important;
-  white-space: nowrap !important;
+  white-space: nowrap;
 }
-.ql-editor table td,
-.ql-snow .ql-editor table td {
+.blog-content td {
   padding: 8px 14px !important;
   border: 1px solid #cbd5e1 !important;
   vertical-align: top !important;
   line-height: 1.6 !important;
 }
-.ql-editor table tr:nth-child(even) td,
-.ql-snow .ql-editor table tr:nth-child(even) td {
+.blog-content tr:nth-child(even) td {
   background-color: #f8fafc !important;
 }
-.ql-editor table tr:hover td,
-.ql-snow .ql-editor table tr:hover td {
+.blog-content tr:hover td {
   background-color: #eff6ff !important;
 }
-/* 모바일에서 표 가로 스크롤 허용 */
-.blog-detail-article .ql-editor,
-.quill-editor-wrapper .ql-editor {
+
+/* 동영상 iframe (YouTube / 네이버TV) */
+.blog-content iframe {
+  max-width: 100%;
+  border: none;
+  border-radius: 8px;
+  margin: 1.2em 0;
+}
+/* iframe에 width/height 속성이 있어도 반응형으로 재정의 */
+.blog-content iframe[src*="youtube.com"],
+.blog-content iframe[src*="youtu.be"],
+.blog-content iframe[src*="tv.naver.com"] {
+  width: 100% !important;
+  aspect-ratio: 16 / 9;
+  height: auto !important;
+}
+
+/* 인용구 */
+.blog-content blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1em;
+  color: #6b7280;
+  margin: 1em 0;
+  font-style: italic;
+}
+
+/* 코드 블록 */
+.blog-content pre {
+  background-color: #23241f !important;
+  color: #f8f8f2 !important;
+  padding: 1rem !important;
+  border-radius: 8px !important;
   overflow-x: auto !important;
+  font-family: "Courier New", Courier, monospace !important;
+  font-size: 0.9em !important;
+  line-height: 1.5 !important;
+  margin: 1em 0 !important;
+}
+.blog-content code {
+  background: #f1f5f9;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.9em;
+}
+.blog-content pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* 가로 구분선 */
+.blog-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5em 0;
 }
