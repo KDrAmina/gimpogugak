@@ -112,7 +112,7 @@ function BlogContactSection() {
             fill
             loading="lazy"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 672px"
+            sizes="(max-width: 768px) 100vw, 896px"
           />
           <div className="absolute top-4 left-0 w-full flex justify-center z-10 px-4">
             <span className="bg-black/70 backdrop-blur-sm text-white text-xs sm:text-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
@@ -188,7 +188,7 @@ export default async function BlogDetailPage({ params }: Props) {
   const nextPost = nextPosts?.[0] ?? null;
 
   return (
-    <article className="blog-detail-article mx-auto max-w-2xl px-6 py-12">
+    <article className="blog-detail-article mx-auto max-w-4xl px-6 py-12">
       <ViewTracker postId={String(post.id)} />
       <header className="mb-8">
         <div className="mb-3">

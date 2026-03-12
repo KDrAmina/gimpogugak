@@ -140,13 +140,14 @@ body {
   padding: 10px 14px !important;
   border: 1px solid #a8c0e8 !important;
   text-align: left !important;
-  white-space: nowrap;
+  word-break: keep-all;
 }
 .blog-content td {
   padding: 8px 14px !important;
   border: 1px solid #cbd5e1 !important;
   vertical-align: top !important;
   line-height: 1.6 !important;
+  word-break: keep-all;
 }
 .blog-content tr:nth-child(even) td {
   background-color: #f8fafc !important;
@@ -155,20 +156,15 @@ body {
   background-color: #eff6ff !important;
 }
 
-/* 동영상 iframe (YouTube / 네이버TV) */
+/* 동영상 iframe (YouTube / 네이버TV 등) — width/height 속성 무시, 항상 16:9 반응형 */
 .blog-content iframe {
-  max-width: 100%;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
   border: none;
   border-radius: 8px;
   margin: 1.2em 0;
-}
-/* iframe에 width/height 속성이 있어도 반응형으로 재정의 */
-.blog-content iframe[src*="youtube.com"],
-.blog-content iframe[src*="youtu.be"],
-.blog-content iframe[src*="tv.naver.com"] {
-  width: 100% !important;
-  aspect-ratio: 16 / 9;
-  height: auto !important;
+  display: block;
 }
 
 /* 인용구 */

@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.3",
+    date: "2026-03-12",
+    changes: [
+      "[블로그] 본문 컨테이너 폭 확장: 블로그 상세 페이지 최대 너비를 max-w-2xl(672px)에서 max-w-4xl(896px)로 확대하여 PC 화면에서 좌우 빈 공간을 줄이고 가독성 향상.",
+      "[블로그] 동영상(iframe) 반응형 최적화: .blog-content 내 모든 iframe에 width:100%·height:auto·aspect-ratio:16/9를 !important로 강제 적용. TinyMCE가 삽입한 고정 width/height 속성도 무시되어 PC·모바일 어디서나 16:9 비율을 유지하며 가로 스크롤 없음.",
+      "[블로그] 표(Table) 모바일 텍스트 줄바꿈 개선: th·td에 word-break:keep-all 추가. 모바일 좁은 화면에서 한국어 단어가 음절 단위로 잘리지 않고 어절 단위로 자연스럽게 줄바꿈됨.",
+    ],
+  },
+  {
     version: "3.2",
     date: "2026-03-12",
     changes: [
