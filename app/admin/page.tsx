@@ -21,6 +21,7 @@ export default function AdminDashboardPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [totalTuition, setTotalTuition] = useState<number>(0);
   const [monthlyTuition, setMonthlyTuition] = useState<number>(0);
+  const [monthlyExternal, setMonthlyExternal] = useState<number>(0);
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -156,11 +157,12 @@ export default function AdminDashboardPage() {
   }
 
   async function fetchMonthlyTuition(month: string) {
-    try {
-      const [year, mon] = month.split("-").map(Number);
-      const startDate = `${year}-${String(mon).padStart(2, "0")}-01`;
-      const endDate = new Date(year, mon, 1).toISOString().split("T")[0];
+    const [year, mon] = month.split("-").map(Number);
+    const startDate = `${year}-${String(mon).padStart(2, "0")}-01`;
+    const endDate = new Date(year, mon, 1).toISOString().split("T")[0];
 
+    // ── 정규 수강료 (lesson_history) ──
+    try {
       const { data, error } = await supabase
         .from("lesson_history")
         .select("session_number, status, lessons!inner(tuition_amount, category)")
@@ -171,17 +173,37 @@ export default function AdminDashboardPage() {
 
       const sum = (data || []).reduce((acc, record: any) => {
         const tuition = record.lessons?.tuition_amount || 0;
-        // 단체반: status = '결제 완료'
         if (record.status === "결제 완료") return acc + tuition;
-        // 개인반: 4회차 배수 (4, 8, 12, ...)
         if (record.session_number > 0 && record.session_number % 4 === 0) return acc + tuition;
         return acc;
       }, 0);
-
       setMonthlyTuition(sum);
     } catch (error) {
       console.error("Error fetching monthly tuition:", error);
       setMonthlyTuition(0);
+    }
+
+    // ── 외부 수입 (external_income) ──
+    try {
+      const { data, error } = await supabase
+        .from("external_income")
+        .select("amount")
+        .gte("income_date", startDate)
+        .lt("income_date", endDate);
+
+      if (error) {
+        // 테이블 미존재(42P01) 시 조용히 0 처리
+        if (error.code !== "42P01") {
+          console.error("Error fetching external income:", error.message);
+        }
+        setMonthlyExternal(0);
+      } else {
+        const externalSum = (data || []).reduce((acc, r: { amount: number }) => acc + r.amount, 0);
+        setMonthlyExternal(externalSum);
+      }
+    } catch (error) {
+      console.error("Error fetching external income:", error);
+      setMonthlyExternal(0);
     }
   }
 
@@ -310,7 +332,7 @@ export default function AdminDashboardPage() {
         <div className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-xl shadow-sm border border-violet-200 p-6">
           <div className="flex items-start justify-between mb-1">
             <h3 className="text-sm font-medium text-violet-800">
-              월 실수령 수강료
+              월 실수령 총수입
             </h3>
             <input
               type="month"
@@ -320,10 +342,13 @@ export default function AdminDashboardPage() {
             />
           </div>
           <p className="text-3xl font-bold text-violet-900">
-            ₩ {monthlyTuition.toLocaleString()}
+            ₩ {(monthlyTuition + monthlyExternal).toLocaleString()}
           </p>
-          <p className="mt-1 text-xs text-violet-700">
-            {selectedMonth.replace("-", "년 ")}월 · 4회차 완료 + 단체 납부 합산
+          <p className="mt-1 text-xs text-violet-600">
+            정규: ₩{monthlyTuition.toLocaleString()} / 외부: ₩{monthlyExternal.toLocaleString()}
+          </p>
+          <p className="mt-0.5 text-xs text-violet-500">
+            {selectedMonth.replace("-", "년 ")}월 · 수강료 + 체험비 · 외부강의 합산
           </p>
         </div>
       </div>
