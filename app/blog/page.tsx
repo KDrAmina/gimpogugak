@@ -7,8 +7,8 @@ export const dynamic = "force-static";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "국악원 소식 | 김포국악원 (Gimpo Gugak Center)",
-  description: "김포국악원의 소식을 확인하세요.",
+  title: "국악원 소식 블로그 | 김포국악원",
+  description: "김포국악원(장기동·사우동·고촌읍)의 공연·행사·수업 소식과 민요·성악 이야기. 최신 국악 교육 정보를 확인하세요.",
 };
 
 export default async function BlogListPage() {

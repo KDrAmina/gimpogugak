@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "문의 및 오시는 길 | 김포국악원 (Contact)",
+  title: "오시는 길·전화문의 | 김포국악원",
   description:
-    "김포국악원 위치: 경기도 김포시 모담공원로 170-14. 상담 문의: 010-5948-1843.",
+    "경기도 김포시 모담공원로 170-14 (장기동·사우동·고촌읍 인근). 국악·민요·성악 수업 상담 및 체험 예약: 010-5948-1843.",
 };
 
 export default function ContactPage() {

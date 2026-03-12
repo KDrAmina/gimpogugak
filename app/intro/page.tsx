@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "소개 | 김포국악원 (Gimpo Gugak Center)",
+  title: "원장·부원장 소개 | 김포국악원",
   description:
-    "김포국악원 원장, 부원장 소개 및 언론 보도. 황해도무형문화재 이수자와 성악 전공자가 함께하는 국악 교육원.",
+    "황해도무형문화재 제3호 놀량사거리 이수자 송리결 원장, 한양대 성악과 출신 박준열 부원장. 김포 장기동·사우동 국악학원을 이끄는 두 전문가를 소개합니다.",
 };
 
 const CARDS = [

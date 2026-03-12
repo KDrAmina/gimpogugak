@@ -10,6 +10,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.6",
+    date: "2026-03-12",
+    changes: [
+      "[SEO] 사이트 기본 제목(default title) 변경: '무형문화재 이수자 직강' → '장기동·사우동·고촌 민요·성악·국악학원'으로 지역명 및 서비스명 키워드 강화.",
+      "[SEO] 루트 메타 description에 '장기동·사우동·고촌읍 인근', '민요교실·성악발성·장구' 키워드 추가.",
+      "[SEO] 루트 keywords 배열 확장: 김포국악학원·김포민요교실·김포성악·장기동국악원·사우동국악원·고촌읍국악원·김포장구교실·김포체험학습 등 지역 롱테일 키워드 추가.",
+      "[SEO] JSON-LD EducationalOrganization에 areaServed(장기동·사우동·고촌읍·김포시) 추가, addressLocality를 '김포시 장기동'으로 세분화.",
+      "[SEO] 홈페이지(page.tsx) title·description에 '장기동·사우동·고촌읍' 지역명 삽입.",
+      "[SEO] 수업 안내 페이지 title·description·keywords에 지역명 및 '김포민요교실·김포성악·성악발성·대취타체험' 키워드 강화.",
+      "[SEO] 블로그·소개·문의 페이지 title 간결화 및 description에 지역명 키워드 삽입.",
+    ],
+  },
+  {
     version: "3.5",
     date: "2026-03-12",
     changes: [
