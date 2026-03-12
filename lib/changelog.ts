@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.5",
+    date: "2026-03-12",
+    changes: [
+      "[문의] '문의 및 오시는 길' 페이지 지도 버튼 그룹에 '전화문의' 버튼 추가: bg-black 검은 배경·흰 글씨·전화기 아이콘 디자인. tel:01059481843 링크로 모바일에서 바로 전화 연결.",
+      "[블로그] 블로그 상세 페이지 하단 BlogContactSection 지도 버튼 그룹에 동일한 '전화문의' 버튼 추가.",
+      "[레이아웃] 버튼 3개 반응형 배치: 모바일에서 전화문의 버튼 전체 너비(w-full), Google·카카오 버튼은 나란히 2열 배치. 태블릿(sm) 이상에서는 3개 버튼 동일 너비 1행 배치(flex-wrap 활용).",
+    ],
+  },
+  {
     version: "3.4",
     date: "2026-03-12",
     changes: [
