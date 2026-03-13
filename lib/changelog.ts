@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.7",
+    date: "2026-03-13",
+    changes: [
+      "[블로그 SEO] 블로그 상세 페이지 메타 description 자동화 강화: buildExcerpt() 헬퍼 도입으로 본문 HTML 태그 제거 후 공백 정규화, 단어 경계 기준 100~140자 추출, 말줄임표(…) 자동 부착. meta_description이 직접 작성된 경우 우선 사용, 없을 때만 본문 첫 문장 자동 삽입.",
+      "[GA4 전환 추적] BlogContactSection을 클라이언트 컴포넌트(components/BlogContactSection.tsx)로 분리: 전화문의(click_call)·Google 지도(click_google_map)·카카오맵(click_kakao_map) 버튼 클릭 시 GA4 이벤트 전송. window.gtag 존재 여부 방어 처리 포함. event_category: 'contact' 파라미터 공통 적용.",
+      "[GA4 전환 추적] 문의 페이지(app/contact) 지도 버튼 그룹을 ContactMapButtons 클라이언트 컴포넌트로 분리, 동일한 GA4 이벤트(click_call·click_google_map·click_kakao_map) 추적. 서버 컴포넌트인 contact 페이지의 SSG 성능은 그대로 유지.",
+      "[홈페이지] 메인 H1 텍스트 변경: '한국의 전통, 대한의 소리' → '김포를 대표하는 프리미엄 국악 & 성악 교육, 김포국악원' — 지역·서비스 키워드 명시로 검색 의도 일치도 향상.",
+      "[홈페이지] H1 바로 아래 서브타이틀 단락 추가: '유치원·학생 국악 체험부터 어르신 민요 교실, 그리고 전공자가 직접 지도하는 1:1 성악·발성 레슨까지. 우리 소리와 서양 음악의 깊이를 한곳에서 만납니다.' — 주요 수강 대상·서비스 키워드 자연어 노출.",
+    ],
+  },
+  {
     version: "3.6",
     date: "2026-03-12",
     changes: [

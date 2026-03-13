@@ -40,8 +40,11 @@ export default function HomePage() {
       />
       <article className="max-w-2xl mx-auto px-6 py-12">
       <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#111] tracking-tight">
-        한국의 전통, 대한의 소리
+        김포를 대표하는 프리미엄 국악 &amp; 성악 교육, 김포국악원
       </h1>
+      <p className="mt-3 text-base text-[#555] leading-relaxed">
+        유치원·학생 국악 체험부터 어르신 민요 교실, 그리고 전공자가 직접 지도하는 1:1 성악·발성 레슨까지. 우리 소리와 서양 음악의 깊이를 한곳에서 만납니다.
+      </p>
 
       <figure className="mt-8 rounded-lg overflow-hidden bg-gray-100"> 
         {/* 👆 bg-gray-100 추가: 이미지 로딩될 때 아주 잠깐 회색 배경 보여줘서 시각적 안정감 줌 */}
