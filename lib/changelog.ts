@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.0",
+    date: "2026-03-13",
+    changes: [
+      "[홈페이지] Hero Section 랜딩페이지형 UI/UX 전면 개편: 뱃지 카피·H1·서브헤드 교체.",
+      "[홈페이지] CTA 버튼 2개 추가: '상담 및 체험 신청하기'(/contact), '프로그램 안내 보기'(/classes).",
+      "[홈페이지] 신뢰 지표 바 추가: 원장/부원장 직강, 1:1 맞춤 커리큘럼, 10년 이상 교육 노하우.",
+      "[홈페이지] 이미지 스타일 개선: rounded-2xl + shadow-lg + maxHeight 420px 액자형으로 변경.",
+      "[홈페이지] SEO 메타태그 title/description 랜딩페이지형으로 교체.",
+    ],
+  },
+  {
     version: "3.9",
     date: "2026-03-13",
     changes: [

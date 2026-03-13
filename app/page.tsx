@@ -10,12 +10,12 @@ const HERO_IMAGE =
   "/main_image.webp";
 
 export const metadata: Metadata = {
-  title: "김포국악원 | 장기동·사우동·고촌 민요·성악·국악학원",
+  title: "김포국악원 | 민요·성악·발성 전문 교육",
   description:
-    "경기 김포시 장기동·사우동·고촌읍 인근 국악 전문 교육원. 황해도무형문화재 이수자 원장 직강, 민요교실·성악발성·장구 정규반, 교육부 진로체험 인증기관.",
+    "김포 유일 동서양 음악 전문기관. 어린이 국악 체험부터 어르신 민요교실, 전공자 성악 발성 레슨까지. 맞춤형 음악 교육을 시작하세요.",
   openGraph: {
-    title: "김포국악원 | 장기동·사우동·고촌 민요·성악·국악학원",
-    description: "경기 김포시 장기동·사우동·고촌읍 인근 국악 전문 교육원. 무형문화재 이수자 원장 직강, 민요·성악·장구 정규반, 교육부 진로체험 인증기관.",
+    title: "김포국악원 | 민요·성악·발성 전문 교육",
+    description: "김포 유일 동서양 음악 전문기관. 어린이 국악 체험부터 어르신 민요교실, 전공자 성악 발성 레슨까지. 맞춤형 음악 교육을 시작하세요.",
     type: "website",
   },
 };
@@ -40,34 +40,58 @@ export default function HomePage() {
       />
       <article className="max-w-2xl mx-auto px-6 py-10 sm:py-14">
       {/* Hero: 뱃지 */}
-      <div className="mb-5">
+      <div className="mb-4">
         <span className="inline-block text-xs font-medium tracking-widest uppercase px-3 py-1 rounded-full border border-[#b59a6a] text-[#8a6f3e] bg-[#fdf8f0]">
-          김포 프리미엄 음악 교육
+          김포 유일 · 동서양 음악 교육 전문기관
         </span>
       </div>
 
       {/* Hero: 메인 타이틀 */}
-      <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#111] tracking-tight leading-snug sm:leading-snug">
-        우리 소리의 흥겨움부터<br />
-        클래식 성악의 깊은 울림까지
+      <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#111] tracking-tight leading-snug sm:leading-snug mt-4 mb-6">
+        소리가 바뀌면,<br />
+        삶의 울림이 달라집니다
       </h1>
 
       {/* Hero: 서브 설명 */}
-      <p className="mt-5 text-base sm:text-lg text-gray-500 leading-relaxed">
-        어린이 국악 체험부터 어르신 민요 교실, 그리고 전공자 직강 1:1 발성 레슨까지.<br className="hidden sm:block" />
-        김포국악원 한곳에서 동서양 음악의 깊이를 모두 만날 수 있습니다.
+      <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
+        전통 민요의 흥겨움부터 클래식 성악의 깊은 발성까지.<br />
+        어린이 국악 체험부터 전공자 1:1 레슨을 한곳에서 만납니다.
       </p>
 
+      {/* Hero: CTA 버튼 */}
+      <div className="mt-7 flex flex-wrap gap-3">
+        <Link
+          href="/contact"
+          className="bg-[#8a6f3e] hover:bg-[#7a5f2e] text-white px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
+        >
+          상담 및 체험 신청하기
+        </Link>
+        <Link
+          href="/classes"
+          className="border border-[#8a6f3e] text-[#8a6f3e] hover:bg-[#fdf8f0] px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
+        >
+          프로그램 안내 보기
+        </Link>
+      </div>
+
+      {/* Hero: 신뢰 지표 바 */}
+      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-400">
+        <span>✓ 원장/부원장 직강</span>
+        <span>✓ 체계적인 1:1 맞춤 커리큘럼</span>
+        <span>✓ 10년 이상의 교육 노하우</span>
+      </div>
+
       {/* Hero: 이미지 */}
-      <figure className="mt-8 rounded-xl overflow-hidden bg-gray-100 shadow-sm">
+      <figure className="mt-8 rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
         <Image
           src={HERO_IMAGE}
           alt="김포문화원 앞마당에서 열린 국악 공연, 김포국악원"
           priority
           fetchPriority="high"
           width={1200}
-          height={675}
-          className="w-full aspect-video object-cover"
+          height={420}
+          className="w-full object-cover"
+          style={{ maxHeight: "420px" }}
           sizes="(max-width: 768px) 100vw, 1200px"
         />
       </figure>
