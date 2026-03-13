@@ -38,30 +38,41 @@ export default function HomePage() {
         href={HERO_IMAGE}
         fetchPriority="high"
       />
-      <article className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#111] tracking-tight">
-        김포를 대표하는 프리미엄 국악 &amp; 성악 교육, 김포국악원
+      <article className="max-w-2xl mx-auto px-6 py-10 sm:py-14">
+      {/* Hero: 뱃지 */}
+      <div className="mb-5">
+        <span className="inline-block text-xs font-medium tracking-widest uppercase px-3 py-1 rounded-full border border-[#b59a6a] text-[#8a6f3e] bg-[#fdf8f0]">
+          김포 프리미엄 음악 교육
+        </span>
+      </div>
+
+      {/* Hero: 메인 타이틀 */}
+      <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#111] tracking-tight leading-snug sm:leading-snug">
+        우리 소리의 흥겨움부터<br />
+        클래식 성악의 깊은 울림까지
       </h1>
-      <p className="mt-3 text-base text-[#555] leading-relaxed">
-        유치원·학생 국악 체험부터 어르신 민요 교실, 그리고 전공자가 직접 지도하는 1:1 성악·발성 레슨까지. 우리 소리와 서양 음악의 깊이를 한곳에서 만납니다.
+
+      {/* Hero: 서브 설명 */}
+      <p className="mt-5 text-base sm:text-lg text-gray-500 leading-relaxed">
+        어린이 국악 체험부터 어르신 민요 교실, 그리고 전공자 직강 1:1 발성 레슨까지.<br className="hidden sm:block" />
+        김포국악원 한곳에서 동서양 음악의 깊이를 모두 만날 수 있습니다.
       </p>
 
-      <figure className="mt-8 rounded-lg overflow-hidden bg-gray-100"> 
-        {/* 👆 bg-gray-100 추가: 이미지 로딩될 때 아주 잠깐 회색 배경 보여줘서 시각적 안정감 줌 */}
+      {/* Hero: 이미지 */}
+      <figure className="mt-8 rounded-xl overflow-hidden bg-gray-100 shadow-sm">
         <Image
           src={HERO_IMAGE}
-          alt="한옥 처마와 자연, 김포국악원"
+          alt="김포문화원 앞마당에서 열린 국악 공연, 김포국악원"
           priority
-          fetchPriority="high" // 👈 아주 잘하셨습니다! (가장 중요)
-          width={1000}
-          height={563}
+          fetchPriority="high"
+          width={1200}
+          height={675}
           className="w-full aspect-video object-cover"
-          // 👇 sizes 속성을 조금 더 현실적으로 조정 (모바일/PC 구분)
           sizes="(max-width: 768px) 100vw, 1200px"
         />
       </figure>
 
-      <div className="mt-10 space-y-6 font-sans text-[#111] leading-relaxed">
+      <div className="mt-12 space-y-6 font-sans text-[#111] leading-relaxed">
         <p>
           &quot;국악은 어렵고 낯설다&quot;는 편견, 우리도 잘 압니다.
           하지만 실제로 만나보면 국악만큼 우리 목소리와 마음에 자연스럽게 스며드는 음악도 없습니다.

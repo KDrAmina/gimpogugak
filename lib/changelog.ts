@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "3.9",
+    date: "2026-03-13",
+    changes: [
+      "[홈페이지] Hero Section 전면 감성 리디자인: 뱃지(김포 프리미엄 음악 교육) → 메인 타이틀(H1) → 서브 설명 순의 시각적 위계 구조로 개편.",
+      "[홈페이지] H1 카피 변경: '우리 소리의 흥겨움부터 / 클래식 성악의 깊은 울림까지' — 명조 세리프 대형 폰트(3xl~5xl), <br /> 삽입으로 두 줄 자연스러운 줄바꿈 적용.",
+      "[홈페이지] 서브 설명 카피 변경 및 색상 조정: text-gray-500 회색조로 메인 타이틀 대비 위계 확보. 모바일/PC 최적 줄바꿈 처리.",
+      "[홈페이지] 메인 Hero 이미지 교체: 김포문화원 야외 국악 공연 사진(KakaoTalk_20260208_124656854.jpg)을 WebP(1200×675, quality 85)로 변환하여 main_image.webp 대체.",
+      "[홈페이지] figure 요소 rounded-xl + shadow-sm 적용으로 이미지 카드 느낌 강화. 전체 Hero 상하 여백(py-10 sm:py-14) 및 내부 간격 시원시원하게 조정.",
+    ],
+  },
+  {
     version: "3.8",
     date: "2026-03-13",
     changes: [
