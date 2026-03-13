@@ -12,6 +12,7 @@ type StudentProfile = {
   name: string | null;
   email: string | null;
   phone: string | null;
+  created_at: string;
 };
 
 type StudentLesson = {
@@ -37,6 +38,9 @@ export default function StudentDetailPage() {
   const [lessons, setLessons] = useState<StudentLesson[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [memo, setMemo] = useState('');
+  const [editingMemo, setEditingMemo] = useState(false);
+  const [memoText, setMemoText] = useState('');
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
@@ -45,6 +49,15 @@ export default function StudentDetailPage() {
   useEffect(() => {
     checkAdminAccess();
   }, []);
+
+  // Load memo from localStorage
+  useEffect(() => {
+    if (userId) {
+      const saved = localStorage.getItem(`student_memo_${userId}`) || '';
+      setMemo(saved);
+      setMemoText(saved);
+    }
+  }, [userId]);
 
   async function checkAdminAccess() {
     try {
@@ -72,7 +85,7 @@ export default function StudentDetailPage() {
 
   async function loadStudentData() {
     const [profileRes, lessonsRes] = await Promise.all([
-      supabase.from("profiles").select("id, name, email, phone").eq("id", userId).single(),
+      supabase.from("profiles").select("id, name, email, phone, created_at").eq("id", userId).single(),
       supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
 
@@ -87,7 +100,7 @@ export default function StudentDetailPage() {
           .select("id, lesson_id, session_number, completed_date, status, lessons!inner(category)")
           .in("lesson_id", lessonIds)
           .order("completed_date", { ascending: false })
-          .limit(30);
+          .limit(50);
 
         setHistory((histData || []).map((h: any) => ({
           id: h.id,
@@ -100,6 +113,17 @@ export default function StudentDetailPage() {
     }
   }
 
+  function saveMemo() {
+    localStorage.setItem(`student_memo_${userId}`, memoText);
+    setMemo(memoText);
+    setEditingMemo(false);
+  }
+
+  function cancelMemo() {
+    setMemoText(memo);
+    setEditingMemo(false);
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -108,84 +132,207 @@ export default function StudentDetailPage() {
     );
   }
 
+  const activeLesson = lessons.find(l => l.is_active);
+  const paymentHistory = history.filter(h => h.status === "결제 완료");
+  const currentMonthStr = new Date().toISOString().substring(0, 7);
+  const isPaidThisMonth = activeLesson?.payment_date?.substring(0, 7) === currentMonthStr;
+
   return (
-    <div>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-4">
-        <Link href="/admin/lessons" className="text-sm text-gray-500 hover:text-gray-700">
-          ← 수업 관리
+      <div className="mb-6 flex items-center gap-3">
+        <Link href="/admin/students" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+          ← 수강생 목록
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <span className="text-gray-300">/</span>
+        <h1 className="text-xl font-bold text-gray-900">
           {profile?.name ?? "수강생"} 상세
         </h1>
       </div>
 
-      {/* Profile */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-3">수강생 정보</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <div>
-            <dt className="text-gray-500 mb-1">이름</dt>
-            <dd className="font-medium text-gray-900">{profile?.name ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-gray-500 mb-1">이메일</dt>
-            <dd className="font-medium text-gray-900">{profile?.email ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-gray-500 mb-1">전화번호</dt>
-            <dd className="font-medium text-gray-900">{profile?.phone ?? "—"}</dd>
-          </div>
-        </dl>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-500 mb-1">수업 상태</p>
+          <p className={`text-sm font-bold ${activeLesson ? "text-green-600" : "text-gray-400"}`}>
+            {activeLesson ? "수업 중" : "미등록"}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-500 mb-1">이번 달 납부</p>
+          <p className={`text-sm font-bold ${isPaidThisMonth ? "text-green-600" : "text-red-500"}`}>
+            {activeLesson ? (isPaidThisMonth ? "완료" : "미납부") : "—"}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-500 mb-1">총 납부 횟수</p>
+          <p className="text-sm font-bold text-blue-600">{paymentHistory.length}회</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-500 mb-1">등록일</p>
+          <p className="text-sm font-bold text-gray-700">
+            {profile?.created_at
+              ? new Date(profile.created_at).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" })
+              : "—"}
+          </p>
+        </div>
       </div>
 
-      {/* Lessons */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-3">수업 목록</h2>
-        {lessons.length === 0 ? (
-          <p className="text-gray-500 text-sm">등록된 수업이 없습니다.</p>
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {/* Profile */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="text-base">👤</span> 기본 정보
+          </h2>
+          <dl className="space-y-2 text-sm">
+            <div className="flex gap-2">
+              <dt className="text-gray-400 w-16 shrink-0">이름</dt>
+              <dd className="font-medium text-gray-900">{profile?.name ?? "—"}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-gray-400 w-16 shrink-0">전화</dt>
+              <dd className="font-medium text-gray-900">
+                {profile?.phone
+                  ? <a href={`tel:${profile.phone}`} className="text-blue-600 hover:underline">{profile.phone}</a>
+                  : "—"}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-gray-400 w-16 shrink-0">이메일</dt>
+              <dd className="font-medium text-gray-900 truncate">{profile?.email ?? "—"}</dd>
+            </div>
+          </dl>
+        </div>
+
+        {/* Active Lesson */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="text-base">📚</span> 현재 수업
+          </h2>
+          {activeLesson ? (
+            <dl className="space-y-2 text-sm">
+              <div className="flex gap-2">
+                <dt className="text-gray-400 w-16 shrink-0">카테고리</dt>
+                <dd className="font-medium text-gray-900">{activeLesson.category}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="text-gray-400 w-16 shrink-0">수강료</dt>
+                <dd className="font-medium text-gray-900">
+                  {activeLesson.tuition_amount > 0
+                    ? `${activeLesson.tuition_amount.toLocaleString()}원`
+                    : "—"}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="text-gray-400 w-16 shrink-0">최근 납부</dt>
+                <dd className={`font-medium ${isPaidThisMonth ? "text-green-600" : "text-gray-900"}`}>
+                  {activeLesson.payment_date
+                    ? new Date(activeLesson.payment_date).toLocaleDateString("ko-KR")
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="text-sm text-gray-400">등록된 수업이 없습니다.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Memo */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <span className="text-base">📝</span> 상담 메모
+          </h2>
+          {!editingMemo && (
+            <button
+              onClick={() => setEditingMemo(true)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              {memo ? "수정" : "메모 추가"}
+            </button>
+          )}
+        </div>
+        {editingMemo ? (
+          <div>
+            <textarea
+              value={memoText}
+              onChange={(e) => setMemoText(e.target.value)}
+              rows={4}
+              placeholder="상담 내용, 특이사항 등을 메모하세요..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={saveMemo}
+                className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 font-medium"
+              >
+                저장
+              </button>
+              <button
+                onClick={cancelMemo}
+                className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300 font-medium"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        ) : memo ? (
+          <p className="text-sm text-gray-700 whitespace-pre-wrap bg-yellow-50 rounded-lg p-3 border border-yellow-100">
+            {memo}
+          </p>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {lessons.map(lesson => (
-              <div key={lesson.id} className="py-3 flex items-center justify-between gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${lesson.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                    {lesson.is_active ? "진행중" : "종료"}
-                  </span>
-                  <span className="font-medium text-gray-900">{lesson.category}</span>
-                </div>
-                <div className="text-gray-600 text-right space-x-2">
-                  <span>{lesson.current_session}/4회</span>
-                  <span>·</span>
-                  <span>₩{lesson.tuition_amount.toLocaleString()}</span>
-                  {lesson.payment_date && (
-                    <>
-                      <span>·</span>
-                      <span>납부일 {lesson.payment_date}</span>
-                    </>
-                  )}
-                </div>
+          <p className="text-sm text-gray-400 italic">메모 없음</p>
+        )}
+      </div>
+
+      {/* Payment History */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <span className="text-base">💳</span> 결제 이력
+          <span className="text-xs text-gray-400 font-normal">({paymentHistory.length}건)</span>
+        </h2>
+        {paymentHistory.length === 0 ? (
+          <p className="text-sm text-gray-400">결제 이력이 없습니다.</p>
+        ) : (
+          <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+            {paymentHistory.map(h => (
+              <div key={h.id} className="py-2 flex items-center justify-between text-sm gap-2">
+                <span className="text-gray-500 w-24 shrink-0 tabular-nums">{h.completed_date}</span>
+                <span className="text-gray-700 flex-1 truncate">{h.category}</span>
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium shrink-0">
+                  납부완료
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Recent History */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-3">최근 수강 내역 (최대 30건)</h2>
-        {history.length === 0 ? (
-          <p className="text-gray-500 text-sm">수강 내역이 없습니다.</p>
+      {/* All Lessons (History) */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <span className="text-base">📋</span> 전체 수업 내역
+          <span className="text-xs text-gray-400 font-normal">({lessons.length}건)</span>
+        </h2>
+        {lessons.length === 0 ? (
+          <p className="text-sm text-gray-400">등록된 수업이 없습니다.</p>
         ) : (
           <div className="divide-y divide-gray-100">
-            {history.map(h => (
-              <div key={h.id} className="py-2.5 flex items-center justify-between text-sm gap-2">
-                <span className="text-gray-500 w-24 shrink-0">{h.completed_date}</span>
-                <span className="text-gray-800 flex-1">{h.category}</span>
-                <span className="text-gray-600">{h.session_number > 0 ? `${h.session_number}회차` : "납부"}</span>
-                <span className={`text-xs px-2 py-0.5 rounded shrink-0 ${h.status === "결제 완료" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
-                  {h.status ?? "출석"}
-                </span>
+            {lessons.map(lesson => (
+              <div key={lesson.id} className="py-3 flex items-center justify-between gap-4 text-sm">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className={`shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium ${lesson.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    {lesson.is_active ? "진행중" : "종료"}
+                  </span>
+                  <span className="font-medium text-gray-900 truncate">{lesson.category}</span>
+                </div>
+                <div className="text-gray-500 text-right shrink-0 space-x-2 text-xs">
+                  {lesson.tuition_amount > 0 && <span>₩{lesson.tuition_amount.toLocaleString()}</span>}
+                  {lesson.payment_date && (
+                    <span>납부 {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

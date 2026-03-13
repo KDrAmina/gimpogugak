@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getPersonalGreeting, getTuitionReminderMessage, getKakaoTalkUrl, getSmsUrl } from "@/lib/messages";
+import Link from "next/link";
 
 type ActiveStudent = {
   id: string;
@@ -20,6 +21,7 @@ export default function AdminStudentsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<'name' | 'created_at'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [nameSearch, setNameSearch] = useState('');
   const [showMessageInput, setShowMessageInput] = useState(false);
   const [sequentialSending, setSequentialSending] = useState(false);
   const [currentSendIndex, setCurrentSendIndex] = useState(0);
@@ -192,8 +194,13 @@ export default function AdminStudentsPage() {
     }
   }
 
+  // Filter by name search
+  const filteredByName = nameSearch.trim()
+    ? students.filter(s => (s.name || '').toLowerCase().includes(nameSearch.toLowerCase()))
+    : students;
+
   // Sort students based on current sort settings
-  const sortedStudents = [...students].sort((a, b) => {
+  const sortedStudents = [...filteredByName].sort((a, b) => {
     let comparison = 0;
     
     if (sortField === 'name') {
@@ -310,13 +317,37 @@ export default function AdminStudentsPage() {
   return (
     <div className="min-h-screen p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             수강생 관리
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             현재 {students.length}명의 수강생이 등록되어 있습니다.
           </p>
+          {/* 이름 검색 */}
+          <div className="relative max-w-sm">
+            <input
+              type="text"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              placeholder="이름으로 찾기..."
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+            {nameSearch && (
+              <button
+                onClick={() => setNameSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {nameSearch && (
+            <p className="mt-1.5 text-xs text-gray-500">
+              &quot;{nameSearch}&quot; 검색 결과: {sortedStudents.length}명
+            </p>
+          )}
         </div>
 
         {students.length === 0 ? (
@@ -390,9 +421,9 @@ export default function AdminStudentsPage() {
                           />
                         </td>
                         <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
+                          <Link href={`/admin/students/${student.id}`} className="text-sm font-medium text-blue-600 hover:underline">
                             {student.name || "이름 미입력"}
-                          </div>
+                          </Link>
                         </td>
                         <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">

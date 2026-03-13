@@ -48,11 +48,10 @@ export default function AdminLessonsPage() {
   const [unassignedUsers, setUnassignedUsers] = useState<UnassignedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<LessonCategory | "전체">("전체");
-  const [sortBy, setSortBy] = useState<"remaining" | "name" | "date">("name");
+  const [sortBy, setSortBy] = useState<"name" | "date">("name");
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
   const [lessonHistory, setLessonHistory] = useState<LessonHistoryItem[]>([]);
-  const [allLessonHistory, setAllLessonHistory] = useState<LessonHistoryItem[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [viewDate, setViewDate] = useState(() => new Date());
   
@@ -136,7 +135,7 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      await Promise.all([loadLessons(), loadUnassignedUsers(), loadAllLessonHistory()]);
+      await Promise.all([loadLessons(), loadUnassignedUsers()]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -309,104 +308,6 @@ export default function AdminLessonsPage() {
     }
   }
 
-  async function loadAllLessonHistory() {
-    try {
-      const { data, error } = await supabase
-        .from("lesson_history")
-        .select(`
-          id,
-          lesson_id,
-          session_number,
-          completed_date,
-          status,
-          lessons (
-            category,
-            user_id,
-            profiles (
-              name,
-              role
-            )
-          )
-        `)
-        .order("session_number", { ascending: true });
-
-      if (error || !data) {
-        setAllLessonHistory([]);
-        return;
-      }
-
-      const formatted = data
-        .filter((item: any) => item.lessons?.profiles?.role === "user")
-        .map((item: any) => ({
-          id: item.id,
-          lesson_id: item.lesson_id,
-          session_number: item.session_number,
-          completed_date: item.completed_date,
-          student_name: item.lessons?.profiles?.name || "Unknown",
-          category: item.lessons?.category || "성인개인",
-          status: item.status ?? null,
-        }));
-
-      setAllLessonHistory(formatted);
-    } catch (error) {
-      console.error("Error loading all lesson history:", error);
-      setAllLessonHistory([]);
-    }
-  }
-
-  async function handleCheckIn(lessonId: string) {
-    try {
-      const lesson = lessons.find(l => l.id === lessonId);
-      if (!lesson || lesson.current_session >= 4) return;
-
-      const newSession = lesson.current_session + 1;
-
-      // Step 1: Update session count
-      const { error } = await supabase
-        .from("lessons")
-        .update({ current_session: newSession })
-        .eq("id", lessonId);
-
-      if (error) throw error;
-
-      // Step 2: Insert history record with KST date (avoid UTC timezone bug)
-      const todayDate = getTodayKST();
-      console.log("📝 Inserting history record:", { 
-        lesson_id: lessonId, 
-        session_number: newSession,
-        completed_date: todayDate 
-      });
-
-      const { data: insertedData, error: historyError } = await supabase
-        .from("lesson_history")
-        .insert({
-          lesson_id: lessonId,
-          session_number: newSession,
-          completed_date: todayDate,
-          user_id: lesson.user_id,
-          status: "출석",
-        })
-        .select();
-
-      if (historyError) {
-        console.error("❌ History insert error:", historyError);
-        console.error("Error details:", JSON.stringify(historyError, null, 2));
-      } else {
-        console.log("✅ History inserted successfully:", insertedData);
-      }
-
-      // Step 3: Refresh data
-      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
-
-      if (newSession === 4) {
-        alert(`🎉 ${lesson.student_name}님의 4회 수업이 모두 완료되었습니다!`);
-      }
-    } catch (error) {
-      console.error("Check-in error:", error);
-      alert("출석 체크 중 오류가 발생했습니다.");
-    }
-  }
-
   async function handleDeleteLessonHistory(historyId: string, lessonId: string) {
     if (!window.confirm("정말 이 수업 일정을 삭제하시겠습니까?")) {
       return;
@@ -436,7 +337,7 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory()]);
       const remaining = selectedDateLessons.filter((s) => s.id !== historyId);
       setSelectedDateLessons(remaining);
       if (remaining.length === 0) {
@@ -446,65 +347,6 @@ export default function AdminLessonsPage() {
     } catch (error) {
       console.error("Delete lesson history error:", error);
       alert("삭제 중 오류가 발생했습니다.");
-    }
-  }
-
-  async function handleUndoSession(lessonId: string) {
-    try {
-      const lesson = lessons.find(l => l.id === lessonId);
-      if (!lesson || lesson.current_session <= 0) return;
-
-      if (!confirm(`${lesson.student_name}님의 마지막 수업을 취소하시겠습니까?`)) {
-        return;
-      }
-
-      // Step 1: Find the actual latest record by session_number DESC (robust to gaps)
-      const { data: latestRecord, error: fetchError } = await supabase
-        .from("lesson_history")
-        .select("id, session_number")
-        .eq("lesson_id", lessonId)
-        .order("session_number", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (latestRecord) {
-        const { error: deleteError } = await supabase
-          .from("lesson_history")
-          .delete()
-          .eq("id", latestRecord.id);
-
-        if (deleteError) throw deleteError;
-      }
-
-      // Step 2: Re-count attendance records only (session_number > 0)
-      const { count, error: countError } = await supabase
-        .from("lesson_history")
-        .select("*", { count: "exact", head: true })
-        .eq("lesson_id", lessonId)
-        .gt("session_number", 0);
-
-      if (countError) throw countError;
-
-      const syncedSession = count ?? 0;
-      const { error } = await supabase
-        .from("lessons")
-        .update({ current_session: syncedSession })
-        .eq("id", lessonId);
-
-      if (error) throw error;
-
-      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
-      const remainingSessions = latestRecord
-        ? selectedDateLessons.filter((s) => s.id !== latestRecord.id)
-        : selectedDateLessons;
-      setSelectedDateLessons(remainingSessions);
-      if (remainingSessions.length === 0) closeDetailModal();
-      alert("✅ 마지막 수업이 취소되었습니다.");
-    } catch (error) {
-      console.error("Undo error:", error);
-      alert("취소 중 오류가 발생했습니다.");
     }
   }
 
@@ -524,22 +366,11 @@ export default function AdminLessonsPage() {
         .update({ current_session: 0 })
         .neq("id", "00000000-0000-0000-0000-000000000000");
 
-      await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory()]);
       alert("✅ 캘린더가 리셋되었습니다.");
     } catch (error) {
       console.error("Reset calendar error:", error);
       alert("캘린더 리셋 중 오류가 발생했습니다.");
-    }
-  }
-
-  async function handleRequestPayment(lesson: Lesson) {
-    const message = `안녕하세요 ${lesson.student_name}님, 김포국악원입니다.\n\n${lesson.category} 수업 4회차가 모두 완료되었습니다.\n\n다음 기수 수강을 원하시면 수강료 입금 후 연락 주세요.\n\n감사합니다.`;
-    
-    try {
-      await navigator.clipboard.writeText(message);
-      alert(`✅ 메시지가 클립보드에 복사되었습니다.\n\n카카오톡으로 전송하세요.`);
-    } catch (error) {
-      alert(message);
     }
   }
 
@@ -780,46 +611,6 @@ export default function AdminLessonsPage() {
       )
     : unassignedUsers;
 
-  async function handleRenewLesson(lessonId: string) {
-    if (!confirm("수업을 갱신하시겠습니까?\n\n이전 수강 기록은 보존되고 새로운 4회 수업이 시작됩니다.")) {
-      return;
-    }
-
-    try {
-      // Find the current lesson from state to copy fields into the new row
-      const currentLesson = lessons.find((l) => l.id === lessonId);
-      if (!currentLesson) throw new Error("수업 정보를 찾을 수 없습니다.");
-
-      // Step 1: Archive the current lesson (preserves all lesson_history records)
-      const { error: archiveError } = await supabase
-        .from("lessons")
-        .update({ is_active: false })
-        .eq("id", lessonId);
-
-      if (archiveError) throw archiveError;
-
-      // Step 2: Insert a brand-new lesson row for the next 4-session cycle
-      const { error: insertError } = await supabase
-        .from("lessons")
-        .insert({
-          user_id: currentLesson.user_id,
-          category: currentLesson.category,
-          current_session: 0,
-          tuition_amount: currentLesson.tuition_amount,
-          payment_date: getTodayKST(),
-          is_active: true,
-        });
-
-      if (insertError) throw insertError;
-
-      await Promise.all([loadLessons(), loadUnassignedUsers(), loadLessonHistory(), loadAllLessonHistory()]);
-      alert("✅ 수업이 갱신되었습니다. 새로운 4회 수업이 시작됩니다.");
-    } catch (error) {
-      console.error("Renew error:", error);
-      alert("수업 갱신 중 오류가 발생했습니다.");
-    }
-  }
-
   async function handleConfirmGroupPayment(lessonId: string) {
     // Prevent double-click
     if (confirmingPayment === lessonId) return;
@@ -899,83 +690,37 @@ export default function AdminLessonsPage() {
     const lessonId = selectedLessonForAdd.id;
     const userId = selectedLessonForAdd.user_id;
     const studentName = selectedLessonForAdd.student_name;
-    const isGroupClass = selectedLessonForAdd.category.includes("단체");
 
     try {
-      if (isGroupClass) {
-        // Group class: insert payment record, update payment_date, do NOT touch current_session
-        const { error: historyError } = await supabase
-          .from("lesson_history")
-          .insert({
-            lesson_id: lessonId,
-            session_number: 0,
-            completed_date: selectedDateForAdd,
-            user_id: userId,
-            status: "결제 완료",
-          });
+      // 모든 수업(개인/단체 동일): 납부 기록 등록
+      const { error: historyError } = await supabase
+        .from("lesson_history")
+        .insert({
+          lesson_id: lessonId,
+          session_number: 0,
+          completed_date: selectedDateForAdd,
+          user_id: userId,
+          status: "결제 완료",
+        });
 
-        if (historyError) {
-          console.error("Supabase Insert Error:", historyError);
-          throw historyError;
-        }
-
-        const { error: updateError } = await supabase
-          .from("lessons")
-          .update({ payment_date: selectedDateForAdd })
-          .eq("id", lessonId);
-
-        if (updateError) throw updateError;
-
-        await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
-        closeAddLessonByDateModal();
-        alert(`✅ ${studentName}님의 납부가 ${selectedDateForAdd}로 등록되었습니다.`);
-      } else {
-        // Private class: existing attendance logic
-        const { data: freshLesson, error: fetchError } = await supabase
-          .from("lessons")
-          .select("current_session")
-          .eq("id", lessonId)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        const freshSession = freshLesson.current_session ?? 0;
-        if (freshSession >= 4) {
-          alert("이미 4회차가 완료된 수강생입니다. 수강료 갱신 후 진행해주세요.");
-          return;
-        }
-
-        const newSession = freshSession + 1;
-
-        const { error } = await supabase
-          .from("lessons")
-          .update({ current_session: newSession })
-          .eq("id", lessonId);
-
-        if (error) throw error;
-
-        const { error: historyError } = await supabase
-          .from("lesson_history")
-          .insert({
-            lesson_id: lessonId,
-            session_number: newSession,
-            completed_date: selectedDateForAdd,
-            user_id: userId,
-            status: "출석",
-          });
-
-        if (historyError) {
-          console.error("Supabase Insert Error:", historyError);
-          throw historyError;
-        }
-
-        await Promise.all([loadLessons(), loadLessonHistory(), loadAllLessonHistory()]);
-        closeAddLessonByDateModal();
-        alert(`✅ ${studentName}님의 수업이 ${selectedDateForAdd}로 기록되었습니다.`);
+      if (historyError) {
+        console.error("Supabase Insert Error:", historyError);
+        throw historyError;
       }
+
+      const { error: updateError } = await supabase
+        .from("lessons")
+        .update({ payment_date: selectedDateForAdd })
+        .eq("id", lessonId);
+
+      if (updateError) throw updateError;
+
+      await Promise.all([loadLessons(), loadLessonHistory()]);
+      closeAddLessonByDateModal();
+      alert(`✅ ${studentName}님의 납부가 ${selectedDateForAdd}로 등록되었습니다.`);
     } catch (error: any) {
       console.error("Supabase Insert Error:", error);
-      alert("수업 기록 중 오류가 발생했습니다.");
+      alert("납부 기록 중 오류가 발생했습니다.");
     }
   }
 
@@ -1004,9 +749,7 @@ export default function AdminLessonsPage() {
       return categories.includes(selectedCategory);
     })
     .sort((a, b) => {
-      if (sortBy === "remaining") {
-        return (4 - a.current_session) - (4 - b.current_session);
-      } else if (sortBy === "name") {
+      if (sortBy === "name") {
         return a.student_name.localeCompare(b.student_name, "ko-KR");
       } else if (sortBy === "date") {
         const dateA = a.payment_date ? new Date(a.payment_date).getTime() : 0;
@@ -1076,7 +819,7 @@ export default function AdminLessonsPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">수업 관리</h1>
               <p className="text-sm text-gray-600 mt-1">
-                4회 단위 출석 체크 및 갱신 관리
+                월별 결제 상태(미납부/납부완료) 및 결제일 관리
               </p>
             </div>
             <div className="flex gap-2">
@@ -1155,7 +898,6 @@ export default function AdminLessonsPage() {
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="remaining">남은 횟수순</option>
                 <option value="name">이름순</option>
                 <option value="date">결제일순</option>
               </select>
@@ -1164,30 +906,31 @@ export default function AdminLessonsPage() {
         </div>
 
         {/* Stats */}
-        {activeFilter === "active" && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-xs text-gray-600 mb-1">전체 수강생</p>
-              <p className="text-2xl font-bold text-gray-900">{displayLessons.length}</p>
+        {activeFilter === "active" && (() => {
+          const todayStr = getTodayKST();
+          const currentMonthStr = todayStr.substring(0, 7);
+          const paidCount = displayLessons.filter(l => l.payment_date && l.payment_date.substring(0, 7) === currentMonthStr).length;
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-600 mb-1">전체 수강생</p>
+                <p className="text-2xl font-bold text-gray-900">{displayLessons.length}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-600 mb-1">이번 달 납부완료</p>
+                <p className="text-2xl font-bold text-green-600">{paidCount}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-600 mb-1">미납부</p>
+                <p className="text-2xl font-bold text-red-600">{displayLessons.length - paidCount}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-600 mb-1">미등록 회원</p>
+                <p className="text-2xl font-bold text-purple-600">{unassignedUsers.length}</p>
+              </div>
             </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-xs text-gray-600 mb-1">갱신 필요</p>
-              <p className="text-2xl font-bold text-red-600">
-                {displayLessons.filter(l => l.current_session === 4).length}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-xs text-gray-600 mb-1">진행 중</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {displayLessons.filter(l => l.current_session > 0 && l.current_session < 4).length}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-xs text-gray-600 mb-1">미등록 회원</p>
-              <p className="text-2xl font-bold text-purple-600">{unassignedUsers.length}</p>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Calendar View */}
         {showCalendar && calendarData && (
@@ -1293,7 +1036,7 @@ export default function AdminLessonsPage() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">카테고리</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">진도</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">결제 상태</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">수강료</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">결제일</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">관리</th>
@@ -1301,15 +1044,12 @@ export default function AdminLessonsPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredLessons.map((lesson) => {
-                    const remaining = 4 - lesson.current_session;
-                    const needsRenewal = lesson.current_session === 4;
-                    const isGroupClass = lesson.category.includes('단체');
                     const todayKST = getTodayKST();
                     const currentMonthStr = todayKST.substring(0, 7);
-                    const isGroupPaidThisMonth = isGroupClass && lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
+                    const isPaidThisMonth = lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
 
                     return (
-                      <tr key={lesson.id} className={`hover:bg-gray-50 ${needsRenewal && !isGroupClass ? "bg-red-50" : ""}`}>
+                      <tr key={lesson.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link href={`/admin/students/${lesson.user_id}`} className="text-sm font-medium text-blue-600 hover:underline">
                             {lesson.student_name}
@@ -1362,50 +1102,26 @@ export default function AdminLessonsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          {isGroupClass ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 w-fit">
-                                월정액
+                          <div className="flex flex-col gap-1">
+                            {isPaidThisMonth ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 w-fit">
+                                ✓ 납부완료
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => openPaymentHistoryModal(lesson)}
-                                className="text-xs text-gray-400 whitespace-nowrap hover:text-purple-600 hover:underline cursor-pointer text-left"
-                              >
-                                {lesson.payment_date
-                                  ? `최근 납부: ${lesson.payment_date.substring(0, 7).replace('-', '년 ')}월`
-                                  : "납부 이력 보기"}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm font-bold ${
-                                  needsRenewal ? "text-red-600" :
-                                  remaining <= 1 ? "text-orange-600" : "text-green-600"
-                                }`}>
-                                  {lesson.current_session}/4
-                                </span>
-                                {!needsRenewal && (
-                                  <span className="text-xs text-gray-500">({remaining}회 남음)</span>
-                                )}
-                              </div>
-                              {allLessonHistory
-                                .filter(h => h.lesson_id === lesson.id)
-                                .sort((a, b) => a.session_number - b.session_number)
-                                .map(h => {
-                                  const [yr, mo, dy] = h.completed_date.split('-');
-                                  const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
-                                  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                                  const dayName = dayNames[d.getDay()];
-                                  return (
-                                    <span key={h.id} className="text-xs text-gray-400 whitespace-nowrap">
-                                      {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
-                                    </span>
-                                  );
-                                })}
-                            </div>
-                          )}
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 w-fit">
+                                미납부
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openPaymentHistoryModal(lesson)}
+                              className="text-xs text-gray-400 whitespace-nowrap hover:text-purple-600 hover:underline cursor-pointer text-left"
+                            >
+                              {lesson.payment_date
+                                ? `최근: ${lesson.payment_date.substring(0, 7).replace('-', '년 ')}월`
+                                : "납부 이력 보기"}
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {editingTuition === lesson.id ? (
@@ -1502,51 +1218,18 @@ export default function AdminLessonsPage() {
                                 🗑️ 삭제
                               </button>
                             </div>
-                          ) : isGroupClass ? (
+                          ) : (
                             <button
                               onClick={() => handleConfirmGroupPayment(lesson.id)}
                               disabled={confirmingPayment === lesson.id}
                               className={`px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-50 ${
-                                isGroupPaidThisMonth
+                                isPaidThisMonth
                                   ? "bg-gray-100 text-gray-500"
                                   : "bg-purple-600 text-white hover:bg-purple-700"
                               }`}
                             >
-                              {isGroupPaidThisMonth ? "✓ 납부완료" : "💰 이번 달 입금 확인"}
+                              {isPaidThisMonth ? "✓ 납부완료" : "💰 이번 달 입금 확인"}
                             </button>
-                          ) : needsRenewal ? (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => handleRequestPayment(lesson)}
-                                className="px-3 py-1.5 bg-yellow-400 text-gray-900 rounded hover:bg-yellow-500 transition-colors text-xs font-bold"
-                              >
-                                💬
-                              </button>
-                              <button
-                                onClick={() => handleRenewLesson(lesson.id)}
-                                className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs font-medium"
-                              >
-                                🔄
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end gap-1">
-                              <button
-                                onClick={() => handleCheckIn(lesson.id)}
-                                className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs font-medium"
-                              >
-                                ✅
-                              </button>
-                              {lesson.current_session > 0 && (
-                                <button
-                                  onClick={() => handleUndoSession(lesson.id)}
-                                  className="px-2 py-1.5 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors text-xs font-medium"
-                                  title="직전 취소"
-                                >
-                                  ↩️
-                                </button>
-                              )}
-                            </div>
                           )}
                         </td>
                       </tr>
@@ -1559,15 +1242,12 @@ export default function AdminLessonsPage() {
             {/* Mobile: Card View */}
             <div className="md:hidden divide-y divide-gray-200">
               {filteredLessons.map((lesson) => {
-                const remaining = 4 - lesson.current_session;
-                const needsRenewal = lesson.current_session === 4;
-                const isGroupClass = lesson.category.includes('단체');
                 const todayKST = getTodayKST();
                 const currentMonthStr = todayKST.substring(0, 7);
-                const isGroupPaidThisMonth = isGroupClass && lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
+                const isPaidThisMonth = lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
 
                 return (
-                  <div key={lesson.id} className={`p-4 ${needsRenewal && !isGroupClass ? "bg-red-50" : ""}`}>
+                  <div key={lesson.id} className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <Link href={`/admin/students/${lesson.user_id}`} className="font-bold text-blue-600 hover:underline">
@@ -1618,45 +1298,24 @@ export default function AdminLessonsPage() {
                         )}
                       </div>
                       <div className="text-right ml-2 flex-shrink-0">
-                        {isGroupClass ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              월정액
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => openPaymentHistoryModal(lesson)}
-                              className="text-xs text-gray-400 hover:text-purple-600 hover:underline cursor-pointer"
-                            >
-                              {lesson.payment_date
-                                ? `최근: ${lesson.payment_date.substring(0, 7).replace('-', '년 ')}월`
-                                : "납부 이력 보기"}
-                            </button>
-                          </div>
+                        {isPaidThisMonth ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            ✓ 납부완료
+                          </span>
                         ) : (
-                          <>
-                            <span className={`text-lg font-bold ${
-                              needsRenewal ? "text-red-600" :
-                              remaining <= 1 ? "text-orange-600" : "text-green-600"
-                            }`}>
-                              {lesson.current_session}/4
-                            </span>
-                            {allLessonHistory
-                              .filter(h => h.lesson_id === lesson.id)
-                              .sort((a, b) => a.session_number - b.session_number)
-                              .map(h => {
-                                const [yr, mo, dy] = h.completed_date.split('-');
-                                const d = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy));
-                                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                                const dayName = dayNames[d.getDay()];
-                                return (
-                                  <div key={h.id} className="text-xs text-gray-400 text-right">
-                                    {h.session_number}회: {yr.slice(-2)}.{mo}.{dy}({dayName})
-                                  </div>
-                                );
-                              })}
-                          </>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            미납부
+                          </span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => openPaymentHistoryModal(lesson)}
+                          className="block mt-1 text-xs text-gray-400 hover:text-purple-600 hover:underline cursor-pointer text-right"
+                        >
+                          {lesson.payment_date
+                            ? `최근: ${lesson.payment_date.substring(0, 7).replace('-', '년 ')}월`
+                            : "납부 이력"}
+                        </button>
                       </div>
                     </div>
 
@@ -1715,50 +1374,18 @@ export default function AdminLessonsPage() {
                             🗑️ 삭제
                           </button>
                         </>
-                      ) : isGroupClass ? (
+                      ) : (
                         <button
                           onClick={() => handleConfirmGroupPayment(lesson.id)}
                           disabled={confirmingPayment === lesson.id}
                           className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                            isGroupPaidThisMonth
+                            isPaidThisMonth
                               ? "bg-gray-100 text-gray-500"
                               : "bg-purple-600 text-white hover:bg-purple-700"
                           }`}
                         >
-                          {isGroupPaidThisMonth ? "✓ 이번 달 납부완료" : "💰 이번 달 입금 확인"}
+                          {isPaidThisMonth ? "✓ 이번 달 납부완료" : "💰 이번 달 입금 확인"}
                         </button>
-                      ) : needsRenewal ? (
-                        <>
-                          <button
-                            onClick={() => handleRequestPayment(lesson)}
-                            className="flex-1 px-3 py-2 bg-yellow-400 text-gray-900 rounded-lg hover:bg-yellow-500 transition-colors text-xs font-bold"
-                          >
-                            💬 안내
-                          </button>
-                          <button
-                            onClick={() => handleRenewLesson(lesson.id)}
-                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
-                          >
-                            🔄 갱신
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleCheckIn(lesson.id)}
-                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                          >
-                            ✅ 수업 완료
-                          </button>
-                          {lesson.current_session > 0 && (
-                            <button
-                              onClick={() => handleUndoSession(lesson.id)}
-                              className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-medium"
-                            >
-                              ↩️ 취소
-                            </button>
-                          )}
-                        </>
                       )}
                     </div>
                   </div>
@@ -1949,19 +1576,17 @@ export default function AdminLessonsPage() {
                 >
                   <option value="">-- 수강생 선택 --</option>
                   {lessons
-                    .filter((l) => l.is_active && (l.category.includes("단체") || l.current_session < 4))
+                    .filter((l) => l.is_active)
                     .sort((a, b) => a.student_name.localeCompare(b.student_name, "ko"))
                     .map((l) => (
                       <option key={l.id} value={l.id}>
-                        {l.category.includes("단체")
-                          ? `${l.student_name} (단체) - 납부 등록`
-                          : `${l.student_name} (개인) - ${l.current_session}/4회`}
+                        {`${l.student_name} (${l.category}) - 납부 등록`}
                       </option>
                     ))}
                 </select>
-                {lessons.filter((l) => l.is_active && (l.category.includes("단체") || l.current_session < 4)).length === 0 && (
+                {lessons.filter((l) => l.is_active).length === 0 && (
                   <p className="text-xs text-amber-600 mt-2">
-                    수업 추가 가능한 수강생이 없습니다. (4회차 완료 또는 수업 중인 회원만)
+                    납부 등록 가능한 수강생이 없습니다.
                   </p>
                 )}
               </div>
@@ -2175,13 +1800,13 @@ export default function AdminLessonsPage() {
         )}
 
         {/* Info Section */}
-        <div className="mt-8 p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
-          <h3 className="text-sm font-bold text-yellow-900 mb-2">💬 카톡 전송 안내</h3>
-          <ul className="text-xs text-yellow-800 space-y-1">
-            <li>• 갱신 필요 시 "💬" 버튼으로 메시지를 클립보드에 복사할 수 있습니다</li>
-            <li>• "🔄 갱신" 버튼으로 진도를 0/4로 초기화하고 새 결제일을 기록합니다</li>
-            <li>• "↩️ 취소" 버튼으로 직전 수업을 취소할 수 있습니다</li>
-            <li>• 수강료 금액을 클릭하면 바로 수정할 수 있습니다</li>
+        <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+          <h3 className="text-sm font-bold text-blue-900 mb-2">💡 결제 관리 안내</h3>
+          <ul className="text-xs text-blue-800 space-y-1">
+            <li>• 개인반·단체반 모두 동일하게 월별 결제 상태(미납부/납부완료)를 관리합니다</li>
+            <li>• "💰 이번 달 입금 확인" 버튼으로 해당 월 납부를 기록합니다</li>
+            <li>• 수강료 금액·결제일을 클릭하면 바로 수정할 수 있습니다</li>
+            <li>• 납부 이력은 캘린더에서 날짜를 클릭하거나 "납부 이력" 링크로 확인하세요</li>
             <li>• 수업 종료는 [회원관리] 페이지에서 할 수 있습니다</li>
           </ul>
         </div>
