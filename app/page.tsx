@@ -55,7 +55,7 @@ export default function HomePage() {
       {/* Hero: 서브 설명 */}
       <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
         전통 민요의 흥겨움부터 클래식 성악의 깊은 발성까지.<br />
-        어린이 국악 체험부터 전공자 1:1 레슨을 한곳에서 만납니다.
+        어린이 국악 체험부터 전공자 레슨을 한곳에서 만납니다.
       </p>
 
       {/* Hero: CTA 버튼 */}
@@ -137,7 +137,7 @@ export default function HomePage() {
           공연과 섭외 문의도 언제든 환영합니다.
         </p>
         <p className="font-medium text-lg pt-4">
-          전통을 제대로, 그리고 따뜻하게 배우고 싶으신가요?
+          전통을 제대로, 따뜻하게 배우고 싶으신가요?
           <br className="sm:hidden" /> 김포국악원에서 시작해보세요.
         </p>
       </div>
