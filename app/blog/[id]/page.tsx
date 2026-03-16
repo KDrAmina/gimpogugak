@@ -13,7 +13,7 @@ import BlogContent from "@/components/BlogContent";
 import ViewTracker from "@/components/ViewTracker";
 import BlogContactSection from "@/components/BlogContactSection";
 
-export const revalidate = 60;
+export const revalidate = 86400;
 export const dynamicParams = true;
 
 const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords, category";

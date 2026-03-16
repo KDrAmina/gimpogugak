@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.1",
+    date: "2026-03-16",
+    changes: [
+      "[성능] ISR 재생성 주기 대폭 연장: Vercel ISR Writes 사용량 초과(1.2M/200K 한도) 해소.",
+      "[활동 갤러리] revalidate 60초 → 86400초(24시간)으로 변경.",
+      "[블로그 목록] revalidate 60초 → 3600초(1시간)으로 변경.",
+      "[블로그 상세] revalidate 60초 → 86400초(24시간)으로 변경.",
+    ],
+  },
+  {
     version: "4.0",
     date: "2026-03-13",
     changes: [

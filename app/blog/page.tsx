@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import BlogListClient from "@/components/BlogListClient";
 
 export const dynamic = "force-static";
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "국악원 소식 블로그 | 김포국악원",
