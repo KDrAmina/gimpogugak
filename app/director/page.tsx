@@ -4,7 +4,7 @@ import { ProfilePhoto } from "../Song-Ri-Gyel/ProfilePhoto";
 export const metadata: Metadata = {
   title: "원장 소개 | 김포국악원 (Gimpo Gugak Center)",
   description:
-    "황해도무형문화재 제3호 놀량사거리 이수자, 김포국악원 원장의 주요 경력 및 수상 내역입니다.",
+    "무형문화재 제3호 놀량사거리 이수자, 김포국악원 원장의 주요 경력 및 수상 내역입니다.",
 };
 
 export default function DirectorPage() {
@@ -12,7 +12,7 @@ export default function DirectorPage() {
     "@context": "https://schema.org",
     "@type": "Person",
     name: "송리결",
-    jobTitle: "황해도무형문화재 제3호 놀량사거리 이수자",
+    jobTitle: "무형문화재 제3호 놀량사거리 이수자",
     affiliation: {
       "@type": "EducationalOrganization",
       name: "김포국악원",
@@ -22,7 +22,7 @@ export default function DirectorPage() {
       name: "백석예술대학교 음악학부 국악과 (서도민요 전공)",
     },
     credential: [
-      "황해도무형문화재 제3호 놀량사거리 이수자 (2017)",
+      "무형문화재 제3호 놀량사거리 이수자 (2017)",
       "국가문화유산 서도민요 전수자 (2024)",
       "국가문화유산 경기민요 전수자 (2024)",
       "문화예술교육사 2급 (2024)",
@@ -52,7 +52,7 @@ export default function DirectorPage() {
             </span>
           </h1>
           <p className="text-lg text-gray-900 font-medium">
-            황해도무형문화재 제3호 놀량사거리 이수자
+            무형문화재 제3호 놀량사거리 이수자
           </p>
           <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-500">
             <a
@@ -94,7 +94,7 @@ export default function DirectorPage() {
             <Row year="" content="국가문화유산 서도민요 전수자 자격증" detail="국가무형유산 서도민요" />
             <Row year="" content="문화예술교육사 2급" detail="한국문화예술교육진흥원" />
             <Row year="" content="중등학교 정교사(2급) 실기교사" detail="교육부 장관" />
-            <Row year="" content="황해도무형문화재 제3호 놀량사거리 이수자" detail="황해도지사 인정" highlight />
+            <Row year="" content="무형문화재 제3호 놀량사거리 이수자" detail="황해도지사 인정" highlight />
             <Row year="" content="아동국악교육지도사 1급" detail="한국아동국악교육협회" />
             <Row year="" content="효 국악 1급 지도사" detail="성산효대학원대학교" />
           </tbody>

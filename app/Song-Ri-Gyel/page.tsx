@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { ProfilePhoto } from "./ProfilePhoto";
 
 export const metadata: Metadata = {
-  title: "송리결 (Song Ri-Gyel) | 황해도무형문화재 제3호 이수자",
+  title: "송리결 (Song Ri-Gyel) | 무형문화재 제3호 이수자",
   description:
-    "김포국악원 송리결 원장 프로필. 황해도무형문화재 제3호 놀량사거리 이수자, 국가무형유산 서도/경기민요 전수자.",
+    "김포국악원 송리결 원장 프로필. 무형문화재 제3호 놀량사거리 이수자, 국가무형유산 서도/경기민요 전수자.",
   openGraph: {
     title: "송리결 (Song Ri-Gyel) | 김포국악원 원장",
     description: "전통의 깊이를 전하는 소리꾼, 송리결입니다.",
@@ -51,7 +51,7 @@ export default function ProfilePage() {
             </span>
           </h1>
           <p className="text-lg text-gray-900 font-medium">
-            김포국악원 원장 / 황해도무형문화재 제3호 놀량사거리 이수자
+            김포국악원 원장 / 무형문화재 제3호 놀량사거리 이수자
           </p>
           <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-500">
             <a
@@ -89,7 +89,7 @@ export default function ProfilePage() {
           <Row year="" content="국가문화유산 서도민요 전수자" detail="국가무형유산" />
           <Row year="" content="문화예술교육사 2급" detail="한국문화예술교육진흥원" />
           <Row year="" content="음악 실기교사 교원자격증" detail="교육부 장관" />
-          <Row year="" content="황해도무형문화재 제3호 놀량사거리 이수자" detail="황해도지사 인정" highlight />
+          <Row year="" content="무형문화재 제3호 놀량사거리 이수자" detail="황해도지사 인정" highlight />
           <Row year="" content="아동국악교육지도사 1급" detail="한국아동국악교육협회" />
           <Row year="" content="효 국악 1급 지도사" detail="성산효대학원대학교" />
         </div>

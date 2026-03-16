@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     template: "%s | 김포국악원",
   },
   description:
-    "황해도무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 이끄는 김포국악학원. 장기동·사우동·고촌읍 인근. 민요교실·성악발성·장구·진로체험 운영.",
+    "무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 이끄는 김포국악학원. 장기동·사우동·고촌읍 인근. 민요교실·성악발성·장구·진로체험 운영.",
   keywords: [
     "김포국악원",
     "김포국악학원",
@@ -124,7 +124,7 @@ const jsonLd = {
   "name": "김포국악원",
   "alternateName": ["Gimpo Gugak Center", "김포 국악원"],
   "url": siteUrl,
-  "description": "황해도무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 함께 운영하는 김포 국악 교육 전문 기관. 장기동·사우동·고촌읍 인근.",
+  "description": "무형문화재 제3호 놀량사거리 이수자 원장과 한양대 성악 전공 부원장이 함께 운영하는 김포 국악 교육 전문 기관. 장기동·사우동·고촌읍 인근.",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "모담공원로 170-14",
@@ -182,7 +182,7 @@ export default function RootLayout({
               name: "김포국악원",
               alternateName: "Gimpo Gugak Center",
               url: siteUrl,
-              description: "경기 김포시 국악 교육원. 황해도무형문화재 제3호 놀량사거리 이수자 직강.",
+              description: "경기 김포시 국악 교육원. 무형문화재 제3호 놀량사거리 이수자 직강.",
               inLanguage: "ko-KR",
               publisher: { "@type": "Organization", name: "김포국악원", url: siteUrl },
             }),

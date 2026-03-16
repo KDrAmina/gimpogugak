@@ -104,7 +104,7 @@ export default function HomePage() {
         <p>
           김포국악원은{" "}
           <Link href="/Song-Ri-Gyel" className="text-[#111] underline hover:no-underline font-medium">
-            황해도무형문화재 제3호 놀량사거리 이수자이신 원장님
+            무형문화재 제3호 놀량사거리 이수자이신 원장님
           </Link>
           과{" "}
           <Link href="/Park-Jun-Yeol" className="text-[#111] underline hover:no-underline font-medium">

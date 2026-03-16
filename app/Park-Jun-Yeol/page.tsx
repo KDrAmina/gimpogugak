@@ -6,7 +6,7 @@ const COLUMN_URL = "https://www.igimpo.com/news/articleView.html?idxno=90054";
 export const metadata: Metadata = {
   title: "박준열 (Jun Yeol Park) | 김포국악원 부원장",
   description:
-    "김포국악원 박준열 부원장. 한양대 성악과 졸업, 황해도무형문화재 제3호 놀량사거리 전수자. 김포신문 '두 개의 목소리가 만나는 음악 시간' 칼럼 연재.",
+    "김포국악원 박준열 부원장. 한양대 성악과 졸업, 무형문화재 제3호 놀량사거리 전수자. 김포신문 '두 개의 목소리가 만나는 음악 시간' 칼럼 연재.",
   openGraph: {
     title: "박준열 (Jun Yeol Park) | 김포국악원 부원장",
     description: "성악과 민요를 넘나드는 음악 교육자, 박준열입니다.",
@@ -60,7 +60,7 @@ export default function ProfilePage() {
             </span>
           </h1>
           <p className="text-lg text-gray-900 font-medium">
-            김포국악원 부원장 / 황해도무형문화재 제3호 놀량사거리 전수자
+            김포국악원 부원장 / 무형문화재 제3호 놀량사거리 전수자
           </p>
           <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-sm text-gray-500">
             <a
@@ -77,7 +77,7 @@ export default function ProfilePage() {
       </div>
 
       <p className="mt-6 mb-8 text-gray-600 leading-loose">
-        한양대학교 성악과를 졸업한 뒤 오페라·합창 현장을 거쳐, 황해도무형문화재 제3호 놀량사거리 전수자 및 공연 기획자로 활동하고 있습니다.
+        한양대학교 성악과를 졸업한 뒤 오페라·합창 현장을 거쳐, 무형문화재 제3호 놀량사거리 전수자 및 공연 기획자로 활동하고 있습니다.
         <br />
         김포신문에 &apos;
         <a
@@ -121,7 +121,7 @@ export default function ProfilePage() {
           자격증
         </h2>
         <div className="w-full">
-          <Row year="2025.10.02" content="황해도무형문화재 제3호 놀량사거리 전수자 자격증" detail="황해도지사" highlight />
+          <Row year="2025.10.02" content="무형문화재 제3호 놀량사거리 전수자 자격증" detail="황해도지사" highlight />
           <Row year="2022.04.18" content="혁신창업스쿨 교육사 자격증" detail="창업진흥원장" />
         </div>
       </div>
