@@ -2,8 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import ActivitiesGalleryClient from "./GalleryClient";
 
-// ISR: 24시간마다 재생성 (활동 갤러리는 자주 변경되지 않음)
-export const revalidate = 86400;
+// On-Demand Revalidation 대기 — 갤러리 관리 기능 구현 시 revalidateActivities() 호출 예정
+// 현재는 타이머 없이 무기한 캐시 유지 (빌드 시 정적 생성)
+export const revalidate = false;
 
 // Supabase 연결 (서버 컴포넌트에서 직접 사용)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

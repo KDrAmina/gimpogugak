@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.2",
+    date: "2026-03-16",
+    changes: [
+      "[성능] On-Demand Revalidation 도입: 블로그 글 생성·수정·삭제·공지 토글 시 즉시 ISR 캐시 갱신.",
+      "[성능] 블로그 목록·상세·활동 갤러리 타이머 기반 revalidate 완전 제거(false) — ISR Writes 0에 수렴.",
+      "[내부] app/actions/revalidate.ts Server Action 추가: revalidateBlogList, revalidateBlogPost, revalidateActivities.",
+    ],
+  },
+  {
     version: "4.1",
     date: "2026-03-16",
     changes: [

@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import BlogListClient from "@/components/BlogListClient";
 
 export const dynamic = "force-static";
-export const revalidate = 3600;
+// On-Demand Revalidation으로 관리 — 타이머 자동 갱신 비활성화
+export const revalidate = false;
 
 export const metadata: Metadata = {
   title: "국악원 소식 블로그 | 김포국악원",

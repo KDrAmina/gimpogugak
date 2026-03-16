@@ -8,6 +8,7 @@ import { sanitizeHtml } from "@/lib/html-utils";
 import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
 import { toDatetimeLocalKST, parseDatetimeLocalAsKST } from "@/lib/date-utils";
 import { getBlogPostPath } from "@/lib/blog-utils";
+import { revalidateBlogList, revalidateBlogPost } from "@/app/actions/revalidate";
 
 // ─── TinyMCE ───────────────────────────────────────────────────────────────
 // CDN 방식으로 로딩 (admin 전용 → 공개 번들 영향 없음)
@@ -202,6 +203,10 @@ export default function PostEditor({ editingPost = null }: Props) {
         postPath = getBlogPostPath(payload.slug, data.id);
         alert("✅ 게시글이 등록되었습니다.");
       }
+
+      // On-Demand Revalidation: DB 저장 즉시 ISR 캐시 갱신
+      await revalidateBlogList();
+      await revalidateBlogPost(postPath);
 
       if (publishedAtValue && new Date(publishedAtValue) <= new Date()) {
         fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});

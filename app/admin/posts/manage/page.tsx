@@ -7,6 +7,7 @@ import Link from "next/link";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 import { formatDateKST, formatDateTimeKST } from "@/lib/date-utils";
 import { getBlogPostPath } from "@/lib/blog-utils";
+import { revalidateBlogList, revalidateBlogPost } from "@/app/actions/revalidate";
 
 type Post = {
   id: string;
@@ -106,6 +107,12 @@ export default function AdminPostsManagePage() {
         .eq("id", post.id);
 
       if (error) throw error;
+
+      // On-Demand Revalidation: 삭제 즉시 ISR 캐시 갱신
+      const deletedPath = getBlogPostPath(post.slug ?? null, post.id);
+      await revalidateBlogList();
+      await revalidateBlogPost(deletedPath);
+
       await loadPosts();
       alert("✅ 게시글이 삭제되었습니다.");
     } catch (error) {
@@ -125,6 +132,8 @@ export default function AdminPostsManagePage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === post.id ? { ...p, is_notice: newValue } : p))
       );
+      // On-Demand Revalidation: 공지 설정 변경 시 블로그 목록 갱신
+      await revalidateBlogList();
     } catch (error) {
       console.error("Toggle notice error:", error);
       alert("공지 설정 중 오류가 발생했습니다.");

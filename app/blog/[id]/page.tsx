@@ -13,7 +13,8 @@ import BlogContent from "@/components/BlogContent";
 import ViewTracker from "@/components/ViewTracker";
 import BlogContactSection from "@/components/BlogContactSection";
 
-export const revalidate = 86400;
+// On-Demand Revalidation으로 관리 — 타이머 자동 갱신 비활성화
+export const revalidate = false;
 export const dynamicParams = true;
 
 const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords, category";
