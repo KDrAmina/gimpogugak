@@ -1,0 +1,7608 @@
+{
+  "_meta": {
+    "generated_at": "2026-03-19T04:25:48.831Z",
+    "source_file": "z:/김포국악원/01 행정 및 운영/02 회원관리/회원관리.xlsx",
+    "sheets_parsed": [
+      "23년",
+      "24년",
+      "25년",
+      "26년"
+    ],
+    "total_raw_records": 185,
+    "total_students": 93,
+    "active_count": 35,
+    "inactive_count": 58
+  },
+  "students": [
+    {
+      "profile": {
+        "name": "강서은",
+        "phone": "010-4230-0069",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-03"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-03",
+        "total_paid_만원": 70,
+        "payment_count": 5,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2025-10-28"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2025-12-03",
+          "_split_from": "2025-12 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2026-01-03",
+          "_split_from": "2025-12 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2026-02-04"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 3,
+          "payment_date": "2026-03-03"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "고나은",
+        "phone": "010-4552-3662",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-17"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-17",
+        "total_paid_만원": 240,
+        "payment_count": 12,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2025-03-28"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2025-04-28"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 26,
+          "payment_date": "2025-05-26"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2025-07-07"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2025-08-28"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 16,
+          "payment_date": "2025-09-16"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 6,
+          "payment_date": "2025-10-06"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-11-10"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 8,
+          "payment_date": "2025-12-08"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 8,
+          "payment_date": "2026-01-08"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2026-02-09"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2026-03-17"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "고영숙",
+        "phone": "010-2293-6349",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        },
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-06",
+        "total_paid_만원": 372,
+        "payment_count": 34,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2023-06-17"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2023-07-15"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2023-08-12"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2023-09-09"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2023-10-07"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2023-11-04"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 2,
+          "payment_date": "2023-12-02"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2024-01-02",
+          "_split_from": "2024-01 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2024-02-02",
+          "_split_from": "2024-01 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2024-03-02",
+          "_split_from": "2024-01 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-04-01",
+          "_split_from": "2024-04 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-05-01",
+          "_split_from": "2024-04 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-06-01",
+          "_split_from": "2024-04 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-07-01",
+          "_split_from": "2024-07 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-08-01",
+          "_split_from": "2024-07 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-09-01",
+          "_split_from": "2024-07 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2024-10-02",
+          "_split_from": "2024-10 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2024-11-02",
+          "_split_from": "2024-10 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2024-12-02",
+          "_split_from": "2024-12 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2025-01-02",
+          "_split_from": "2024-12 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2025-02-02",
+          "_split_from": "2024-12 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 4,
+          "payment_date": "2025-03-04",
+          "_split_from": "2025-03 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2025-04-11"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 30,
+          "payment_date": "2025-05-30"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 4,
+          "payment_date": "2025-06-04",
+          "_split_from": "2025-06 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 4,
+          "payment_date": "2025-07-04",
+          "_split_from": "2025-06 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 4,
+          "payment_date": "2025-08-04",
+          "_split_from": "2025-06 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-09-01"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-10-01",
+          "_split_from": "2025-10 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2025-11-06"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-12-05"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2026-01-05"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2026-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2026-03-06"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "고인경",
+        "phone": null,
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "장구",
+          "original_category": "장구",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-03-16"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-03-16",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 16,
+          "payment_date": "2025-03-16"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "공춘희",
+        "phone": "010-9288-9750",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-03-27"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-03-27"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-03-27",
+        "total_paid_만원": 110,
+        "payment_count": 11,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2023-05-24"
+        },
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 21,
+          "payment_date": "2023-06-21"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 31,
+          "payment_date": "2023-07-31"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 16,
+          "payment_date": "2023-08-16"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 13,
+          "payment_date": "2023-09-13"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2023-10-11"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2023-11-08"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2023-12-06"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 31,
+          "payment_date": "2024-01-31",
+          "_split_from": "2024-01 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2024-02-28"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 27,
+          "payment_date": "2024-03-27"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "권영희",
+        "phone": "010-9554-8015",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-07-11"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-07-11",
+        "total_paid_만원": 40,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2025-06-11"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2025-07-11"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "권진영",
+        "phone": "010-7749-6504",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "시창",
+          "original_category": "시창",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-03-22"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-03-22",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 22,
+          "payment_date": "2025-03-22"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "권하윤",
+        "phone": "010-6330-3183",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-06-27"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-06-27",
+        "total_paid_만원": 100,
+        "payment_count": 5,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2025-01-04"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 8,
+          "payment_date": "2025-03-08"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2025-04-05"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 16,
+          "payment_date": "2025-05-16"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 27,
+          "payment_date": "2025-06-27"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김견희",
+        "phone": "010-4446-5630",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-05-31"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-05-31",
+        "total_paid_만원": 60,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2024-03-09"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2024-04-20"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2024-05-31"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김규리",
+        "phone": null,
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 300000,
+          "is_active": true,
+          "payment_date": "2025-09-11"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-09-11",
+        "total_paid_만원": 30,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 30,
+          "payment_day": 11,
+          "payment_date": "2025-09-11"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김다정",
+        "phone": "010-8234-4080",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-11"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-11"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-11"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024,
+          2026
+        ],
+        "last_payment_date": "2026-03-11",
+        "total_paid_만원": 284,
+        "payment_count": 13,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 18,
+          "payment_date": "2023-06-18"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 16,
+          "payment_date": "2023-07-16"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 13,
+          "payment_date": "2023-08-13"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 10,
+          "payment_date": "2023-09-10"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 8,
+          "payment_date": "2023-10-08"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 5,
+          "payment_date": "2023-11-05"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 24,
+          "payment_day": 3,
+          "payment_date": "2023-12-03"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 24,
+          "payment_day": 28,
+          "payment_date": "2024-01-28"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 24,
+          "payment_day": 25,
+          "payment_date": "2024-02-25"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 24,
+          "payment_day": 24,
+          "payment_date": "2024-03-24"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 24,
+          "payment_day": 21,
+          "payment_date": "2024-04-21"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2026-02-11"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2026-03-11"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김라온",
+        "phone": "010-5059-9260",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-10-23"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-10-23",
+        "total_paid_만원": 15,
+        "payment_count": 1,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-10-23"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김명신",
+        "phone": "010-7788-6527",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "장구",
+          "original_category": "장구",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-05-28"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-05-28",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2025-05-28"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김미지",
+        "phone": "010-5417-9612",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-04-24"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-04-24",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 24,
+          "payment_date": "2024-04-24"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김서현",
+        "phone": "010-4338-7108",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-12"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-12",
+        "total_paid_만원": 90,
+        "payment_count": 6,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-06-12"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-07-12"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-08-12"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 15,
+          "payment_date": "2024-09-15"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-10-12"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-11-12"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김아인",
+        "phone": "010-3128-3122",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-12-03"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-12-03"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-12-03",
+        "total_paid_만원": 35,
+        "payment_count": 2,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 27,
+          "payment_date": "2024-10-27"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 3,
+          "payment_date": "2024-12-03"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김용",
+        "phone": "010-5243-1591",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 50000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 50000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 50000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-01",
+        "total_paid_만원": 130,
+        "payment_count": 26,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 2,
+          "payment_date": "2024-01-02"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-02-01"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-03-01"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-05-01"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-06-01"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-08-01"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-09-01"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-10-01"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-11-01"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2024-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-01-01"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-02-01"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-03-01"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-05-01"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-06-01"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-08-01"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-09-01"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-11-01"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2026-01-01"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2026-02-01"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 5,
+          "payment_day": 1,
+          "payment_date": "2026-03-01"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김우준",
+        "phone": "010-9428-8341",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-07-16"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-07-16",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 16,
+          "payment_date": "2024-07-16"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김인애",
+        "phone": "010-2284-9060",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-04-03"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-04-03",
+        "total_paid_만원": 25,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 13,
+          "payment_date": "2024-03-13"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2024-04-03"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김정자",
+        "phone": "010-5554-8733",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-07-18"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-07-18",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 18,
+          "payment_date": "2025-07-18"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김지온",
+        "phone": "010-4632-5166",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-06-01"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-01",
+        "total_paid_만원": 40,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 25,
+          "payment_date": "2024-04-25"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 1,
+          "payment_date": "2024-06-01"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김하윤",
+        "phone": "010-4712-5166",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-01-07"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-01-07"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025
+        ],
+        "last_payment_date": "2025-01-07",
+        "total_paid_만원": 52,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 22,
+          "payment_day": 20,
+          "payment_date": "2024-04-20"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 1,
+          "payment_date": "2024-06-01"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2025-01-07"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김혜숙",
+        "phone": "010-9906-1563",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-01-05"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-01-05",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2024-01-05"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김혜정",
+        "phone": "010-5213-0895",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-11-16"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-11-16"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-11-16"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-11-16"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2025-11-16",
+        "total_paid_만원": 270,
+        "payment_count": 27,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 18,
+          "payment_date": "2023-05-18"
+        },
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 15,
+          "payment_date": "2023-06-15"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 13,
+          "payment_date": "2023-07-13"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 10,
+          "payment_date": "2023-08-10"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2023-09-07"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2023-10-05"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 30,
+          "payment_date": "2023-11-30"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2023-12-28"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 25,
+          "payment_date": "2024-01-25"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 22,
+          "payment_date": "2024-02-22"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 21,
+          "payment_date": "2024-03-21"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2024-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2024-05-01"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 17,
+          "payment_date": "2024-07-17"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 16,
+          "payment_date": "2024-08-16"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 17,
+          "payment_date": "2024-09-17"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 30,
+          "payment_date": "2024-10-30"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 18,
+          "payment_date": "2024-11-18"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-03-14"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-04-14"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-05-14"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-06-14"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-07-14",
+          "_split_from": "2025-07 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 13,
+          "payment_date": "2025-08-13",
+          "_split_from": "2025-08 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-09-14"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-10-14"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 16,
+          "payment_date": "2025-11-16"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "마이한",
+        "phone": "010-5584-4260",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-09"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-01-09",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2025-01-09"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "문도진",
+        "phone": "010-3478-7942",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-02-20"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-02-20"
+        },
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-02-20"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-02-20",
+        "total_paid_만원": 375,
+        "payment_count": 20,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 17,
+          "payment_date": "2024-07-17"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 16,
+          "payment_date": "2024-08-16"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 16,
+          "payment_date": "2024-09-16"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 17,
+          "payment_date": "2024-10-17"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 17,
+          "payment_date": "2024-11-17"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 19,
+          "payment_date": "2024-12-19"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 18,
+          "payment_date": "2025-01-18"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2025-02-17"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2025-03-17"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2025-04-17"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2025-05-17"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2025-06-17"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 17,
+          "payment_date": "2025-07-17"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-08-20"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-09-20"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-10-20"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-11-20"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-12-20"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2026-01-20"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2026-02-20"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "민경임",
+        "phone": "010-5269-3514",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-02-09"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023
+        ],
+        "last_payment_date": "2024-02-09",
+        "total_paid_만원": 80,
+        "payment_count": 4,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2023-11-09",
+          "_split_from": "2023-11 (80만원 → 4개월 분할)"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2023-12-09",
+          "_split_from": "2023-11 (80만원 → 4개월 분할)"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2024-01-09",
+          "_split_from": "2023-11 (80만원 → 4개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2024-02-09",
+          "_split_from": "2023-11 (80만원 → 4개월 분할)"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "민다현",
+        "phone": "010-9795-9202",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        },
+        {
+          "category": "어린이단체",
+          "original_category": "어린이단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-06"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-06",
+        "total_paid_만원": 215,
+        "payment_count": 19,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-09-02"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-10-02"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-11-02"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 3,
+          "payment_date": "2024-12-03"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2025-01-06",
+          "_split_from": "2025-01 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2025-02-03",
+          "_split_from": "2025-02 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2025-03-11"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2025-04-04"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2025-05-07"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2025-06-08"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2025-08-06"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-09-05"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 10,
+          "payment_date": "2025-10-10"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-11-05"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-12-05"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2026-01-05"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2026-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2026-03-06"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박마리나",
+        "phone": "010-5763-6356",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-12-22"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2025-12-22",
+        "total_paid_만원": 40,
+        "payment_count": 4,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2025-06-28"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 19,
+          "payment_date": "2025-07-19"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2025-11-24"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 22,
+          "payment_date": "2025-12-22"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박사랑",
+        "phone": "010-5699-4020",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-06-03"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-03",
+        "total_paid_만원": 85,
+        "payment_count": 5,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2024-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2024-03-05"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 16,
+          "payment_date": "2024-04-16"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2024-05-07"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 3,
+          "payment_date": "2024-06-03"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박상혜",
+        "phone": "010-7375-3111",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-02-04"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-02-04"
+        },
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-02-04"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-02-04"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-02-04",
+        "total_paid_만원": 220,
+        "payment_count": 22,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 20,
+          "payment_date": "2024-03-20"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 20,
+          "payment_date": "2024-04-20"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 20,
+          "payment_date": "2024-05-20"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2024-08-07"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2024-09-04"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2024-10-02"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2024-11-03"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2024-12-05"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2025-01-08"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-03-05"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2025-04-04"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 10,
+          "payment_date": "2025-05-10"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2025-06-07"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2025-07-03"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2025-08-06"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-09-05"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-10-14"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-11-14"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2026-01-07"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2026-02-04"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박은하",
+        "phone": "010-6721-2801",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-08-20"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-08-20",
+        "total_paid_만원": 40,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 19,
+          "payment_date": "2025-07-19"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-08-20"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박지윤",
+        "phone": "010-7151-0507",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-12-11"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-12-11"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-12-11",
+        "total_paid_만원": 60,
+        "payment_count": 5,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 24,
+          "payment_date": "2024-07-24"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 3,
+          "payment_date": "2024-09-03"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 26,
+          "payment_date": "2024-10-26"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 9,
+          "payment_date": "2024-11-09"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2024-12-11"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박창민",
+        "phone": "010-3179-5478",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-01"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-01"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-11-01",
+        "total_paid_만원": 150,
+        "payment_count": 10,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 4,
+          "payment_date": "2023-08-04"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 9,
+          "payment_date": "2024-03-09"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2024-04-05"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 6,
+          "payment_date": "2024-05-06"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 4,
+          "payment_date": "2024-06-04"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2024-07-05"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-08-02"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 3,
+          "payment_date": "2024-09-03"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-10-02"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 1,
+          "payment_date": "2024-11-01"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "박하늘",
+        "phone": "010-2116-0516",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이단체",
+          "original_category": "어린이단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-15"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-03-15",
+        "total_paid_만원": 30,
+        "payment_count": 3,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-01-02"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-02-02"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 15,
+          "payment_date": "2026-03-15"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "배이준",
+        "phone": "010-3719-0922",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        },
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        },
+        {
+          "category": "시창",
+          "original_category": "시창",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-04",
+        "total_paid_만원": 445,
+        "payment_count": 26,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 16,
+          "payment_date": "2023-07-16"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 13,
+          "payment_date": "2023-08-13"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 10,
+          "payment_date": "2023-09-10"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 8,
+          "payment_date": "2023-10-08"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2023-11-05"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 3,
+          "payment_date": "2023-12-03"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 20,
+          "payment_date": "2024-01-20"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 25,
+          "payment_date": "2024-02-25"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2024-03-05"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 15,
+          "payment_date": "2024-04-15"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 1,
+          "payment_date": "2024-06-01"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 15,
+          "payment_date": "2024-08-15",
+          "_split_from": "2024-08 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 15,
+          "payment_date": "2024-09-15",
+          "_split_from": "2024-08 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 9,
+          "payment_date": "2024-10-09"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 30,
+          "payment_date": "2024-11-30"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 18,
+          "payment_date": "2024-12-18"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-02-10"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 13,
+          "payment_date": "2025-03-13"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2025-04-15"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 21,
+          "payment_date": "2025-05-21"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 30,
+          "payment_day": 1,
+          "payment_date": "2025-06-01"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 15,
+          "payment_date": "2025-07-15"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 2,
+          "payment_date": "2025-09-02"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 25,
+          "payment_date": "2025-10-25"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-11-20"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2026-03-04"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "변이서",
+        "phone": "010-5599-2831",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-12-28"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-12-28"
+        },
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-12-28"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2025-12-28",
+        "total_paid_만원": 385,
+        "payment_count": 22,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 29,
+          "payment_date": "2024-02-29"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2024-04-03"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2024-05-21",
+          "_split_from": "2024-05 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 18,
+          "payment_date": "2024-06-18"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 17,
+          "payment_date": "2024-07-17"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 29,
+          "payment_date": "2024-08-29"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 29,
+          "payment_date": "2024-09-29",
+          "_split_from": "2024-08 (10만원 → 2개월 분할)"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-10-12"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-11-12"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2024-12-12"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-01-10"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2025-02-12"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2025-03-11"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2025-04-15"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 13,
+          "payment_date": "2025-05-13"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2025-06-11"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2025-07-20"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 18,
+          "payment_date": "2025-08-18"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 18,
+          "payment_date": "2025-09-18"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2025-10-15"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 25,
+          "payment_date": "2025-11-25"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2025-12-28"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "서승아",
+        "phone": "010-9434-6190",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-17"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-17"
+        },
+        {
+          "category": "어린이단체",
+          "original_category": "어린이단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-17"
+        },
+        {
+          "category": "장구",
+          "original_category": "장구",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-17"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-17",
+        "total_paid_만원": 200,
+        "payment_count": 13,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 31,
+          "payment_date": "2024-10-31"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 28,
+          "payment_date": "2024-11-28"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-01-10"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2025-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2025-03-05"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 1,
+          "payment_date": "2025-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 13,
+          "payment_date": "2025-05-13"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-06-10"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 19,
+          "payment_date": "2025-11-19"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 9,
+          "payment_date": "2025-12-09"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 13,
+          "payment_date": "2026-01-13"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2026-02-11"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 17,
+          "payment_date": "2026-03-17"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "석경남",
+        "phone": "010-5005-5581",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-01",
+        "total_paid_만원": 240,
+        "payment_count": 24,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 13,
+          "payment_date": "2024-03-13"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2024-04-03"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2024-05-08"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2024-06-05"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 17,
+          "payment_date": "2024-07-17"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2024-08-07"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2024-09-04"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2024-10-05"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2024-11-04"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2024-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-01-01"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 27,
+          "payment_date": "2025-03-27"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 31,
+          "payment_date": "2025-04-31"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-05-01"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-06-01"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 27,
+          "payment_date": "2025-08-27"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 30,
+          "payment_date": "2025-09-30"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 29,
+          "payment_date": "2025-10-29"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2026-01-01"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-02-02"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2026-03-01"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "송지은",
+        "phone": "010-3708-8676",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-01-27"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-01-27",
+        "total_paid_만원": 11,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 11,
+          "payment_day": 27,
+          "payment_date": "2025-01-27"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "신정인",
+        "phone": "010-9313-2925",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-07"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-07",
+        "total_paid_만원": 95,
+        "payment_count": 6,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 14,
+          "payment_date": "2024-02-14"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2024-04-11"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 29,
+          "payment_date": "2024-05-29"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 15,
+          "payment_date": "2024-08-15"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 4,
+          "payment_date": "2024-10-04",
+          "_split_from": "2024-10 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 7,
+          "payment_date": "2024-11-07"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "신하린",
+        "phone": "010-2607-4486",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-11-13"
+        },
+        {
+          "category": "장구",
+          "original_category": "장구",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-11-13"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025
+        ],
+        "last_payment_date": "2024-11-13",
+        "total_paid_만원": 65,
+        "payment_count": 6,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 8,
+          "payment_date": "2024-01-08"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 22,
+          "payment_date": "2024-03-22"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2024-06-06"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 3,
+          "payment_date": "2024-09-03"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 9,
+          "payment_date": "2024-10-09"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 13,
+          "payment_date": "2024-11-13"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "심은재",
+        "phone": "010-3395-2897",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "전공",
+          "original_category": "전공",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2025-07-07"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-07-07",
+        "total_paid_만원": 40,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2025-06-07"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2025-07-07"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "아름 다움",
+        "phone": "010-2472-0002",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-10"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-10"
+        }
+      ],
+      "summary": {
+        "names_merged": [
+          "아름 다움",
+          "아름,다움"
+        ],
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-11-10",
+        "total_paid_만원": 280,
+        "payment_count": 15,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2023-07-31"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2023-08-31"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2023-09-28"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2023-10-12"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2023-11-09"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2023-12-07"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2024-01-11"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2024-02-04"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 29,
+          "payment_date": "2024-03-29"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2024-04-28"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 25,
+          "payment_date": "2024-05-25"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-08-12",
+          "_split_from": "2024-08 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2024-09-12",
+          "_split_from": "2024-08 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 10,
+          "payment_date": "2024-10-10",
+          "_split_from": "2024-10 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 10,
+          "payment_date": "2024-11-10",
+          "_split_from": "2024-10 (30만원 → 2개월 분할)"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "안채아",
+        "phone": "010-7417-5587",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-10-25"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-10-25",
+        "total_paid_만원": 15,
+        "payment_count": 1,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 25,
+          "payment_date": "2024-10-25"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "안채은",
+        "phone": "010-7417-5587",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-14"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-14",
+        "total_paid_만원": 40,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 9,
+          "payment_date": "2024-09-09"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 25,
+          "payment_date": "2024-10-25"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 14,
+          "payment_date": "2024-11-14"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "오유민",
+        "phone": "010-9361-5682",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-10-12"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-10-12",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2024-10-12"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "오윤분",
+        "phone": "010-5377-1304",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-12-24"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2025-12-24"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2025-12-24",
+        "total_paid_만원": 12,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 12,
+          "payment_day": 24,
+          "payment_date": "2025-12-24"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "유승희",
+        "phone": "010-2987-1850",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 80000,
+          "is_active": false,
+          "payment_date": "2023-10-02"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023
+        ],
+        "last_payment_date": "2023-10-02",
+        "total_paid_만원": 24,
+        "payment_count": 3,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2023-08-02",
+          "_split_from": "2023-08 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2023-09-02",
+          "_split_from": "2023-08 (24만원 → 3개월 분할)"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2023-10-02",
+          "_split_from": "2023-08 (24만원 → 3개월 분할)"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "유영순",
+        "phone": "010-5284-4457",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-02"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-02"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-02",
+        "total_paid_만원": 150,
+        "payment_count": 15,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-01-01"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-02-02"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2025-03-04"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-05-01"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-06-01"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-08-01"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-09-01"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-10-01"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-11-02"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-01-02"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-02-02"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-03-02"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "유지연",
+        "phone": "010-3858-4019",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "시창",
+          "original_category": "시창",
+          "tuition_amount": 800000,
+          "is_active": false,
+          "payment_date": "2025-03-08"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-03-08",
+        "total_paid_만원": 160,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 80,
+          "payment_day": 5,
+          "payment_date": "2025-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 80,
+          "payment_day": 8,
+          "payment_date": "2025-03-08"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "윤미호",
+        "phone": "010-8573-7007",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-06-29"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-29",
+        "total_paid_만원": 80,
+        "payment_count": 4,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 9,
+          "payment_date": "2024-03-09"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 20,
+          "payment_date": "2024-04-20"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2024-05-31"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 29,
+          "payment_date": "2024-06-29"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "윤미호",
+        "phone": "010-8573-7007",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 50000,
+          "is_active": false,
+          "payment_date": "2024-06-29"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-29",
+        "total_paid_만원": 5,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 2.5,
+          "payment_day": 31,
+          "payment_date": "2024-05-31",
+          "_split_from": "2024-05 (10만원 → 2개월 분할)"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 2.5,
+          "payment_day": 29,
+          "payment_date": "2024-06-29"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "김견희",
+        "phone": "010-8573-7007",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 50000,
+          "is_active": false,
+          "payment_date": "2024-06-29"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-29",
+        "total_paid_만원": 5,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 2.5,
+          "payment_day": 31,
+          "payment_date": "2024-05-31",
+          "_split_from": "2024-05 (10만원 → 2개월 분할)"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 2.5,
+          "payment_day": 29,
+          "payment_date": "2024-06-29"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "윤분숙",
+        "phone": "010-8227-5911",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 80000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 80000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        },
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 80000,
+          "is_active": true,
+          "payment_date": "2026-03-01"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-01",
+        "total_paid_만원": 202,
+        "payment_count": 25,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 7,
+          "payment_date": "2024-02-07"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-03-01"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-05-01"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 3,
+          "payment_date": "2024-06-03"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-08-01"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-09-01"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-10-01"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2024-11-01"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-01-01"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-02-01"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-03-01"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-05-01"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-06-01"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-08-01"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-09-01"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-10-01"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-11-01"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 8,
+          "payment_day": 2,
+          "payment_date": "2026-01-02"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 8,
+          "payment_day": 1,
+          "payment_date": "2026-02-01"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2026-03-01"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "음채원",
+        "phone": "010-9185-1003",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-09-02"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-09-02",
+        "total_paid_만원": 45,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 27,
+          "payment_date": "2024-06-27"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2024-08-05"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-09-02"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이기찬",
+        "phone": "010-3492-7247",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-11-04"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-04",
+        "total_paid_만원": 155,
+        "payment_count": 11,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 17,
+          "payment_date": "2024-01-17"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-02-02"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 2,
+          "payment_date": "2024-03-02"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 1,
+          "payment_date": "2024-04-01"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 7,
+          "payment_date": "2024-05-07"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2024-06-11"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 1,
+          "payment_date": "2024-07-01"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 1,
+          "payment_date": "2024-08-01"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 5,
+          "payment_date": "2024-09-05"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 25,
+          "payment_date": "2024-10-25"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 4,
+          "payment_date": "2024-11-04"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이두리",
+        "phone": "010-6730-6798",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "장구",
+          "original_category": "장구",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-04-26"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025
+        ],
+        "last_payment_date": "2025-04-26",
+        "total_paid_만원": 40,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 30,
+          "payment_date": "2025-03-30"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 26,
+          "payment_date": "2025-04-26"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이말진",
+        "phone": "010-9873-7764",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        },
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-04"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-04",
+        "total_paid_만원": 240,
+        "payment_count": 24,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2024-01-28"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2024-02-06"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2024-03-06"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 20,
+          "payment_date": "2024-04-20"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 22,
+          "payment_date": "2024-05-22"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 10,
+          "payment_date": "2024-07-10"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 9,
+          "payment_date": "2024-08-09",
+          "_split_from": "2024-08 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2024-09-06",
+          "_split_from": "2024-09 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2024-10-06",
+          "_split_from": "2024-09 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-01-02"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-02-05"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2025-03-04"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-04-02"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-05-05"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2025-06-04"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-07-02"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2025-08-06"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-09-01"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-10-02"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-11-01"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2026-01-08"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2026-02-02",
+          "_split_from": "2026-02 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 4,
+          "payment_date": "2026-03-04"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이소영",
+        "phone": "010-3492-7247",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-10-21"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-10-21"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-10-21",
+        "total_paid_만원": 255,
+        "payment_count": 17,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 18,
+          "payment_date": "2023-06-18"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 16,
+          "payment_date": "2023-07-16"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 13,
+          "payment_date": "2023-08-13"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 10,
+          "payment_date": "2023-09-10"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 8,
+          "payment_date": "2023-10-08"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2023-11-05"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 3,
+          "payment_date": "2023-12-03"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 19,
+          "payment_date": "2024-01-19"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 27,
+          "payment_date": "2024-02-27"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 20,
+          "payment_date": "2024-03-20"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-04-23"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2024-05-21"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 25,
+          "payment_date": "2024-06-25"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 22,
+          "payment_date": "2024-07-22"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 22,
+          "payment_date": "2024-08-22"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 20,
+          "payment_date": "2024-09-20"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2024-10-21"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이순란",
+        "phone": "010-7298-0479",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-11"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-03-11",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2026-03-11"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이순희",
+        "phone": "010-8924-0412",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-07-11"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-07-11",
+        "total_paid_만원": 75,
+        "payment_count": 5,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2024-03-11"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 10,
+          "payment_date": "2024-04-10"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 10,
+          "payment_date": "2024-05-10"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2024-06-11"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2024-07-11"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이옥형",
+        "phone": "010-9868-6890",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 240000,
+          "is_active": false,
+          "payment_date": "2024-05-25"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 240000,
+          "is_active": false,
+          "payment_date": "2024-05-25"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-05-25",
+        "total_paid_만원": 206,
+        "payment_count": 12,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 8,
+          "payment_day": 22,
+          "payment_date": "2023-06-22"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 18,
+          "payment_day": 20,
+          "payment_date": "2023-07-20"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 18,
+          "payment_day": 17,
+          "payment_date": "2023-08-17"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 18,
+          "payment_day": 14,
+          "payment_date": "2023-09-14"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 18,
+          "payment_day": 12,
+          "payment_date": "2023-10-12"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 18,
+          "payment_day": 9,
+          "payment_date": "2023-11-09"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 18,
+          "payment_day": 7,
+          "payment_date": "2023-12-07"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 18,
+          "payment_day": 4,
+          "payment_date": "2024-01-04"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 18,
+          "payment_day": 1,
+          "payment_date": "2024-02-01"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 18,
+          "payment_day": 29,
+          "payment_date": "2024-03-29"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 18,
+          "payment_day": 28,
+          "payment_date": "2024-04-28"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 18,
+          "payment_day": 25,
+          "payment_date": "2024-05-25"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "이하빈",
+        "phone": "010-5586-8174",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-05"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-03-05",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2026-03-05"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "임미경",
+        "phone": "010-2316-2915",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-16"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-16"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-16",
+        "total_paid_만원": 340,
+        "payment_count": 17,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2024-10-04"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2024-11-04"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2024-12-05"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 7,
+          "payment_date": "2025-01-07"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2025-02-04"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-03-10"
+        },
+        {
+          "month": 4,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2025-04-15"
+        },
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2025-05-12"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2025-06-11"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 14,
+          "payment_date": "2025-07-14"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2025-08-12"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2025-09-15"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2025-11-10"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 15,
+          "payment_date": "2025-12-15"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 14,
+          "payment_date": "2026-01-14"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2026-02-10"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 16,
+          "payment_date": "2026-03-16"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "임인숙",
+        "phone": "010-5467-4618",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-04-18"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-04-18",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 18,
+          "payment_date": "2024-04-18"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "임하령",
+        "phone": "010-3232-6065",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2023-12-05"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023
+        ],
+        "last_payment_date": "2023-12-05",
+        "total_paid_만원": 45,
+        "payment_count": 3,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 17,
+          "payment_date": "2023-10-17"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 7,
+          "payment_date": "2023-11-07"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2023-12-05"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "임하린",
+        "phone": "010-4660-9812",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-03-24"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-03-24"
+        },
+        {
+          "category": "심화",
+          "original_category": "심화",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-03-24"
+        },
+        {
+          "category": "시창",
+          "original_category": "시창",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2025-03-24"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024,
+          2025
+        ],
+        "last_payment_date": "2025-03-24",
+        "total_paid_만원": 335,
+        "payment_count": 23,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 16,
+          "payment_date": "2023-05-16"
+        },
+        {
+          "month": 6,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 13,
+          "payment_date": "2023-06-13"
+        },
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2023-07-11"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2023-08-23"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 5,
+          "payment_date": "2023-09-05"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 31,
+          "payment_date": "2023-10-31"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 28,
+          "payment_date": "2023-11-28"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 26,
+          "payment_date": "2023-12-26"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 24,
+          "payment_date": "2024-01-24"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-02-23"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-03-23"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-04-23"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-05-23"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 24,
+          "payment_date": "2024-06-24"
+        },
+        {
+          "month": 7,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-07-23"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-08-23"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 24,
+          "payment_date": "2024-09-24"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-10-23"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2024-11-23"
+        },
+        {
+          "month": 12,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 23,
+          "payment_date": "2024-12-23"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2025-01-24",
+          "_split_from": "2025-01 (30만원 → 3개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2025-02-24",
+          "_split_from": "2025-01 (30만원 → 3개월 분할)"
+        },
+        {
+          "month": 3,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2025-03-24",
+          "_split_from": "2025-01 (30만원 → 3개월 분할)"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "장수민",
+        "phone": "010-3993-5005",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이단체",
+          "original_category": "어린이단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-02-24"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-02-24",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2026-02-24"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "장유진",
+        "phone": "010-4162-0308",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-04-17"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-04-17",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 17,
+          "payment_date": "2024-04-17"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "전문영",
+        "phone": "010-2287-4572",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-16"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-16"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025
+        ],
+        "last_payment_date": "2025-01-16",
+        "total_paid_만원": 60,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 30,
+          "payment_date": "2024-10-30"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 11,
+          "payment_date": "2024-11-11"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 16,
+          "payment_date": "2025-01-16"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "전수연",
+        "phone": "010-7746-9181",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-02-25"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-02-25",
+        "total_paid_만원": 50,
+        "payment_count": 3,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 15,
+          "payment_day": 12,
+          "payment_date": "2025-12-12"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 15,
+          "payment_day": 14,
+          "payment_date": "2026-01-14"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 25,
+          "payment_date": "2026-02-25"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "정서윤",
+        "phone": "010-8909-7717",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-18"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-03-18",
+        "total_paid_만원": 32,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 32,
+          "payment_day": 18,
+          "payment_date": "2026-03-18"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "정승은",
+        "phone": "010-6329-6643",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-11-25"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-25",
+        "total_paid_만원": 50,
+        "payment_count": 5,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 27,
+          "payment_date": "2024-06-27"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 23,
+          "payment_date": "2024-08-23"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2024-09-24"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 29,
+          "payment_date": "2024-10-29"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 25,
+          "payment_date": "2024-11-25"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "서은",
+        "phone": "010-6329-6643",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-11-25"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-25",
+        "total_paid_만원": 50,
+        "payment_count": 5,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 27,
+          "payment_date": "2024-06-27"
+        },
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 23,
+          "payment_date": "2024-08-23"
+        },
+        {
+          "month": 9,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 24,
+          "payment_date": "2024-09-24"
+        },
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 29,
+          "payment_date": "2024-10-29"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 25,
+          "payment_date": "2024-11-25"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "정윤후",
+        "phone": "010-8509-0114",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-04-03"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-04-03",
+        "total_paid_만원": 30,
+        "payment_count": 2,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 9,
+          "payment_date": "2024-03-09"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 3,
+          "payment_date": "2024-04-03"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "정지원",
+        "phone": "010-9853-1359",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-06-21"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-21",
+        "total_paid_만원": 75,
+        "payment_count": 5,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2024-01-11"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2024-02-21"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 20,
+          "payment_date": "2024-04-20",
+          "_split_from": "2024-04 (30만원 → 2개월 분할)"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2024-05-21"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2024-06-21"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "정창훈",
+        "phone": "010-9783-0056",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-08-16"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-08-16",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 8,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 16,
+          "payment_date": "2024-08-16"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "조설",
+        "phone": "010-4212-5917",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-11-02"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-11-02"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-02",
+        "total_paid_만원": 10,
+        "payment_count": 2,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 31,
+          "payment_date": "2024-10-31"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 2,
+          "payment_date": "2024-11-02"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "조영주",
+        "phone": "010-9976-0486",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이단체",
+          "original_category": "어린이단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-10"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-03-10",
+        "total_paid_만원": 10,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 10,
+          "payment_day": 10,
+          "payment_date": "2026-03-10"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "조현자",
+        "phone": "010-5410-9767",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-12"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-12",
+        "total_paid_만원": 80,
+        "payment_count": 4,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 20,
+          "payment_day": 1,
+          "payment_date": "2025-12-01"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 10,
+          "payment_date": "2026-01-10"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2026-02-12"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2026-03-12"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "채린",
+        "phone": "010-3383-1714",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2023-12-06"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023
+        ],
+        "last_payment_date": "2023-12-06",
+        "total_paid_만원": 75,
+        "payment_count": 5,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 4,
+          "payment_date": "2023-08-04"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 4,
+          "payment_date": "2023-09-04"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 11,
+          "payment_date": "2023-10-11"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 8,
+          "payment_date": "2023-11-08"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 6,
+          "payment_date": "2023-12-06"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "초빈 초연",
+        "phone": "010-7481-9508",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-05-19"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-05-19"
+        }
+      ],
+      "summary": {
+        "names_merged": [
+          "초빈 초연",
+          "초빈,초연"
+        ],
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-05-19",
+        "total_paid_만원": 220,
+        "payment_count": 11,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 7,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2023-07-31"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2023-08-31"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2023-09-28"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 8,
+          "payment_date": "2023-10-08"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 5,
+          "payment_date": "2023-11-05"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2023-12-31"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 28,
+          "payment_date": "2024-01-28"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 25,
+          "payment_date": "2024-02-25"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 24,
+          "payment_date": "2024-03-24"
+        },
+        {
+          "month": 4,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 21,
+          "payment_date": "2024-04-21"
+        },
+        {
+          "month": 5,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 19,
+          "payment_date": "2024-05-19"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "최명애",
+        "phone": "010-4664-1609",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인단체",
+          "original_category": "성인단체",
+          "tuition_amount": 100000,
+          "is_active": true,
+          "payment_date": "2026-03-18"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2026
+        ],
+        "last_payment_date": "2026-03-18",
+        "total_paid_만원": 12,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 12,
+          "payment_day": 18,
+          "payment_date": "2026-03-18"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "최성옥",
+        "phone": "010-8709-5262",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-03-14"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 150000,
+          "is_active": false,
+          "payment_date": "2024-03-14"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2023,
+          2024
+        ],
+        "last_payment_date": "2024-03-14",
+        "total_paid_만원": 135,
+        "payment_count": 9,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 18,
+          "payment_date": "2023-05-18"
+        },
+        {
+          "month": 8,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 31,
+          "payment_date": "2023-08-31"
+        },
+        {
+          "month": 9,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 28,
+          "payment_date": "2023-09-28"
+        },
+        {
+          "month": 10,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 26,
+          "payment_date": "2023-10-26"
+        },
+        {
+          "month": 11,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 23,
+          "payment_date": "2023-11-23"
+        },
+        {
+          "month": 12,
+          "year": 2023,
+          "amount": 15,
+          "payment_day": 21,
+          "payment_date": "2023-12-21"
+        },
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 18,
+          "payment_date": "2024-01-18"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 15,
+          "payment_date": "2024-02-15"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 15,
+          "payment_day": 14,
+          "payment_date": "2024-03-14"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "최유정",
+        "phone": "010-3342-6237",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-08"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-08"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-08"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025
+        ],
+        "last_payment_date": "2025-01-08",
+        "total_paid_만원": 20,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 9,
+          "payment_date": "2024-10-09"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 8,
+          "payment_date": "2024-11-08"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2025-01-08"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "정원",
+        "phone": "010-3342-6237",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "개인",
+          "original_category": "개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-08"
+        },
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-08"
+        },
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2025-01-08"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024,
+          2025
+        ],
+        "last_payment_date": "2025-01-08",
+        "total_paid_만원": 20,
+        "payment_count": 3,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 9,
+          "payment_date": "2024-10-09"
+        },
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 5,
+          "payment_day": 8,
+          "payment_date": "2024-11-08"
+        },
+        {
+          "month": 1,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 8,
+          "payment_date": "2025-01-08"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "최은실",
+        "phone": "010-7370-5031",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-02-18"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-02-18",
+        "total_paid_만원": 20,
+        "payment_count": 2,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 18,
+          "payment_date": "2024-01-18",
+          "_split_from": "2024-01 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 18,
+          "payment_date": "2024-02-18",
+          "_split_from": "2024-01 (20만원 → 2개월 분할)"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "최임이",
+        "phone": "010-3029-9925",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 100000,
+          "is_active": false,
+          "payment_date": "2024-06-12"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-12",
+        "total_paid_만원": 40,
+        "payment_count": 4,
+        "is_resting": true
+      },
+      "payment_history": [
+        {
+          "month": 1,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 25,
+          "payment_date": "2024-01-25"
+        },
+        {
+          "month": 2,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 28,
+          "payment_date": "2024-02-28"
+        },
+        {
+          "month": 3,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 31,
+          "payment_date": "2024-03-31"
+        },
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 10,
+          "payment_day": 12,
+          "payment_date": "2024-06-12"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "최재인",
+        "phone": "010-4046-5528",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "어린이개인",
+          "original_category": "어린이개인",
+          "tuition_amount": 300000,
+          "is_active": true,
+          "payment_date": "2026-03-12"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-12",
+        "total_paid_만원": 160,
+        "payment_count": 11,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 5,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 2,
+          "payment_date": "2025-05-02",
+          "_split_from": "2025-05 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 6,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 6,
+          "payment_date": "2025-06-06",
+          "_split_from": "2025-06 (20만원 → 2개월 분할)"
+        },
+        {
+          "month": 7,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 7,
+          "payment_date": "2025-07-07"
+        },
+        {
+          "month": 8,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 10,
+          "payment_date": "2025-08-10"
+        },
+        {
+          "month": 9,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 9,
+          "payment_date": "2025-09-09"
+        },
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 14,
+          "payment_date": "2025-10-14",
+          "_split_from": "2025-10 (30만원 → 3개월 분할)"
+        },
+        {
+          "month": 11,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2025-11-11",
+          "_split_from": "2025-11 (30만원 → 3개월 분할)"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 11,
+          "payment_date": "2025-12-11",
+          "_split_from": "2025-12 (30만원 → 3개월 분할)"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 30,
+          "payment_day": 20,
+          "payment_date": "2026-01-20"
+        },
+        {
+          "month": 2,
+          "year": 2026,
+          "amount": 30,
+          "payment_day": 12,
+          "payment_date": "2026-02-12"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 12,
+          "payment_date": "2026-03-12"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "하성순",
+        "phone": "010-9588-2292",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 80000,
+          "is_active": false,
+          "payment_date": "2024-06-20"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-06-20",
+        "total_paid_만원": 4,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 6,
+          "year": 2024,
+          "amount": 4,
+          "payment_day": 20,
+          "payment_date": "2024-06-20"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "현수린",
+        "phone": "010-9720-6360",
+        "role": "user",
+        "status": "inactive"
+      },
+      "lessons": [
+        {
+          "category": "단체",
+          "original_category": "단체",
+          "tuition_amount": 200000,
+          "is_active": false,
+          "payment_date": "2024-11-04"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2024
+        ],
+        "last_payment_date": "2024-11-04",
+        "total_paid_만원": 20,
+        "payment_count": 1,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 11,
+          "year": 2024,
+          "amount": 20,
+          "payment_day": 4,
+          "payment_date": "2024-11-04"
+        }
+      ]
+    },
+    {
+      "profile": {
+        "name": "홍유정",
+        "phone": "010-3144-7294",
+        "role": "user",
+        "status": "active"
+      },
+      "lessons": [
+        {
+          "category": "성인개인",
+          "original_category": "성인개인",
+          "tuition_amount": 200000,
+          "is_active": true,
+          "payment_date": "2026-03-14"
+        }
+      ],
+      "summary": {
+        "years_active": [
+          2025,
+          2026
+        ],
+        "last_payment_date": "2026-03-14",
+        "total_paid_만원": 63,
+        "payment_count": 4,
+        "is_resting": false
+      },
+      "payment_history": [
+        {
+          "month": 10,
+          "year": 2025,
+          "amount": 13,
+          "payment_day": 13,
+          "payment_date": "2025-10-13"
+        },
+        {
+          "month": 12,
+          "year": 2025,
+          "amount": 10,
+          "payment_day": 5,
+          "payment_date": "2025-12-05"
+        },
+        {
+          "month": 1,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 31,
+          "payment_date": "2026-01-31"
+        },
+        {
+          "month": 3,
+          "year": 2026,
+          "amount": 20,
+          "payment_day": 14,
+          "payment_date": "2026-03-14"
+        }
+      ]
+    }
+  ]
+}
