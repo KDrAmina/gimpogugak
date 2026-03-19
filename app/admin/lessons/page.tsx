@@ -1575,16 +1575,34 @@ export default function AdminLessonsPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">-- 수강생 선택 --</option>
-                  {lessons
-                    .filter((l) => l.is_active)
-                    .sort((a, b) => a.student_name.localeCompare(b.student_name, "ko"))
-                    .map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {`${l.student_name} (${l.category}) - 납부 등록`}
-                      </option>
-                    ))}
+                  {(() => {
+                    const seen = new Set<string>();
+                    return lessons
+                      .filter((l) => l.is_active)
+                      .sort((a, b) => a.student_name.localeCompare(b.student_name, "ko"))
+                      .filter((l) => {
+                        const key = `${l.user_id}_${l.category}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                      })
+                      .map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {`${l.student_name} (${l.category}) - 납부 등록`}
+                        </option>
+                      ));
+                  })()}
                 </select>
-                {lessons.filter((l) => l.is_active).length === 0 && (
+                {(() => {
+                    const seen = new Set<string>();
+                    return lessons.filter((l) => {
+                      if (!l.is_active) return false;
+                      const key = `${l.user_id}_${l.category}`;
+                      if (seen.has(key)) return false;
+                      seen.add(key);
+                      return true;
+                    }).length;
+                  })() === 0 && (
                   <p className="text-xs text-amber-600 mt-2">
                     납부 등록 가능한 수강생이 없습니다.
                   </p>

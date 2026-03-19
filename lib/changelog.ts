@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.3",
+    date: "2026-03-19",
+    changes: [
+      "[버그 수정] 캘린더 수강생 선택 드롭다운 중복 이름 노출 버그 수정.",
+    ],
+  },
+  {
     version: "4.2",
     date: "2026-03-16",
     changes: [
