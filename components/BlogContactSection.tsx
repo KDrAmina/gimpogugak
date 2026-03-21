@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { trackConversion } from "@/lib/gtag";
 
 type GtagFn = (...args: unknown[]) => void;
 
@@ -44,7 +45,7 @@ export default function BlogContactSection() {
         <div className="flex flex-wrap gap-3 mt-4">
           <a
             href="tel:01059481843"
-            onClick={() => sendGtag("click_call")}
+            onClick={() => { sendGtag("click_call"); trackConversion(); }}
             className="w-full sm:flex-1 py-3 text-center text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 transition-colors shadow-sm flex items-center justify-center gap-1.5"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

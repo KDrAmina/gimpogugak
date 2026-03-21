@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Phone, MessageCircle, MapPin } from "lucide-react";
+import { trackConversion } from "@/lib/gtag";
 
 const FOOTER_LINKS = [
   { href: "/about", label: "국악원 소개" },
@@ -63,6 +66,7 @@ export function Footer() {
               <li>
                 <a
                   href={`tel:${phone.replace(/-/g, "")}`}
+                  onClick={trackConversion}
                   className="inline-flex items-center gap-2 hover:text-paper transition-colors"
                 >
                   <Phone className="w-4 h-4 shrink-0" />

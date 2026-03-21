@@ -2,6 +2,7 @@
 
 import { Phone, MessageCircle, MapPin } from "lucide-react";
 import Link from "next/link";
+import { trackConversion } from "@/lib/gtag";
 
 export function FixedCTA() {
   const phone = process.env.NEXT_PUBLIC_PHONE ?? "031-XXX-XXXX";
@@ -13,6 +14,7 @@ export function FixedCTA() {
       <div className="hidden lg:flex fixed right-6 bottom-8 z-40 flex-col gap-3">
         <a
           href={`tel:${phone.replace(/-/g, "")}`}
+          onClick={trackConversion}
           className="flex items-center gap-2 px-4 py-3 bg-primary text-paper rounded-sm shadow-lg hover:bg-primary/90 transition-colors"
           aria-label="전화 문의"
         >
@@ -35,6 +37,7 @@ export function FixedCTA() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t border-ink/10 bg-paper/98 backdrop-blur-sm safe-area-pb">
         <a
           href={`tel:${phone.replace(/-/g, "")}`}
+          onClick={trackConversion}
           className="flex-1 flex flex-col items-center justify-center py-3 text-ink hover:bg-ink/5 transition-colors"
         >
           <Phone className="w-5 h-5 mb-0.5" />

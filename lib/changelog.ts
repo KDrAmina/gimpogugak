@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.4",
+    date: "2026-03-22",
+    changes: [
+      "[광고 전환 추적] Google Ads 전체 사이트 태그(AW-17945851352) 삽입: layout.tsx head 내부에 next/script afterInteractive 전략으로 추가.",
+      "[광고 전환 추적] lib/gtag.ts 추가: 전환 이벤트(AW-17945851352/CEsWCLqI4IwcENjrn-1C) 발송 trackConversion 공통 함수 생성.",
+      "[광고 전환 추적] 전화문의 버튼 전환 추적 연결: ContactMapButtons, BlogContactSection, FixedCTA(데스크탑·모바일), Header(데스크탑·모바일), Footer, 수업안내 페이지, 문의 페이지의 모든 tel: 링크에 trackConversion onClick 적용.",
+      "[내부] PhoneCallLink 클라이언트 컴포넌트 추가: 서버 컴포넌트(수업안내·문의 페이지)에서 onClick 전환 추적이 가능하도록 범용 전화 링크 컴포넌트 분리.",
+    ],
+  },
+  {
     version: "4.3",
     date: "2026-03-19",
     changes: [

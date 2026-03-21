@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PhoneCallLink from "@/components/PhoneCallLink";
 
 export const metadata: Metadata = {
   title: "수업 안내 – 민요교실·성악발성·국악체험 | 김포국악원",
@@ -35,7 +36,7 @@ export default function ClassesPage() {
           <br />
           무형문화재 이수자 원장님이 직접 설계한 체계적인 국악 교육을 만나보세요.
           <br />
-          빠른상담 : <a href="tel:010-5948-1843">010-5948-1843</a>
+          빠른상담 : <PhoneCallLink href="tel:010-5948-1843">010-5948-1843</PhoneCallLink>
         </p>
       </div>
 
@@ -170,12 +171,12 @@ export default function ClassesPage() {
           >
             <span aria-hidden>💬</span> 카카오톡 상담
           </a>
-          <a
+          <PhoneCallLink
             href="tel:010-5943-1843"
             className="flex-1 flex items-center justify-center gap-2 px-5 py-4 bg-[#111] text-white font-bold rounded-lg hover:bg-[#333] transition-colors shadow-sm"
           >
             <span aria-hidden>📞</span> 전화 & 문자
-          </a>
+          </PhoneCallLink>
         </div>
         <p className="mt-3 text-center text-xs text-[#999]">
           * 단체 예약은 카카오톡 채널로 문의주시면 빠르게 답변 드립니다.

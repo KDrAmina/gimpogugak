@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import ContactMapButtons from "@/components/ContactMapButtons";
+import PhoneCallLink from "@/components/PhoneCallLink";
 
 export const metadata: Metadata = {
   title: "오시는 길·전화문의 | 김포국악원",
@@ -74,12 +75,12 @@ export default function ContactPage() {
           </InfoItem>
 
           <InfoItem label="Contact">
-            <a
+            <PhoneCallLink
               href="tel:01059481843"
               className="text-[#111] hover:underline font-bold text-lg block mb-1"
             >
               010-5948-1843
-            </a>
+            </PhoneCallLink>
             <a
               href="mailto:gimpogugak@gmail.com"
               className="text-[#666] hover:text-[#111] text-sm"

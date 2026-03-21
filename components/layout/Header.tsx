@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Menu, X, Phone, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { trackConversion } from "@/lib/gtag";
 
 const NAV = [
   { href: "/", label: "홈" },
@@ -86,6 +87,7 @@ export function Header() {
           <div className="ml-4 flex items-center gap-2">
             <a
               href={`tel:${phone.replace(/-/g, "")}`}
+              onClick={trackConversion}
               className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-sm ${btnBg}`}
             >
               <Phone className="w-4 h-4 shrink-0" />
@@ -138,6 +140,7 @@ export function Header() {
               <div className="mt-3 pt-3 border-t border-ink/10 flex gap-2">
                 <a
                   href={`tel:${phone.replace(/-/g, "")}`}
+                  onClick={trackConversion}
                   className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-primary border border-primary/50 rounded-sm hover:bg-primary/10"
                 >
                   <Phone className="w-4 h-4" /> 전화
