@@ -54,8 +54,8 @@ export default function HomePage() {
 
       {/* Hero: 서브 설명 */}
       <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
-        전통 민요와 성악 발성이 만나 왕초보도 참 쉽습니다.<br />
-        아이들의 신나는 체험부터 어른의 즐거운 취미 생활까지요.
+        전통 민요와 성악 발성이 만나 왕초보도 쉽습니다.<br />
+        아이들의 신나는 체험부터 어른의 즐거운 취미 생활까지!
       </p>
 
       {/* Hero: CTA 버튼 */}
