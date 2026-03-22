@@ -203,7 +203,7 @@ export default function RootLayout({
           }}
         />
         <Navbar />
-        <main className="md:ml-[120px] min-h-screen">
+        <main className="min-h-screen">
           {children}
         </main>
         

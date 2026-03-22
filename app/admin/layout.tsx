@@ -85,41 +85,36 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left: Menu Items */}
-            <nav className="flex items-center gap-1 lg:gap-2 flex-1">
-              {ADMIN_NAV.map((item) => {
-                const isActive = item.href === "/admin"
-                      ? pathname === "/admin"
-                      : item.href === "/admin/posts"
-                        ? pathname === "/admin/posts"
-                        : pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Right: Logout Button */}
-            <div className="flex items-center ml-4">
-              <button
-                onClick={handleLogout}
-                className="px-3 lg:px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium whitespace-nowrap"
-              >
-                Logout
-              </button>
-            </div>
+        <div className="flex items-center justify-center gap-2 lg:gap-3 h-16 px-4">
+          <nav className="flex items-center gap-1 lg:gap-2">
+            {ADMIN_NAV.map((item) => {
+              const isActive = item.href === "/admin"
+                    ? pathname === "/admin"
+                    : item.href === "/admin/posts"
+                      ? pathname === "/admin/posts"
+                      : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="border-l border-gray-200 pl-2 lg:pl-3">
+            <button
+              onClick={handleLogout}
+              className="px-3 lg:px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium whitespace-nowrap"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </header>

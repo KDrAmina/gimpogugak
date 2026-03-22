@@ -134,27 +134,25 @@ export function Navbar() {
 
   return (
     <nav aria-label="메인 메뉴">
-      {/* Desktop: fixed left sidebar */}
-      <div className="hidden md:flex fixed left-0 top-0 bottom-0 w-[120px] px-6 py-12 border-r border-[#111111]/10 flex-col gap-6 z-40">
-        <div className="block w-full">
-          <Link href="/" className="block hover:opacity-90 transition-opacity">
-            <Image
-              src="/logo.png"
-              alt="GIMPO GUGAK CENTER 김포국악원"
-              width={120}
-              height={60}
-              className="w-full h-14 sm:h-16 object-contain"
-            />
-          </Link>
-        </div>
-        <ul className="flex flex-col gap-4">
+      {/* Desktop: fixed top navbar — 로고 + 메뉴 한 줄 가로 중앙 정렬 */}
+      <div className="hidden md:flex fixed top-0 left-0 right-0 h-16 items-center justify-center gap-8 border-b border-[#111111]/10 z-40 bg-white/95 backdrop-blur-sm">
+        <Link href="/" className="shrink-0 hover:opacity-90 transition-opacity">
+          <Image
+            src="/logo.png"
+            alt="GIMPO GUGAK CENTER 김포국악원"
+            width={120}
+            height={48}
+            className="h-10 w-auto object-contain"
+          />
+        </Link>
+        <ul className="flex items-center gap-6">
           {(NAV as NavItemSimple[]).map((item) => {
             const isActive = pathname === item.href || (item.href === "/intro" && pathname.startsWith("/intro")) || (item.href === "/blog" && pathname.startsWith("/blog"));
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`block text-left text-sm transition-colors ${
+                  className={`text-sm transition-colors ${
                     isActive ? "text-[#111111] font-medium" : "text-[#666666] hover:text-[#111111]"
                   }`}
                 >
@@ -163,11 +161,13 @@ export function Navbar() {
               </li>
             );
           })}
-          <li className="mt-8 pt-4 border-t border-[#111111]/10">
-            <AuthButton />
-          </li>
         </ul>
+        <div className="border-l border-[#111111]/10 pl-6">
+          <AuthButton />
+        </div>
       </div>
+      {/* Desktop spacer: 헤더 높이만큼 본문 밀어내기 */}
+      <div className="hidden md:block h-16" />
 
       {/* Mobile: Logo left, horizontal menu right — 로고 max-width로 메뉴 겹침 방지 */}
       <div className="flex md:hidden items-center gap-2 sm:gap-3 px-3 sm:px-6 py-3 border-b border-[#111111]/10 min-h-[60px] relative z-[100]">
