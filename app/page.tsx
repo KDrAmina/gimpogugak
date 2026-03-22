@@ -48,14 +48,14 @@ export default function HomePage() {
 
       {/* Hero: 메인 타이틀 */}
       <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#111] tracking-tight leading-snug sm:leading-snug mt-4 mb-6">
-        소리가 바뀌면,<br />
-        삶의 울림이 달라집니다
+        왕초보도 속 시원하게,<br />
+        참 쉬운 우리 민요
       </h1>
 
       {/* Hero: 서브 설명 */}
       <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
-        전통 민요의 흥겨움부터 클래식 성악의 깊은 발성까지.<br />
-        어린이 국악 체험부터 전공자 레슨을 한곳에서 만납니다.
+        전통 민요와 성악 발성이 만나 왕초보도 참 쉽습니다.<br />
+        아이들의 신나는 체험부터 어른의 즐거운 취미 생활까지요.
       </p>
 
       {/* Hero: CTA 버튼 */}
@@ -64,7 +64,7 @@ export default function HomePage() {
           href="/contact"
           className="bg-[#8a6f3e] hover:bg-[#7a5f2e] text-white px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
         >
-          상담 및 체험 신청하기
+          편하게 상담받기
         </Link>
         <Link
           href="/classes"
@@ -76,9 +76,8 @@ export default function HomePage() {
 
       {/* Hero: 신뢰 지표 바 */}
       <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-400">
-        <span>✓ 원장/부원장 직강</span>
-        <span>✓ 체계적인 1:1 맞춤 커리큘럼</span>
-        <span>✓ 10년 이상의 교육 노하우</span>
+        <span>✓ 무형문화재 원장 직강</span>
+        <span>✓ 왕초보 민요 전문</span>
       </div>
 
       {/* Hero: 이미지 */}
