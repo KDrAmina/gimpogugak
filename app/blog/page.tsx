@@ -8,7 +8,7 @@ export const dynamic = "force-static";
 export const revalidate = false;
 
 export const metadata: Metadata = {
-  title: "국악원 소식 블로그 | 김포국악원",
+  title: "김포 대표 민요·국악학원 | 김포국악원",
   description: "김포국악원(장기동·사우동·고촌읍)의 공연·행사·수업 소식과 민요·성악 이야기. 최신 국악 교육 정보를 확인하세요.",
 };
 
