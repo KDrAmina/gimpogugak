@@ -25,10 +25,11 @@ export default async function BlogListPage() {
   return (
     <section className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#111] mb-2">
-        국악원 소식
+       제대로 찾아오셨습니다.<br />
+       소리가 트이는 김포국악원 이야기
       </h1>
       <p className="text-[#666] mb-10">
-        김포국악원의 소식을 확인하세요.
+       왕초보 민요부터 전공자 발성까지! <br />실제 수업 현장과 꿀팁을 지금 바로 확인해 보세요.
       </p>
 
       <BlogListClient posts={posts ?? []} />
