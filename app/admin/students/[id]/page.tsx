@@ -31,6 +31,7 @@ type HistoryItem = {
   completed_date: string;
   status: string | null;
   category: string;
+  tuition_amount: number;
 };
 
 export default function StudentDetailPage() {
@@ -97,7 +98,7 @@ export default function StudentDetailPage() {
       if (lessonIds.length > 0) {
         const { data: histData } = await supabase
           .from("lesson_history")
-          .select("id, lesson_id, session_number, completed_date, status, lessons!inner(category)")
+          .select("id, lesson_id, session_number, completed_date, status, lessons!inner(category, tuition_amount)")
           .in("lesson_id", lessonIds)
           .order("completed_date", { ascending: false })
           .limit(50);
@@ -108,6 +109,7 @@ export default function StudentDetailPage() {
           completed_date: h.completed_date,
           status: h.status,
           category: h.lessons?.category || "",
+          tuition_amount: h.lessons?.tuition_amount || 0,
         })));
       }
     }
@@ -136,6 +138,7 @@ export default function StudentDetailPage() {
   const paymentHistory = history.filter(h => h.status === "결제 완료");
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const isPaidThisMonth = activeLesson?.payment_date?.substring(0, 7) === currentMonthStr;
+  const totalPaidAmount = paymentHistory.reduce((sum, h) => sum + (h.tuition_amount || 0), 0);
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -151,7 +154,7 @@ export default function StudentDetailPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-xs text-gray-500 mb-1">수업 상태</p>
           <p className={`text-sm font-bold ${activeLesson ? "text-green-600" : "text-gray-400"}`}>
@@ -167,6 +170,12 @@ export default function StudentDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-xs text-gray-500 mb-1">총 납부 횟수</p>
           <p className="text-sm font-bold text-blue-600">{paymentHistory.length}회</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-500 mb-1">총 누적 납부액</p>
+          <p className="text-sm font-bold text-purple-600">
+            {totalPaidAmount > 0 ? `${totalPaidAmount.toLocaleString()}원` : "—"}
+          </p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-xs text-gray-500 mb-1">등록일</p>

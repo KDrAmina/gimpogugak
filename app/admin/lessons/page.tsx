@@ -546,6 +546,27 @@ export default function AdminLessonsPage() {
 
     try {
       const categoryString = newLesson.categories.join(", ");
+      const paymentMonth = newLesson.payment_date.substring(0, 7); // "YYYY-MM"
+
+      // Guard: 동일 수강생 + 동일 카테고리 + 동일 연월 중복 등록 방지
+      const { data: activeLessons } = await supabase
+        .from("lessons")
+        .select("id, category, payment_date")
+        .eq("user_id", newLesson.user_id)
+        .eq("is_active", true);
+
+      if (activeLessons && activeLessons.length > 0) {
+        const newCats = newLesson.categories;
+        for (const existing of activeLessons) {
+          const existingCats = existing.category.split(", ").map((c: string) => c.trim());
+          const duplicates = newCats.filter(c => existingCats.includes(c));
+          if (duplicates.length > 0 && existing.payment_date?.substring(0, 7) === paymentMonth) {
+            alert(`이미 이번 달(${paymentMonth.replace("-", "년 ")}월) 수강료가 처리되었습니다.\n(중복 수업: ${duplicates.join(", ")})`);
+            return;
+          }
+        }
+      }
+
       const lessonData = {
         user_id: newLesson.user_id,
         category: categoryString,
@@ -690,8 +711,23 @@ export default function AdminLessonsPage() {
     const lessonId = selectedLessonForAdd.id;
     const userId = selectedLessonForAdd.user_id;
     const studentName = selectedLessonForAdd.student_name;
+    const selectedMonth = selectedDateForAdd.substring(0, 7); // "YYYY-MM"
 
     try {
+      // Guard: 동일 수업 + 동일 연월 중복 납부 방지
+      const { data: existingPayment } = await supabase
+        .from("lesson_history")
+        .select("id")
+        .eq("lesson_id", lessonId)
+        .eq("status", "결제 완료")
+        .gte("completed_date", `${selectedMonth}-01`)
+        .lte("completed_date", `${selectedMonth}-31`);
+
+      if (existingPayment && existingPayment.length > 0) {
+        alert(`이미 이번 달(${selectedMonth.replace("-", "년 ")}월) 수강료가 처리되었습니다.`);
+        return;
+      }
+
       // 모든 수업(개인/단체 동일): 납부 기록 등록
       const { error: historyError } = await supabase
         .from("lesson_history")
