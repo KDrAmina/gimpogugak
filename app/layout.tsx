@@ -162,18 +162,27 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable} ${nanumGothic.variable}`}>
       <head>
-        {/* Pretendard Dynamic Subset — font-display:swap 내장, 실제 사용 글자만 로딩 */}
+        {/* Pretendard Dynamic Subset — 비동기 로딩으로 render-blocking 방지 */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link
-          rel="stylesheet"
+          rel="preload"
+          as="style"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css"
         />
-        {/* Google Ads 전체 사이트 태그 (AW-17945851352) */}
+        <Script id="pretendard-async" strategy="afterInteractive">
+          {`
+            var l = document.createElement('link');
+            l.rel = 'stylesheet';
+            l.href = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css';
+            document.head.appendChild(l);
+          `}
+        </Script>
+        {/* Google Ads 전체 사이트 태그 (AW-17945851352) — lazyOnload로 LCP 차단 방지 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-17945851352"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-ads-init" strategy="afterInteractive">
+        <Script id="google-ads-init" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
