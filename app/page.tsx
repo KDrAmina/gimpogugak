@@ -124,6 +124,7 @@ export default async function HomePage() {
                 alt="김포문화원 앞마당에서 열린 국악 공연, 김포국악원"
                 priority
                 fetchPriority="high"
+                unoptimized
                 width={1200}
                 height={600}
                 className="w-full object-cover"
