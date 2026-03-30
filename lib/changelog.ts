@@ -16,6 +16,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "[관리자] 공지사항 목록 아코디언 UI 적용: 클릭 시 본문이 아래로 부드럽게 펼쳐지며 whitespace-pre-wrap으로 줄바꿈 유지.",
       "[관리자] 상단 메뉴바 모바일 가로 스크롤 적용: overflow-x-auto + scrollbar 숨김으로 메뉴 잘림 없이 스와이프 가능.",
       "[관리자] 메인 컨텐츠 영역 overflow-x-hidden 적용으로 화면 전체 좌우 흔들림 차단.",
+      "[공지사항] 본문 내 http/https URL 자동 감지 후 클릭 가능한 링크(<a>)로 변환: target=_blank, rel=noopener noreferrer, 파란색 밑줄 스타일 적용.",
     ],
   },
   {
