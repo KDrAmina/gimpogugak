@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import { Noto_Serif_KR, Noto_Sans_KR, Gowun_Dodum, Nanum_Myeongjo, Nanum_Gothic } from "next/font/google";
 import Script from "next/script";
 import GoogleAnalyticsWrapper from "../components/GoogleAnalyticsWrapper";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 import { AnalyticsSpeedInsights } from "../components/AnalyticsSpeedInsights";
+
+const pretendard = localFont({
+  src: "../public/fonts/PretendardVariable.woff2",
+  display: "swap",
+  weight: "100 900",
+  variable: "--font-pretendard",
+});
 
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
@@ -160,23 +168,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable} ${nanumGothic.variable}`}>
+    <html lang="ko" suppressHydrationWarning className={`${pretendard.variable} ${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable} ${nanumGothic.variable}`}>
       <head>
-        {/* Pretendard Dynamic Subset — 비동기 로딩으로 render-blocking 방지 */}
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-        <link
-          rel="preload"
-          as="style"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css"
-        />
-        <Script id="pretendard-async" strategy="afterInteractive">
-          {`
-            var l = document.createElement('link');
-            l.rel = 'stylesheet';
-            l.href = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css';
-            document.head.appendChild(l);
-          `}
-        </Script>
         {/* Google Ads 전체 사이트 태그 (AW-17945851352) — lazyOnload로 LCP 차단 방지 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-17945851352"
@@ -191,7 +184,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111] antialiased">
+      <body className={`${pretendard.className} min-h-screen bg-[#ffffff] text-[#111111] antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -22,7 +22,8 @@
       "Bash(find /c/Users/JUN/gimpo-gugak -type f -name \"*schema*\" -o -name \"*migration*\" 2>/dev/null | head -20)",
       "Bash(find /c/Users/JUN/gimpo-gugak -type f \\\\\\( -name \"*.md\" -o -name \"*.sql\" \\\\\\) 2>/dev/null | grep -E \"\\(schema|db|sql\\)\" | head -20)",
       "Bash(find /c/Users/JUN/gimpo-gugak -type f -name \"*.ts\" -path \"*/types/*\" 2>/dev/null | head -20)",
-      "Bash(find /c/Users/JUN/gimpo-gugak -name *type* -type f ! -path */node_modules/* -o -name *supabase* -type f ! -path */node_modules/*)"
+      "Bash(find /c/Users/JUN/gimpo-gugak -name *type* -type f ! -path */node_modules/* -o -name *supabase* -type f ! -path */node_modules/*)",
+      "Bash(find /c/Users/JUN/gimpo-gugak -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.html -o -name *.json \\\\\\))"
     ]
   }
 }

@@ -28,7 +28,7 @@ body {
 
 /* ── 블로그 상세 페이지 기본 폰트 ── */
 .blog-detail-article {
-  font-family: 'Pretendard', 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-pretendard), 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
   word-break: keep-all;
 }
 
@@ -38,7 +38,7 @@ body {
    ══════════════════════════════════════════════════════════════════════ */
 
 .blog-content {
-  font-family: 'Pretendard', 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-pretendard), 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.75;
   color: #111;
