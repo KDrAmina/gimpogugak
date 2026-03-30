@@ -51,7 +51,7 @@ export default async function HomePage() {
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-head-element */}
-      <link rel="preload" as="image" href={HERO_IMAGE} fetchPriority="high" />
+      <link rel="preload" as="image" href={HERO_IMAGE} fetchPriority="high" imageSizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 800px" />
 
       {/* ============================================================
           외부 래퍼
@@ -127,7 +127,9 @@ export default async function HomePage() {
                 width={1200}
                 height={600}
                 className="w-full object-cover"
-                sizes="(max-width: 1024px) 100vw, 800px"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 800px"
+                placeholder="blur"
+                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzk0OGI3ZCIvPjwvc3ZnPg=="
               />
             </figure>
 
