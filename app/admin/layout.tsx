@@ -85,8 +85,11 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center justify-center gap-2 lg:gap-3 h-16 px-4">
-          <nav className="flex items-center gap-1 lg:gap-2">
+        <div className="flex items-center h-16 px-2">
+          <nav
+            className="flex items-center gap-1 lg:gap-2 overflow-x-auto flex-nowrap flex-1 min-w-0 [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: "none" }}
+          >
             {ADMIN_NAV.map((item) => {
               const isActive = item.href === "/admin"
                     ? pathname === "/admin"
@@ -97,7 +100,7 @@ export default function AdminLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                     isActive
                       ? "bg-blue-50 text-blue-700"
                       : "text-gray-700 hover:bg-gray-50"
@@ -108,7 +111,7 @@ export default function AdminLayout({
               );
             })}
           </nav>
-          <div className="border-l border-gray-200 pl-2 lg:pl-3">
+          <div className="border-l border-gray-200 pl-2 ml-2 flex-shrink-0">
             <button
               onClick={handleLogout}
               className="px-3 lg:px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium whitespace-nowrap"
@@ -120,7 +123,7 @@ export default function AdminLayout({
       </header>
 
       {/* Main Content - Full Width Container */}
-      <main className="w-full">
+      <main className="w-full overflow-x-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </div>

@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.5",
+    date: "2026-03-31",
+    changes: [
+      "[관리자] 공지사항 목록 아코디언 UI 적용: 클릭 시 본문이 아래로 부드럽게 펼쳐지며 whitespace-pre-wrap으로 줄바꿈 유지.",
+      "[관리자] 상단 메뉴바 모바일 가로 스크롤 적용: overflow-x-auto + scrollbar 숨김으로 메뉴 잘림 없이 스와이프 가능.",
+      "[관리자] 메인 컨텐츠 영역 overflow-x-hidden 적용으로 화면 전체 좌우 흔들림 차단.",
+    ],
+  },
+  {
     version: "4.4",
     date: "2026-03-22",
     changes: [

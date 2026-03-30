@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
+import { ChevronDown } from "lucide-react";
 
 type Post = {
   id: string;
@@ -25,6 +26,7 @@ export default function AdminPostsPage() {
   const [loading, setLoading] = useState(true);
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -273,17 +275,23 @@ export default function AdminPostsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow p-4 md:p-5 ${
-                  post.is_pinned ? "border-yellow-400 bg-yellow-50" : "border-gray-200"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="space-y-2">
+            {posts.map((post) => {
+              const isExpanded = expandedId === post.id;
+              return (
+                <div
+                  key={post.id}
+                  className={`bg-white rounded-xl border shadow-sm transition-shadow ${
+                    post.is_pinned ? "border-yellow-400 bg-yellow-50" : "border-gray-200"
+                  } ${isExpanded ? "shadow-md" : "hover:shadow-md"}`}
+                >
+                  {/* 아코디언 헤더 (항상 표시) */}
+                  <div
+                    className="flex items-center gap-3 p-4 cursor-pointer select-none"
+                    onClick={() => setExpandedId(isExpanded ? null : post.id)}
+                  >
+                    {/* 뱃지 + 날짜 */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {post.is_pinned && (
                         <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-xs rounded font-bold">
                           ★ 필독
@@ -292,46 +300,58 @@ export default function AdminPostsPage() {
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
                         {post.tag || post.category}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(post.created_at).toLocaleDateString('ko-KR')}
+                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                        {new Date(post.created_at).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' })}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+
+                    {/* 제목 */}
+                    <h3 className="flex-1 min-w-0 text-sm font-semibold text-gray-900 truncate">
                       {post.title}
                     </h3>
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {post.content}
-                    </p>
+
+                    {/* 우측: 수정/삭제 + 화살표 */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleTogglePin(post.id, post.is_pinned); }}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          post.is_pinned
+                            ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
+                        title={post.is_pinned ? "고정 해제" : "상단 고정"}
+                      >
+                        {post.is_pinned ? "★" : "☆"}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openEditModal(post); }}
+                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-xs font-medium"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeletePost(post); }}
+                        className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-xs font-medium"
+                      >
+                        🗑️
+                      </button>
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ml-1 ${isExpanded ? "rotate-180" : ""}`}
+                      />
+                    </div>
                   </div>
-                  
-                  <div className="flex flex-col gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => handleTogglePin(post.id, post.is_pinned)}
-                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                        post.is_pinned
-                          ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                      title={post.is_pinned ? "고정 해제" : "상단 고정"}
-                    >
-                      {post.is_pinned ? "★" : "☆"}
-                    </button>
-                    <button
-                      onClick={() => openEditModal(post)}
-                      className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-xs font-medium"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDeletePost(post)}
-                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-xs font-medium"
-                    >
-                      🗑️
-                    </button>
-                  </div>
+
+                  {/* 아코디언 본문 (펼침 상태) */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 border-t border-gray-100">
+                      <p className="mt-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {post.content}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
