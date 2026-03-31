@@ -504,27 +504,34 @@ export default function AdminLessonsPage() {
     setPaymentHistoryDates([]);
   }
 
-  async function handleDeleteLesson(lessonId: string) {
-    const lesson = lessons.find(l => l.id === lessonId);
-    if (!lesson) return;
+  async function handlePermanentDeleteStudent(userId: string, studentName: string) {
+    const confirmMsg = `삭제하시면 해당 수강생의 모든 결제 내역과 수업 기록이 완전히 지워지며 절대 복구할 수 없습니다. 정말 삭제하시겠습니까?\n\n수강생: ${studentName}`;
 
-    const confirmMsg = `정말 삭제하시겠습니까?\n\n수강생: ${lesson.student_name}\n\n⚠️ 데이터가 완전히 사라집니다.\n기록을 남기려면 [회원관리]에서 '수업 종료'를 이용해 주세요.`;
-    
-    if (!confirm(confirmMsg)) {
-      return;
-    }
+    if (!confirm(confirmMsg)) return;
 
     try {
-      await supabase.from("lesson_history").delete().eq("lesson_id", lessonId);
-      const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
+      const res = await fetch("/api/delete-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
 
-      if (error) throw error;
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "삭제 실패");
+      }
+
+      if (data.warning) {
+        alert(`⚠️ ${data.warning}`);
+      } else {
+        alert("✅ 수강생이 영구 삭제되었습니다.");
+      }
 
       await Promise.all([loadLessons(), loadUnassignedUsers(), loadLessonHistory()]);
-      alert("✅ 수업이 삭제되었습니다.");
-    } catch (error) {
-      console.error("Delete lesson error:", error);
-      alert("수업 삭제 중 오류가 발생했습니다.");
+    } catch (error: any) {
+      console.error("Permanent delete student error:", error);
+      alert(`수강생 삭제 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
     }
   }
 
@@ -1248,10 +1255,10 @@ export default function AdminLessonsPage() {
                                 🔄 재개
                               </button>
                               <button
-                                onClick={() => handleDeleteLesson(lesson.id)}
+                                onClick={() => handlePermanentDeleteStudent(lesson.user_id, lesson.student_name)}
                                 className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs font-medium"
                               >
-                                🗑️ 삭제
+                                삭제
                               </button>
                             </div>
                           ) : (
@@ -1404,10 +1411,10 @@ export default function AdminLessonsPage() {
                             🔄 재개
                           </button>
                           <button
-                            onClick={() => handleDeleteLesson(lesson.id)}
+                            onClick={() => handlePermanentDeleteStudent(lesson.user_id, lesson.student_name)}
                             className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
                           >
-                            🗑️ 삭제
+                            삭제
                           </button>
                         </>
                       ) : (

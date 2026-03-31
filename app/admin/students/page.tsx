@@ -75,6 +75,37 @@ export default function AdminStudentsPage() {
     }
   }
 
+  async function handlePermanentDelete(studentId: string, studentName: string) {
+    const confirmMsg = `삭제하시면 해당 수강생의 모든 결제 내역과 수업 기록이 완전히 지워지며 절대 복구할 수 없습니다. 정말 삭제하시겠습니까?\n\n수강생: ${studentName}`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch("/api/delete-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: studentId }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "삭제 실패");
+      }
+
+      if (data.warning) {
+        alert(`⚠️ ${data.warning}`);
+      } else {
+        alert("✅ 수강생이 영구 삭제되었습니다.");
+      }
+
+      await fetchActiveStudents();
+    } catch (error: any) {
+      console.error("Permanent delete error:", error);
+      alert(`수강생 삭제 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
+    }
+  }
+
   async function handleEndLesson(studentName: string, lessonId?: string) {
     if (!lessonId) {
       alert("수업 정보를 찾을 수 없습니다.");
@@ -479,6 +510,15 @@ export default function AdminStudentsPage() {
                               title="수강료 문자 발송"
                             >
                               ✉️ 문자
+                            </button>
+                            <button
+                              onClick={() =>
+                                handlePermanentDelete(student.id, student.name || "이름 미입력")
+                              }
+                              className="px-2 md:px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs font-medium whitespace-nowrap"
+                              title="수강생 영구 삭제"
+                            >
+                              삭제
                             </button>
                           </div>
                         </td>

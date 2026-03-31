@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.5",
+    date: "2026-03-31",
+    changes: [
+      "[수업관리] 종료됨 탭 중복 삭제 버튼 통합: '🗑️ 삭제' + '🚫 수강생 완전 삭제' → 빨간색 '삭제' 버튼 1개로 정리 (수강생 영구 삭제 실행).",
+      "[수업관리/회원관리] 삭제 확인 경고창 메시지 통일: '모든 결제 내역과 수업 기록이 완전히 지워지며 절대 복구할 수 없습니다' 문구 공통 적용.",
+      "[수업관리] 미사용 handleDeleteLesson 함수 제거.",
+    ],
+  },
+  {
     version: "4.4",
     date: "2026-03-31",
     changes: [
