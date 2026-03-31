@@ -279,15 +279,6 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const currentDateTime = new Date().toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-
   return (
     <div>
       {/* Page Header */}
@@ -403,17 +394,23 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Widget 3: Last Login */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        {/* Widget 3: 알림톡 발송 관리 */}
+        <button
+          type="button"
+          onClick={() => router.push("/admin/alimtalk")}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow text-left cursor-pointer w-full"
+        >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">마지막 접속</h3>
-            <div className="text-3xl">🕐</div>
+            <h3 className="text-sm font-medium text-gray-600">알림톡 발송 관리</h3>
+            <div className="text-3xl">💬</div>
           </div>
           <p className="text-lg font-semibold text-gray-900">
-            {currentDateTime}
+            카카오 알림톡
           </p>
-          <p className="mt-2 text-xs text-gray-500">현재 시각 기준</p>
-        </div>
+          <p className="mt-2 text-xs text-blue-600 font-medium">
+            클릭하여 발송 관리 →
+          </p>
+        </button>
       </div>
 
       {/* Tuition Payment Due */}

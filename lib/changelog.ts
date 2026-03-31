@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.6",
+    date: "2026-03-31",
+    changes: [
+      "대시보드 알림톡 예약 발송 게시판 추가 및 동일인물(숫자) 수강료 합산/중복발송 방지 로직 적용",
+    ],
+  },
+  {
     version: "4.5",
     date: "2026-03-31",
     changes: [
