@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7",
+    date: "2026-03-31",
+    changes: [
+      "특정 월 캘린더 리셋: 현재 보고 있는 연도/월의 납부 내역만 타겟 삭제 (이전/이후 달 데이터 유지)",
+      "다개월 선납 기능: 수업 관리 리스트에서 미래 달 납부완료 데이터를 일괄 자동 생성",
+      "수강료/과목 정보 수정 기능: 회원관리 목록에서 수강 과목(카테고리)과 수강료를 모달로 변경 가능",
+    ],
+  },
+  {
     version: "4.6",
     date: "2026-03-31",
     changes: [

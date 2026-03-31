@@ -351,23 +351,54 @@ export default function AdminLessonsPage() {
   }
 
   async function handleResetCalendar() {
-    if (!confirm("⚠️ 모든 출석 기록과 진도를 초기화합니다. 수강생 정보는 유지됩니다. 계속하시겠습니까?")) {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth() + 1;
+    const monthStr = `${year}년 ${month}월`;
+
+    if (!confirm(`정말 ${monthStr}의 모든 납부 내역을 초기화하시겠습니까?\n(이전/이후 달의 데이터는 유지됩니다.)`)) {
       return;
     }
     try {
+      const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+      // Get affected lesson_history records to know which lessons need session recount
+      const { data: affectedRecords } = await supabase
+        .from("lesson_history")
+        .select("lesson_id")
+        .gte("completed_date", startDate)
+        .lte("completed_date", endDate);
+
+      const affectedLessonIds = [...new Set((affectedRecords || []).map(r => r.lesson_id))];
+
+      // Delete only this month's records
       const { error: deleteError } = await supabase
         .from("lesson_history")
         .delete()
-        .neq("id", "00000000-0000-0000-0000-000000000000");
+        .gte("completed_date", startDate)
+        .lte("completed_date", endDate);
+
       if (deleteError) throw deleteError;
 
-      await supabase
-        .from("lessons")
-        .update({ current_session: 0 })
-        .neq("id", "00000000-0000-0000-0000-000000000000");
+      // Recount current_session for each affected lesson
+      for (const lessonId of affectedLessonIds) {
+        const { count, error: countError } = await supabase
+          .from("lesson_history")
+          .select("*", { count: "exact", head: true })
+          .eq("lesson_id", lessonId)
+          .gt("session_number", 0);
+
+        if (countError) continue;
+
+        await supabase
+          .from("lessons")
+          .update({ current_session: count ?? 0 })
+          .eq("id", lessonId);
+      }
 
       await Promise.all([loadLessons(), loadLessonHistory()]);
-      alert("✅ 캘린더가 리셋되었습니다.");
+      alert(`✅ ${monthStr} 캘린더가 리셋되었습니다.`);
     } catch (error) {
       console.error("Reset calendar error:", error);
       alert("캘린더 리셋 중 오류가 발생했습니다.");
@@ -675,6 +706,72 @@ export default function AdminLessonsPage() {
       alert("입금 확인 중 오류가 발생했습니다.");
     } finally {
       setConfirmingPayment(null);
+    }
+  }
+
+  async function handleAdvancePayment(lesson: Lesson) {
+    const monthsStr = prompt(`${lesson.student_name}님 — 몇 개월 선납하시겠습니까?\n(숫자 입력)`, "");
+    if (!monthsStr) return;
+
+    const months = parseInt(monthsStr);
+    if (isNaN(months) || months < 1 || months > 12) {
+      alert("1~12 사이의 숫자를 입력해주세요.");
+      return;
+    }
+
+    if (!confirm(`${lesson.student_name}님 ${months}개월 선납을 등록하시겠습니까?\n\n결제 금액(${(lesson.tuition_amount * months).toLocaleString()}원)은 현재 달 수입으로 합산됩니다.`)) {
+      return;
+    }
+
+    try {
+      const today = getTodayKST();
+      // Determine the base payment day from the existing payment_date
+      const baseDay = lesson.payment_date
+        ? parseInt(lesson.payment_date.split("-")[2])
+        : parseInt(today.split("-")[2]);
+      const baseYear = parseInt(today.split("-")[0]);
+      const baseMonth = parseInt(today.split("-")[1]);
+
+      const inserts = [];
+      for (let i = 1; i <= months; i++) {
+        let targetMonth = baseMonth + i;
+        let targetYear = baseYear;
+        while (targetMonth > 12) {
+          targetMonth -= 12;
+          targetYear += 1;
+        }
+        // Clamp day to last day of target month
+        const lastDayOfMonth = new Date(targetYear, targetMonth, 0).getDate();
+        const targetDay = Math.min(baseDay, lastDayOfMonth);
+        const futureDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
+
+        inserts.push({
+          lesson_id: lesson.id,
+          session_number: 0,
+          completed_date: futureDate,
+          user_id: lesson.user_id,
+          status: "결제 완료",
+        });
+      }
+
+      const { error: insertError } = await supabase
+        .from("lesson_history")
+        .insert(inserts);
+
+      if (insertError) throw insertError;
+
+      // Update payment_date on the lesson to the last future month
+      const lastFutureDate = inserts[inserts.length - 1].completed_date;
+      await supabase
+        .from("lessons")
+        .update({ payment_date: lastFutureDate })
+        .eq("id", lesson.id);
+
+      await Promise.all([loadLessons(), loadLessonHistory()]);
+      alert(`✅ ${lesson.student_name}님 ${months}개월 선납이 등록되었습니다.`);
+    } catch (error: any) {
+      console.error("Advance payment error:", error);
+      alert(`선납 등록 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
     }
   }
 
@@ -1262,17 +1359,25 @@ export default function AdminLessonsPage() {
                               </button>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => handleConfirmGroupPayment(lesson.id)}
-                              disabled={confirmingPayment === lesson.id}
-                              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-50 ${
-                                isPaidThisMonth
-                                  ? "bg-gray-100 text-gray-500"
-                                  : "bg-purple-600 text-white hover:bg-purple-700"
-                              }`}
-                            >
-                              {isPaidThisMonth ? "✓ 납부완료" : "💰 이번 달 입금 확인"}
-                            </button>
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleConfirmGroupPayment(lesson.id)}
+                                disabled={confirmingPayment === lesson.id}
+                                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-50 ${
+                                  isPaidThisMonth
+                                    ? "bg-gray-100 text-gray-500"
+                                    : "bg-purple-600 text-white hover:bg-purple-700"
+                                }`}
+                              >
+                                {isPaidThisMonth ? "✓ 납부완료" : "💰 이번 달 입금 확인"}
+                              </button>
+                              <button
+                                onClick={() => handleAdvancePayment(lesson)}
+                                className="px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap bg-emerald-600 text-white hover:bg-emerald-700"
+                              >
+                                선납
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1418,17 +1523,25 @@ export default function AdminLessonsPage() {
                           </button>
                         </>
                       ) : (
-                        <button
-                          onClick={() => handleConfirmGroupPayment(lesson.id)}
-                          disabled={confirmingPayment === lesson.id}
-                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                            isPaidThisMonth
-                              ? "bg-gray-100 text-gray-500"
-                              : "bg-purple-600 text-white hover:bg-purple-700"
-                          }`}
-                        >
-                          {isPaidThisMonth ? "✓ 이번 달 납부완료" : "💰 이번 달 입금 확인"}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleConfirmGroupPayment(lesson.id)}
+                            disabled={confirmingPayment === lesson.id}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                              isPaidThisMonth
+                                ? "bg-gray-100 text-gray-500"
+                                : "bg-purple-600 text-white hover:bg-purple-700"
+                            }`}
+                          >
+                            {isPaidThisMonth ? "✓ 이번 달 납부완료" : "💰 이번 달 입금 확인"}
+                          </button>
+                          <button
+                            onClick={() => handleAdvancePayment(lesson)}
+                            className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-emerald-600 text-white hover:bg-emerald-700"
+                          >
+                            선납
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
