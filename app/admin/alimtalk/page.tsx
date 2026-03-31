@@ -29,6 +29,7 @@ type GroupedStudent = {
   lessonIds: string[]; // 그룹 내 모든 lesson ID (결제일 일괄 수정용)
   selected: boolean;
   isToday: boolean; // 오늘 자동 발송 대상 여부
+  sentToday: boolean; // 오늘 발송 완료 여부
 };
 
 function getKSTToday(): { day: number; dateStr: string } {
@@ -110,15 +111,33 @@ export default function AlimtalkPage() {
           lessonIds: [row.id],
           selected: false,
           isToday: false,
+          sentToday: false,
         });
       }
     }
+
+    // 오늘 발송 완료 로그 조회
+    const { dateStr: todayDateStr } = getKSTToday();
+    const { data: sentLogs } = await supabase
+      .from("notification_log")
+      .select("phone")
+      .eq("sent_date", todayDateStr)
+      .eq("type", "auto_cron");
+
+    const sentPhones = new Set(
+      (sentLogs || []).map((r: { phone: string }) => r.phone)
+    );
 
     // 오늘 발송 대상 마킹
     const sorted = Array.from(groupMap.values()).map((s) => {
       if (s.paymentDate) {
         const payDay = new Date(s.paymentDate + "T00:00:00").getDate();
         s.isToday = payDay === todayDay;
+      }
+      // 발송 완료 여부 마킹
+      const cleanPhone = s.phone.replace(/[^0-9]/g, "");
+      if (sentPhones.has(cleanPhone) || sentPhones.has(s.phone)) {
+        s.sentToday = true;
       }
       return s;
     });
@@ -292,7 +311,7 @@ export default function AlimtalkPage() {
     );
   }
 
-  const todayCount = students.filter((s) => s.isToday).length;
+  const todayCount = students.filter((s) => s.isToday && s.totalTuition > 0).length;
   const selectedCount = students.filter((s) => s.selected).length;
   const { dateStr: todayDateStr } = getKSTToday();
 
@@ -446,7 +465,15 @@ export default function AlimtalkPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {s.isToday ? (
+                      {s.sentToday ? (
+                        <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                          발송 완료
+                        </span>
+                      ) : s.isToday && s.totalTuition <= 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
+                          발송 제외(0원)
+                        </span>
+                      ) : s.isToday ? (
                         <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                           오늘 발송
                         </span>

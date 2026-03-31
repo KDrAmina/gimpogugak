@@ -152,7 +152,10 @@ export async function GET(req: Request) {
       }
     }
 
-    const targets = Array.from(groupMap.values());
+    // 수강료 0원 이하인 대상 제외
+    const targets = Array.from(groupMap.values()).filter(
+      (t) => t.totalTuition > 0
+    );
 
     if (targets.length === 0) {
       return NextResponse.json({

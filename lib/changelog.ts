@@ -14,6 +14,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-03-31",
     changes: [
       "Vercel Cron을 이용한 알림톡 매일 자동 발송 시스템 구축 및 결제일 개별 수정 UI 적용",
+      "알림톡 자동 발송 내역 UI(발송 완료) 추가 및 수강료 0원 수강생 자동 발송 제외 로직 적용",
     ],
   },
   {
