@@ -25,6 +25,7 @@ type LessonRow = {
     name: string;
     phone: string | null;
     status: string;
+    is_alimtalk_enabled: boolean;
   };
 };
 
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
         category,
         tuition_amount,
         payment_date,
-        profiles!inner(name, phone, status)
+        profiles!inner(name, phone, status, is_alimtalk_enabled)
       `)
       .eq("is_active", true);
 
@@ -96,9 +97,12 @@ export async function GET(req: Request) {
 
     const rows = (data || []) as unknown as LessonRow[];
 
-    // payment_date의 '일'이 오늘과 일치하는 수강생 필터
+    // payment_date의 '일'이 오늘과 일치하는 수강생 필터 (수동 제외 대상 원천 차단)
     const todayTargets = rows.filter((r) => {
       if (!r.payment_date || !r.profiles?.phone || r.profiles.status !== "active") {
+        return false;
+      }
+      if (r.profiles.is_alimtalk_enabled === false) {
         return false;
       }
       const payDay = new Date(r.payment_date + "T00:00:00").getDate();

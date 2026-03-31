@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.4",
+    date: "2026-03-31",
+    changes: [
+      "알림톡 수동 ON/OFF 토글 기능 추가: 알림톡 관리 페이지에서 수강생별 알림톡 발송 여부를 즉시 켜고 끌 수 있는 토글 스위치 추가",
+      "수동 제외 상태 뱃지 추가: is_alimtalk_enabled=false인 수강생은 회색 '발송 제외(수동)' 뱃지로 표시 (우선순위: 수동 제외 > 0원 제외 > 발송 완료 > 오늘 발송 > 대기)",
+      "크론잡 발송 필터링 강화: 매일 자동 발송 시 is_alimtalk_enabled=false 수강생을 원천 제외하도록 필터링 조건 추가",
+    ],
+  },
+  {
     version: "4.7.3",
     date: "2026-03-31",
     changes: [

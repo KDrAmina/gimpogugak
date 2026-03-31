@@ -17,12 +17,14 @@ type LessonRow = {
     name: string;
     phone: string | null;
     status: string;
+    is_alimtalk_enabled: boolean;
   };
 };
 
 type GroupedStudent = {
   baseName: string;
   phone: string;
+  userId: string;
   totalTuition: number;
   paymentDate: string | null;
   categories: string[];
@@ -30,6 +32,7 @@ type GroupedStudent = {
   selected: boolean;
   isToday: boolean; // 오늘 자동 발송 대상 여부
   sentToday: boolean; // 오늘 발송 완료 여부
+  alimtalkEnabled: boolean; // 알림톡 수동 ON/OFF
 };
 
 function getKSTToday(): { day: number; dateStr: string } {
@@ -64,7 +67,7 @@ export default function AlimtalkPage() {
         tuition_amount,
         payment_date,
         is_active,
-        profiles!inner(name, phone, status)
+        profiles!inner(name, phone, status, is_alimtalk_enabled)
       `)
       .eq("is_active", true)
       .order("payment_date", { ascending: true, nullsFirst: false });
@@ -105,6 +108,7 @@ export default function AlimtalkPage() {
         groupMap.set(key, {
           baseName,
           phone,
+          userId: row.user_id,
           totalTuition: row.tuition_amount || 0,
           paymentDate: row.payment_date,
           categories: row.category ? [row.category] : [],
@@ -112,6 +116,7 @@ export default function AlimtalkPage() {
           selected: false,
           isToday: false,
           sentToday: false,
+          alimtalkEnabled: row.profiles.is_alimtalk_enabled !== false,
         });
       }
     }
@@ -239,6 +244,26 @@ export default function AlimtalkPage() {
   function cancelEditing() {
     setEditingIndex(null);
     setEditDay("");
+  }
+
+  /* ─── 알림톡 ON/OFF 토글 ─── */
+  async function toggleAlimtalk(index: number) {
+    const student = students[index];
+    const newValue = !student.alimtalkEnabled;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_alimtalk_enabled: newValue })
+      .eq("id", student.userId);
+
+    if (error) {
+      alert("저장 실패: " + error.message);
+      return;
+    }
+
+    setStudents((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, alimtalkEnabled: newValue } : s))
+    );
   }
 
   /* ─── 수동 발송 ─── */
@@ -373,12 +398,13 @@ export default function AlimtalkPage() {
                   결제일 (클릭 수정)
                 </th>
                 <th className="px-4 py-3 text-center font-medium text-gray-700">상태</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-700">알림톡</th>
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={showManualSend ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={showManualSend ? 8 : 7} className="px-4 py-8 text-center text-gray-500">
                     활성 수강생이 없습니다.
                   </td>
                 </tr>
@@ -465,7 +491,11 @@ export default function AlimtalkPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {s.sentToday ? (
+                      {!s.alimtalkEnabled ? (
+                        <span className="inline-flex items-center px-2 py-0.5 bg-gray-200 text-gray-500 text-xs font-medium rounded-full">
+                          발송 제외(수동)
+                        </span>
+                      ) : s.sentToday ? (
                         <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           발송 완료
                         </span>
@@ -482,6 +512,22 @@ export default function AlimtalkPage() {
                       ) : (
                         <span className="text-xs text-red-500">미설정</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => toggleAlimtalk(i)}
+                        title={s.alimtalkEnabled ? "클릭하면 발송 제외" : "클릭하면 발송 재개"}
+                        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                          s.alimtalkEnabled ? "bg-blue-500" : "bg-gray-300"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${
+                            s.alimtalkEnabled ? "translate-x-5" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
                     </td>
                   </tr>
                 ))
