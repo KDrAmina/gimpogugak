@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.1",
+    date: "2026-03-31",
+    changes: [
+      "수강료 수정 시 과거 장부 보호: lesson_history에 tuition_snapshot(결제 시점 수강료) 컬럼 추가, 대시보드 수입 통계가 스냅샷 기준으로 계산되도록 수정",
+      "선납 횟수 버그 수정: 이번 달 포함 정확한 개월 수만큼만 생성되도록 반복문 조건 수정 (i=0부터 i<months)",
+      "선납 통계 누락 수정: 미래 달 기록에 prepaid_month 플래그 ���가, 대시보드에서 선납 실행 월의 수입으로 합산",
+      "수강 정보 수정 모달에 결제일(1~31일) 변경 기능 추가",
+    ],
+  },
+  {
     version: "4.7",
     date: "2026-03-31",
     changes: [

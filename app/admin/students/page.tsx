@@ -18,6 +18,7 @@ type ActiveStudent = {
   lesson_id?: string;
   lesson_category?: string;
   lesson_tuition?: number;
+  lesson_payment_date?: string | null;
 };
 
 export default function AdminStudentsPage() {
@@ -38,6 +39,7 @@ export default function AdminStudentsPage() {
   const [editingStudent, setEditingStudent] = useState<ActiveStudent | null>(null);
   const [editCategory, setEditCategory] = useState<string[]>([]);
   const [editTuition, setEditTuition] = useState(0);
+  const [editPaymentDay, setEditPaymentDay] = useState(1);
   const supabase = createClient();
 
   useEffect(() => {
@@ -58,10 +60,10 @@ export default function AdminStudentsPage() {
       // Fetch lesson status for each student
       const { data: lessonsData } = await supabase
         .from("lessons")
-        .select("id, user_id, is_active, category, tuition_amount");
+        .select("id, user_id, is_active, category, tuition_amount, payment_date");
 
       const lessonMap = new Map(
-        lessonsData?.map(l => [l.user_id, { id: l.id, is_active: l.is_active, category: l.category, tuition_amount: l.tuition_amount }]) || []
+        lessonsData?.map(l => [l.user_id, { id: l.id, is_active: l.is_active, category: l.category, tuition_amount: l.tuition_amount, payment_date: l.payment_date }]) || []
       );
 
       const studentsWithLessons = (profilesData || []).map(student => {
@@ -74,6 +76,7 @@ export default function AdminStudentsPage() {
             : 'none' as const,
           lesson_category: lesson?.category || '',
           lesson_tuition: lesson?.tuition_amount || 0,
+          lesson_payment_date: lesson?.payment_date || null,
         };
       });
 
@@ -351,6 +354,11 @@ export default function AdminStudentsPage() {
     setEditingStudent(student);
     setEditCategory(student.lesson_category ? student.lesson_category.split(", ").filter(c => c) : []);
     setEditTuition(student.lesson_tuition || 0);
+    // Extract day from payment_date (e.g., "2026-03-15" → 15)
+    const day = student.lesson_payment_date
+      ? parseInt(student.lesson_payment_date.split("-")[2])
+      : 1;
+    setEditPaymentDay(day || 1);
     setShowEditModal(true);
   }
 
@@ -369,13 +377,35 @@ export default function AdminStudentsPage() {
       alert("최소 1개의 카테고리를 선택해주세요.");
       return;
     }
+    if (editPaymentDay < 1 || editPaymentDay > 31) {
+      alert("결제일은 1~31 사이의 숫자를 입력해주세요.");
+      return;
+    }
 
     try {
+      // Build new payment_date: keep year-month from existing, change day only
+      const existing = editingStudent.lesson_payment_date;
+      let newPaymentDate: string;
+      if (existing) {
+        const [y, m] = existing.split("-");
+        const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
+        const clampedDay = Math.min(editPaymentDay, lastDay);
+        newPaymentDate = `${y}-${m}-${String(clampedDay).padStart(2, "0")}`;
+      } else {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+        const clampedDay = Math.min(editPaymentDay, lastDay);
+        newPaymentDate = `${y}-${m}-${String(clampedDay).padStart(2, "0")}`;
+      }
+
       const { error } = await supabase
         .from("lessons")
         .update({
           category: editCategory.join(", "),
           tuition_amount: editTuition,
+          payment_date: newPaymentDate,
         })
         .eq("id", editingStudent.lesson_id);
 
@@ -384,7 +414,7 @@ export default function AdminStudentsPage() {
       await fetchActiveStudents();
       setShowEditModal(false);
       setEditingStudent(null);
-      alert("✅ 수강생 정보가 수정되었습니다.");
+      alert("✅ 수강생 정보가 수정되었습니다.\n\n변경된 수강료는 앞으로 생성될 결제 내역부터 적용됩니다.");
     } catch (error: any) {
       console.error("Save student info error:", error);
       alert(`수정 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
@@ -747,7 +777,7 @@ export default function AdminStudentsPage() {
                   </div>
 
                   {/* Tuition Amount */}
-                  <div className="mb-6">
+                  <div className="mb-5">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       수강료
                     </label>
@@ -764,6 +794,24 @@ export default function AdminStudentsPage() {
                     <p className="mt-1.5 text-xs text-gray-500">
                       변경된 수강료는 앞으로 생성될 결제 내역부터 적용됩니다.
                     </p>
+                  </div>
+
+                  {/* Payment Day */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      결제일 (매월)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={editPaymentDay}
+                        onChange={(e) => setEditPaymentDay(parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                      />
+                      <span className="absolute right-3 top-2.5 text-sm text-gray-500">일</span>
+                    </div>
                   </div>
 
                   {/* Action Buttons */}

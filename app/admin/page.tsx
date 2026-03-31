@@ -166,22 +166,53 @@ export default function AdminDashboardPage() {
     const endDate = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
     // ── 정규 수강료 (lesson_history) ──
+    // tuition_snapshot: 결제 시점의 수강료 스냅샷 (0이면 fallback으로 lessons.tuition_amount 사용)
+    // prepaid_month: 선납 실행 시점의 YYYY-MM (이 필드가 있으면 해당 월의 수입으로 합산)
     try {
       const { data, error } = await supabase
         .from("lesson_history")
-        .select("session_number, status, lessons!inner(tuition_amount, category)")
+        .select("session_number, status, tuition_snapshot, prepaid_month, completed_date, lessons!inner(tuition_amount, category)")
         .gte("completed_date", startDate)
         .lt("completed_date", endDate);
 
       if (error) throw error;
 
       const sum = (data || []).reduce((acc, record: any) => {
-        const tuition = record.lessons?.tuition_amount || 0;
+        // 선납 미래 기록: prepaid_month가 있고, 해당 월이 조회 월과 다르면 수입 제외
+        // (실제 수입은 prepaid_month 기준 월에서 합산됨)
+        if (record.prepaid_month && record.prepaid_month !== month) {
+          return acc;
+        }
+        const tuition = record.tuition_snapshot > 0
+          ? record.tuition_snapshot
+          : (record.lessons?.tuition_amount || 0);
         if (record.status === "결제 완료") return acc + tuition;
         if (record.session_number > 0 && record.session_number % 4 === 0) return acc + tuition;
         return acc;
       }, 0);
-      setMonthlyTuition(sum);
+
+      // 선납 기록 중 이번 달에 실행된 것(prepaid_month === month)이면서
+      // completed_date가 미래인 레코드의 수입도 합산
+      const { data: prepaidData } = await supabase
+        .from("lesson_history")
+        .select("tuition_snapshot, prepaid_month, completed_date, lessons!inner(tuition_amount)")
+        .eq("prepaid_month", month)
+        .eq("status", "결제 완료");
+
+      let prepaidSum = 0;
+      if (prepaidData) {
+        for (const record of prepaidData as any[]) {
+          const recDate = (record as any).completed_date;
+          // 이미 위의 쿼리에 포함된 레코드(이번 달 범위)는 제외
+          if (recDate && recDate >= startDate && recDate < endDate) continue;
+          const tuition = record.tuition_snapshot > 0
+            ? record.tuition_snapshot
+            : (record.lessons?.tuition_amount || 0);
+          prepaidSum += tuition;
+        }
+      }
+
+      setMonthlyTuition(sum + prepaidSum);
     } catch (error) {
       console.error("Error fetching monthly tuition:", error);
       setMonthlyTuition(0);

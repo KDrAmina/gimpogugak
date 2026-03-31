@@ -710,7 +710,7 @@ export default function AdminLessonsPage() {
   }
 
   async function handleAdvancePayment(lesson: Lesson) {
-    const monthsStr = prompt(`${lesson.student_name}님 — 몇 개월 선납하시겠습니까?\n(숫자 입력)`, "");
+    const monthsStr = prompt(`${lesson.student_name}님 — 몇 개월 선납하시겠습니까?\n(이번 달 포함, 숫자 입력)`, "");
     if (!monthsStr) return;
 
     const months = parseInt(monthsStr);
@@ -719,38 +719,41 @@ export default function AdminLessonsPage() {
       return;
     }
 
-    if (!confirm(`${lesson.student_name}님 ${months}개월 선납을 등록하시겠습니까?\n\n결제 금액(${(lesson.tuition_amount * months).toLocaleString()}원)은 현재 달 수입으로 합산됩니다.`)) {
+    if (!confirm(`${lesson.student_name}님 ${months}개월 선납을 등록하시겠습니까?\n(이번 달 포함 ${months}개월)\n\n결제 금액(${(lesson.tuition_amount * months).toLocaleString()}원)은 현재 달 수입으로 합산됩니다.`)) {
       return;
     }
 
     try {
       const today = getTodayKST();
-      // Determine the base payment day from the existing payment_date
       const baseDay = lesson.payment_date
         ? parseInt(lesson.payment_date.split("-")[2])
         : parseInt(today.split("-")[2]);
       const baseYear = parseInt(today.split("-")[0]);
       const baseMonth = parseInt(today.split("-")[1]);
+      const currentMonthStr = today.substring(0, 7); // "YYYY-MM" for prepaid_month
 
       const inserts = [];
-      for (let i = 1; i <= months; i++) {
+      // i=0: 이번 달, i=1: 다음 달, ... i=months-1: 마지막 달
+      for (let i = 0; i < months; i++) {
         let targetMonth = baseMonth + i;
         let targetYear = baseYear;
         while (targetMonth > 12) {
           targetMonth -= 12;
           targetYear += 1;
         }
-        // Clamp day to last day of target month
         const lastDayOfMonth = new Date(targetYear, targetMonth, 0).getDate();
         const targetDay = Math.min(baseDay, lastDayOfMonth);
-        const futureDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
+        const targetDate = `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
 
         inserts.push({
           lesson_id: lesson.id,
           session_number: 0,
-          completed_date: futureDate,
+          completed_date: targetDate,
           user_id: lesson.user_id,
           status: "결제 완료",
+          tuition_snapshot: lesson.tuition_amount,
+          // 미래 달 기록은 prepaid_month를 설정하여 수입 통계에서 올바르게 처리
+          prepaid_month: i > 0 ? currentMonthStr : null,
         });
       }
 
@@ -768,7 +771,7 @@ export default function AdminLessonsPage() {
         .eq("id", lesson.id);
 
       await Promise.all([loadLessons(), loadLessonHistory()]);
-      alert(`✅ ${lesson.student_name}님 ${months}개월 선납이 등록되었습니다.`);
+      alert(`✅ ${lesson.student_name}님 ${months}개월 선납이 등록되었습니다.\n(이번 달 포함 총 ${months}개월)`);
     } catch (error: any) {
       console.error("Advance payment error:", error);
       alert(`선납 등록 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
@@ -832,7 +835,7 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      // 모든 수업(개인/단체 동일): 납부 기록 등록
+      // 모든 수업(개인/단체 동일): 납부 기록 등록 (tuition_snapshot: 결제 시점 수강료 스냅샷)
       const { error: historyError } = await supabase
         .from("lesson_history")
         .insert({
@@ -841,6 +844,7 @@ export default function AdminLessonsPage() {
           completed_date: selectedDateForAdd,
           user_id: userId,
           status: "결제 완료",
+          tuition_snapshot: selectedLessonForAdd.tuition_amount || 0,
         });
 
       if (historyError) {
