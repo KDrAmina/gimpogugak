@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.3",
+    date: "2026-03-31",
+    changes: [
+      "과거 장부 금액 변조 방지 UI 적용: 수강생 상세 결제 이력에서 tuition_snapshot(결제 당시 금액)을 최우선 렌더링, 수강료 변경 시에도 과거 장부 금액 보호",
+      "선납 금액 당월 수입 통계 누락 버그 완벽 해결: 대시보드 월 수입 쿼리를 일반결제(prepaid_month=null)와 선납(prepaid_month=해당월)으로 분리, 미래 달 장부도 선납 실행 월 수입으로 정확히 합산",
+    ],
+  },
+  {
     version: "4.7.2",
     date: "2026-03-31",
     changes: [

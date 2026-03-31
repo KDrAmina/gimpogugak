@@ -98,7 +98,7 @@ export default function StudentDetailPage() {
       if (lessonIds.length > 0) {
         const { data: histData } = await supabase
           .from("lesson_history")
-          .select("id, lesson_id, session_number, completed_date, status, lessons!inner(category, tuition_amount)")
+          .select("id, lesson_id, session_number, completed_date, status, tuition_snapshot, lessons!inner(category, tuition_amount)")
           .in("lesson_id", lessonIds)
           .order("completed_date", { ascending: false })
           .limit(50);
@@ -109,7 +109,10 @@ export default function StudentDetailPage() {
           completed_date: h.completed_date,
           status: h.status,
           category: h.lessons?.category || "",
-          tuition_amount: h.lessons?.tuition_amount || 0,
+          // tuition_snapshot(결제 시점 금액) 우선, 0이면 fallback으로 현재 수강료
+          tuition_amount: (h.tuition_snapshot && h.tuition_snapshot > 0)
+            ? h.tuition_snapshot
+            : (h.lessons?.tuition_amount || 0),
         })));
       }
     }
@@ -309,6 +312,11 @@ export default function StudentDetailPage() {
               <div key={h.id} className="py-2 flex items-center justify-between text-sm gap-2">
                 <span className="text-gray-500 w-24 shrink-0 tabular-nums">{h.completed_date}</span>
                 <span className="text-gray-700 flex-1 truncate">{h.category}</span>
+                {h.tuition_amount > 0 && (
+                  <span className="text-xs text-gray-500 shrink-0 tabular-nums">
+                    {h.tuition_amount.toLocaleString()}원
+                  </span>
+                )}
                 <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium shrink-0">
                   납부완료
                 </span>
