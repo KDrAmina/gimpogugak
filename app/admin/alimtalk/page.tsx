@@ -2,11 +2,12 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 type LessonRow = {
+  id: string;
   user_id: string;
   category: string;
   tuition_amount: number;
@@ -25,53 +26,38 @@ type GroupedStudent = {
   totalTuition: number;
   paymentDate: string | null;
   categories: string[];
+  lessonIds: string[]; // 그룹 내 모든 lesson ID (결제일 일괄 수정용)
   selected: boolean;
+  isToday: boolean; // 오늘 자동 발송 대상 여부
 };
+
+function getKSTToday(): { day: number; dateStr: string } {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return {
+    day: kst.getUTCDate(),
+    dateStr: `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`,
+  };
+}
 
 export default function AlimtalkPage() {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<GroupedStudent[]>([]);
-  const [scheduledDate, setScheduledDate] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDay, setEditDay] = useState("");
+  const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: number; fail: number } | null>(null);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [showManualSend, setShowManualSend] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  useEffect(() => {
-    checkAccessAndLoad();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function checkAccessAndLoad() {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) { router.push("/admin/login"); return; }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, status")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.role !== "admin" || profile?.status !== "active") {
-        router.push("/");
-        return;
-      }
-
-      await loadStudents();
-    } catch {
-      router.push("/");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadStudents() {
+  const loadStudents = useCallback(async () => {
     const { data, error } = await supabase
       .from("lessons")
       .select(`
+        id,
         user_id,
         category,
         tuition_amount,
@@ -88,13 +74,12 @@ export default function AlimtalkPage() {
     }
 
     const rows = (data || []) as unknown as LessonRow[];
-
-    // 발송 제외: is_active=false (이미 필터됨) 또는 profiles.status가 active가 아닌 경우
     const filtered = rows.filter(
       (r) => r.profiles?.status === "active" && r.profiles?.phone
     );
 
-    // 동일인물 그룹화: 이름에서 숫자 제거 + 연락처 일치 시 동일인
+    const { day: todayDay } = getKSTToday();
+
     const groupMap = new Map<string, GroupedStudent>();
 
     for (const row of filtered) {
@@ -106,10 +91,10 @@ export default function AlimtalkPage() {
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
         existing.totalTuition += row.tuition_amount || 0;
+        existing.lessonIds.push(row.id);
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }
-        // payment_date: 가장 임박한 날짜 유지
         if (row.payment_date) {
           if (!existing.paymentDate || row.payment_date < existing.paymentDate) {
             existing.paymentDate = row.payment_date;
@@ -122,13 +107,26 @@ export default function AlimtalkPage() {
           totalTuition: row.tuition_amount || 0,
           paymentDate: row.payment_date,
           categories: row.category ? [row.category] : [],
+          lessonIds: [row.id],
           selected: false,
+          isToday: false,
         });
       }
     }
 
-    // 결제일 임박 순 정렬 (null은 뒤로)
-    const sorted = Array.from(groupMap.values()).sort((a, b) => {
+    // 오늘 발송 대상 마킹
+    const sorted = Array.from(groupMap.values()).map((s) => {
+      if (s.paymentDate) {
+        const payDay = new Date(s.paymentDate + "T00:00:00").getDate();
+        s.isToday = payDay === todayDay;
+      }
+      return s;
+    });
+
+    // 오늘 대상 먼저, 그 다음 결제일 순
+    sorted.sort((a, b) => {
+      if (a.isToday && !b.isToday) return -1;
+      if (!a.isToday && b.isToday) return 1;
       if (!a.paymentDate && !b.paymentDate) return 0;
       if (!a.paymentDate) return 1;
       if (!b.paymentDate) return -1;
@@ -136,8 +134,95 @@ export default function AlimtalkPage() {
     });
 
     setStudents(sorted);
+  }, [supabase]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) { router.push("/admin/login"); return; }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, status")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.role !== "admin" || profile?.status !== "active") {
+          router.push("/");
+          return;
+        }
+
+        await loadStudents();
+      } catch {
+        router.push("/");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ─── 결제일 인라인 수정 ─── */
+  function startEditing(index: number) {
+    const student = students[index];
+    const currentDay = student.paymentDate
+      ? String(new Date(student.paymentDate + "T00:00:00").getDate())
+      : "";
+    setEditingIndex(index);
+    setEditDay(currentDay);
   }
 
+  async function savePaymentDay(index: number) {
+    const student = students[index];
+    const dayNum = parseInt(editDay, 10);
+
+    if (!editDay || isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
+      alert("1~31 사이의 유효한 일(Day)을 입력해주세요.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // 현재 연월 기준으로 payment_date 생성
+      const now = new Date();
+      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      const year = kst.getUTCFullYear();
+      const month = kst.getUTCMonth() + 1;
+      // 해당 월의 마지막 일 체크
+      const lastDay = new Date(year, month, 0).getDate();
+      const finalDay = Math.min(dayNum, lastDay);
+      const newDate = `${year}-${String(month).padStart(2, "0")}-${String(finalDay).padStart(2, "0")}`;
+
+      // 그룹 내 모든 lesson의 payment_date 일괄 업데이트
+      const { error } = await supabase
+        .from("lessons")
+        .update({ payment_date: newDate })
+        .in("id", student.lessonIds);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setEditingIndex(null);
+      setEditDay("");
+      await loadStudents();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "저장 실패";
+      alert(`결제일 수정 실패: ${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancelEditing() {
+    setEditingIndex(null);
+    setEditDay("");
+  }
+
+  /* ─── 수동 발송 ─── */
   function toggleSelect(index: number) {
     setStudents((prev) =>
       prev.map((s, i) => (i === index ? { ...s, selected: !s.selected } : s))
@@ -185,17 +270,18 @@ export default function AlimtalkPage() {
 
       setResult({ success: data.success, fail: data.fail });
       alert(`발송 완료: 성공 ${data.success}건, 실패 ${data.fail}건`);
-    } catch (err: any) {
-      alert(`발송 오류: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "발송 오류";
+      alert(`발송 오류: ${msg}`);
     } finally {
       setSending(false);
     }
   }
 
-  function formatDate(dateStr: string | null) {
+  function formatPaymentDay(dateStr: string | null): string {
     if (!dateStr) return "-";
     const d = new Date(dateStr + "T00:00:00");
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+    return `매월 ${d.getDate()}일`;
   }
 
   if (loading) {
@@ -206,115 +292,95 @@ export default function AlimtalkPage() {
     );
   }
 
+  const todayCount = students.filter((s) => s.isToday).length;
   const selectedCount = students.filter((s) => s.selected).length;
+  const { dateStr: todayDateStr } = getKSTToday();
 
   return (
     <div>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">
-          💬 알림톡 발송 관리
+          알림톡 자동 발송 관리
         </h1>
         <p className="text-sm text-gray-600">
-          수강생에게 카카오 알림톡을 발송합니다. 동일인물(이름+연락처)은 자동 그룹화되어 수강료가 합산됩니다.
+          매일 KST 오전 10시, 결제일이 해당하는 수강생에게 알림톡이 자동 발송됩니다.
         </p>
       </div>
 
-      {/* 예약 발송 일시 */}
-      <div className="mb-4 bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          발송 예정일시 (예약)
-        </label>
-        <input
-          type="datetime-local"
-          value={scheduledDate}
-          onChange={(e) => setScheduledDate(e.target.value)}
-          className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          {scheduledDate
-            ? `${new Date(scheduledDate).toLocaleString("ko-KR")} 예약 발송`
-            : "미선택 시 즉시 발송됩니다"}
-        </p>
+      {/* 오늘 발송 현황 카드 */}
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs text-gray-500 mb-1">오늘 날짜 (KST)</p>
+          <p className="text-lg font-bold text-gray-900">{todayDateStr}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-4">
+          <p className="text-xs text-gray-500 mb-1">오늘 자동 발송 예정</p>
+          <p className="text-lg font-bold text-blue-600">{todayCount}명</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs text-gray-500 mb-1">전체 활성 수강생</p>
+          <p className="text-lg font-bold text-gray-900">{students.length}명</p>
+        </div>
       </div>
 
-      {/* 전체 선택 & 발송 버튼 */}
-      <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleAll}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            {students.every((s) => s.selected) ? "전체 해제" : "전체 선택"}
-          </button>
-          <span className="text-sm text-gray-600">
-            {selectedCount}명 선택 / 총 {students.length}명
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={sending || selectedCount === 0}
-          className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow transition-colors text-sm"
-        >
-          {sending ? "발송 중..." : `알림톡 ${scheduledDate ? "예약" : "즉시"} 발송 (${selectedCount}명)`}
-        </button>
+      {/* 안내 배너 */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+        <strong>자동 발송 기준:</strong> 각 수강생의 결제일(Day)이 오늘과 일치하면 자동 발송됩니다.
+        아래 표에서 <strong>결제일을 클릭</strong>하여 발송 기준일을 변경할 수 있습니다.
       </div>
 
-      {/* 결과 표시 */}
-      {result && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-          발송 결과: 성공 <strong>{result.success}</strong>건, 실패 <strong>{result.fail}</strong>건
-        </div>
-      )}
-
-      {/* 수강생 목록 테이블 */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* 수강생 스케줄 테이블 */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-4 py-3 text-left w-10">
-                  <input
-                    type="checkbox"
-                    checked={students.length > 0 && students.every((s) => s.selected)}
-                    onChange={toggleAll}
-                    className="rounded border-gray-300"
-                  />
-                </th>
+                {showManualSend && (
+                  <th className="px-3 py-3 text-left w-10">
+                    <input
+                      type="checkbox"
+                      checked={students.length > 0 && students.every((s) => s.selected)}
+                      onChange={toggleAll}
+                      className="rounded border-gray-300"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3 text-left font-medium text-gray-700">이름</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">연락처</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-700">수강 과목</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-700">합산 수강료</th>
-                <th className="px-4 py-3 text-center font-medium text-gray-700">결제일</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-700">
+                  결제일 (클릭 수정)
+                </th>
+                <th className="px-4 py-3 text-center font-medium text-gray-700">상태</th>
               </tr>
             </thead>
             <tbody>
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                    발송 대상 수강생이 없습니다.
+                  <td colSpan={showManualSend ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
+                    활성 수강생이 없습니다.
                   </td>
                 </tr>
               ) : (
                 students.map((s, i) => (
                   <tr
                     key={`${s.baseName}-${s.phone}`}
-                    className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                      s.selected ? "bg-blue-50" : ""
+                    className={`border-b border-gray-100 ${
+                      s.isToday ? "bg-blue-50" : s.selected ? "bg-yellow-50" : "hover:bg-gray-50"
                     }`}
-                    onClick={() => toggleSelect(i)}
                   >
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={s.selected}
-                        onChange={() => toggleSelect(i)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="rounded border-gray-300"
-                      />
-                    </td>
+                    {showManualSend && (
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={s.selected}
+                          onChange={() => toggleSelect(i)}
+                          className="rounded border-gray-300"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3 font-medium text-gray-900">{s.baseName}</td>
                     <td className="px-4 py-3 text-gray-600">{s.phone}</td>
                     <td className="px-4 py-3">
@@ -330,10 +396,65 @@ export default function AlimtalkPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                      ₩{s.totalTuition.toLocaleString()}
+                      {s.totalTuition.toLocaleString()}원
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-600">
-                      {formatDate(s.paymentDate)}
+                    <td className="px-4 py-3 text-center">
+                      {editingIndex === i ? (
+                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs text-gray-500">매월</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={31}
+                            value={editDay}
+                            onChange={(e) => setEditDay(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") savePaymentDay(i);
+                              if (e.key === "Escape") cancelEditing();
+                            }}
+                            className="w-14 px-1 py-0.5 text-center border border-blue-400 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            autoFocus
+                            disabled={saving}
+                          />
+                          <span className="text-xs text-gray-500">일</span>
+                          <button
+                            onClick={() => savePaymentDay(i)}
+                            disabled={saving}
+                            className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-gray-300"
+                          >
+                            {saving ? "..." : "저장"}
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded hover:bg-gray-300"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startEditing(i)}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            s.paymentDate
+                              ? "bg-gray-100 hover:bg-gray-200 text-gray-800"
+                              : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+                          }`}
+                          title="클릭하여 결제일 수정"
+                        >
+                          {s.paymentDate ? formatPaymentDay(s.paymentDate) : "미설정"}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {s.isToday ? (
+                        <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                          오늘 발송
+                        </span>
+                      ) : s.paymentDate ? (
+                        <span className="text-xs text-gray-500">대기</span>
+                      ) : (
+                        <span className="text-xs text-red-500">미설정</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -341,6 +462,75 @@ export default function AlimtalkPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* 수동 발송 섹션 (접이식) */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowManualSend(!showManualSend)}
+          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-700">
+            수동 발송 (즉시/예약)
+          </span>
+          <svg
+            className={`w-4 h-4 text-gray-500 transition-transform ${showManualSend ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showManualSend && (
+          <div className="px-4 pb-4 border-t border-gray-200 pt-3">
+            <p className="text-xs text-gray-500 mb-3">
+              위 표에서 체크박스로 대상을 선택한 후 발송하세요. 동일인물은 수강료가 합산됩니다.
+            </p>
+
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                예약 발송 일시 (선택)
+              </label>
+              <input
+                type="datetime-local"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {scheduledDate
+                  ? `${new Date(scheduledDate).toLocaleString("ko-KR")} 예약 발송`
+                  : "미선택 시 즉시 발송"}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {selectedCount}명 선택 / 총 {students.length}명
+              </span>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending || selectedCount === 0}
+                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow transition-colors text-sm"
+              >
+                {sending
+                  ? "발송 중..."
+                  : `알림톡 ${scheduledDate ? "예약" : "즉시"} 발송 (${selectedCount}명)`}
+              </button>
+            </div>
+
+            {result && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                발송 결과: 성공 <strong>{result.success}</strong>건, 실패{" "}
+                <strong>{result.fail}</strong>건
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
