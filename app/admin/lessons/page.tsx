@@ -77,13 +77,16 @@ export default function AdminLessonsPage() {
   const [selectedDateForAdd, setSelectedDateForAdd] = useState<string>("");
   const [selectedLessonForAdd, setSelectedLessonForAdd] = useState<Lesson | null>(null);
 
+  // Payment status: lesson_id -> true if paid this month (based on lesson_history records)
+  const [paidThisMonthMap, setPaidThisMonthMap] = useState<Record<string, boolean>>({});
+
   // Group class monthly payment confirmation (prevents double-click)
   const [confirmingPayment, setConfirmingPayment] = useState<string | null>(null);
 
   // Payment history modal for group classes
   const [isPaymentHistoryModalOpen, setPaymentHistoryModalOpen] = useState(false);
   const [selectedLessonForHistory, setSelectedLessonForHistory] = useState<Lesson | null>(null);
-  const [paymentHistoryDates, setPaymentHistoryDates] = useState<string[]>([]);
+  const [paymentHistoryDates, setPaymentHistoryDates] = useState<{id: string; completed_date: string}[]>([]);
   const [loadingPaymentHistory, setLoadingPaymentHistory] = useState(false);
 
   const router = useRouter();
@@ -135,7 +138,7 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      await Promise.all([loadLessons(), loadUnassignedUsers()]);
+      await Promise.all([loadLessons(), loadUnassignedUsers(), loadPaymentStatusMap()]);
     } catch (error) {
       console.error("Access check error:", error);
       router.push("/");
@@ -189,6 +192,35 @@ export default function AdminLessonsPage() {
     } catch (error) {
       console.error("Error loading lessons:", error);
       setLessons([]);
+    }
+  }
+
+  async function loadPaymentStatusMap() {
+    try {
+      const today = getTodayKST();
+      const currentMonth = today.substring(0, 7); // "YYYY-MM"
+      const monthStart = `${currentMonth}-01`;
+      const monthEnd = `${currentMonth}-31`;
+
+      const { data, error } = await supabase
+        .from("lesson_history")
+        .select("lesson_id")
+        .eq("status", "결제 완료")
+        .gte("completed_date", monthStart)
+        .lte("completed_date", monthEnd);
+
+      if (error) {
+        console.error("Payment status map error:", error);
+        setPaidThisMonthMap({});
+        return;
+      }
+
+      const map: Record<string, boolean> = {};
+      (data || []).forEach((r) => { map[r.lesson_id] = true; });
+      setPaidThisMonthMap(map);
+    } catch (error) {
+      console.error("Payment status map error:", error);
+      setPaidThisMonthMap({});
     }
   }
 
@@ -337,7 +369,7 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       const remaining = selectedDateLessons.filter((s) => s.id !== historyId);
       setSelectedDateLessons(remaining);
       if (remaining.length === 0) {
@@ -397,7 +429,7 @@ export default function AdminLessonsPage() {
           .eq("id", lessonId);
       }
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       alert(`✅ ${monthStr} 캘린더가 리셋되었습니다.`);
     } catch (error) {
       console.error("Reset calendar error:", error);
@@ -512,15 +544,14 @@ export default function AdminLessonsPage() {
     try {
       const { data, error } = await supabase
         .from("lesson_history")
-        .select("completed_date")
+        .select("id, completed_date")
         .eq("lesson_id", lesson.id)
         .eq("status", "결제 완료")
         .order("completed_date", { ascending: false });
 
       if (error) throw error;
 
-      const dates = (data || []).map((r) => r.completed_date);
-      setPaymentHistoryDates(dates);
+      setPaymentHistoryDates((data || []).map((r) => ({ id: r.id, completed_date: r.completed_date })));
     } catch (error) {
       console.error("Payment history fetch error:", error);
       setPaymentHistoryDates([]);
@@ -529,11 +560,35 @@ export default function AdminLessonsPage() {
     }
   }
 
+  async function handleDeletePaymentHistory(historyId: string, dateStr: string) {
+    if (!confirm(`이 결제 내역(${new Date(dateStr).toLocaleDateString("ko-KR")})을 정말 삭제하시겠습니까?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("lesson_history")
+        .delete()
+        .eq("id", historyId);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setPaymentHistoryDates((prev) => prev.filter((r) => r.id !== historyId));
+
+      // Refresh lessons & calendar
+      await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
+      alert("✅ 결제 내역이 삭제되었습니다.");
+    } catch (error) {
+      console.error("Delete payment history error:", error);
+      alert("결제 내역 삭제 중 오류가 발생했습니다.");
+    }
+  }
+
   function closePaymentHistoryModal() {
     setPaymentHistoryModalOpen(false);
     setSelectedLessonForHistory(null);
     setPaymentHistoryDates([]);
   }
+
 
   async function handlePermanentDeleteStudent(userId: string, studentName: string) {
     const confirmMsg = `삭제하시면 해당 수강생의 모든 결제 내역과 수업 기록이 완전히 지워지며 절대 복구할 수 없습니다. 정말 삭제하시겠습니까?\n\n수강생: ${studentName}`;
@@ -699,7 +754,7 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      await loadLessons();
+      await Promise.all([loadLessons(), loadPaymentStatusMap()]);
       alert("✅ 이번 달 입금이 확인되었습니다.");
     } catch (error) {
       console.error("Group payment confirmation error:", error);
@@ -710,7 +765,7 @@ export default function AdminLessonsPage() {
   }
 
   async function handleAdvancePayment(lesson: Lesson) {
-    const monthsStr = prompt(`${lesson.student_name}님 — 몇 개월 선납하시겠습니까?\n(이번 달 포함, 숫자 입력)`, "");
+    const monthsStr = prompt(`${lesson.student_name}님 — 몇 개월 선납하시겠습니까?\n(숫자 입력)`, "");
     if (!monthsStr) return;
 
     const months = parseInt(monthsStr);
@@ -719,24 +774,58 @@ export default function AdminLessonsPage() {
       return;
     }
 
-    if (!confirm(`${lesson.student_name}님 ${months}개월 선납을 등록하시겠습니까?\n(이번 달 포함 ${months}개월)\n\n결제 금액(${(lesson.tuition_amount * months).toLocaleString()}원)은 현재 달 수입으로 합산됩니다.`)) {
-      return;
-    }
-
     try {
       const today = getTodayKST();
+      const todayYear = parseInt(today.split("-")[0]);
+      const todayMonth = parseInt(today.split("-")[1]);
       const baseDay = lesson.payment_date
         ? parseInt(lesson.payment_date.split("-")[2])
         : parseInt(today.split("-")[2]);
-      const baseYear = parseInt(today.split("-")[0]);
-      const baseMonth = parseInt(today.split("-")[1]);
       const currentMonthStr = today.substring(0, 7); // "YYYY-MM" for prepaid_month
 
+      // 가장 최근 결제 완료 기록 조회하여 시작 월 결정
+      const { data: existingPayments } = await supabase
+        .from("lesson_history")
+        .select("completed_date")
+        .eq("lesson_id", lesson.id)
+        .eq("status", "결제 완료")
+        .order("completed_date", { ascending: false })
+        .limit(1);
+
+      let startYear = todayYear;
+      let startMonth = todayMonth;
+
+      if (existingPayments && existingPayments.length > 0) {
+        const lastPaidDate = existingPayments[0].completed_date;
+        const lastPaidYear = parseInt(lastPaidDate.split("-")[0]);
+        const lastPaidMonth = parseInt(lastPaidDate.split("-")[1]);
+
+        // 이미 이번 달 이상 납부 완료 → 그다음 달부터 시작
+        if (lastPaidYear > todayYear || (lastPaidYear === todayYear && lastPaidMonth >= todayMonth)) {
+          startYear = lastPaidYear;
+          startMonth = lastPaidMonth + 1;
+          if (startMonth > 12) {
+            startMonth = 1;
+            startYear += 1;
+          }
+        }
+        // 과거 달까지만 납부 → 이번 달부터 시작 (기본값 유지)
+      }
+
+      const startMonthLabel = `${startYear}년 ${startMonth}월`;
+      let endMonth = startMonth + months - 1;
+      let endYear = startYear;
+      while (endMonth > 12) { endMonth -= 12; endYear += 1; }
+      const endMonthLabel = `${endYear}년 ${endMonth}월`;
+
+      if (!confirm(`${lesson.student_name}님 ${months}개월 선납을 등록하시겠습니까?\n\n기간: ${startMonthLabel} ~ ${endMonthLabel} (${months}개월)\n결제 금액: ${(lesson.tuition_amount * months).toLocaleString()}원\n\n※ 결제 금액은 현재 달 수입으로 합산됩니다.`)) {
+        return;
+      }
+
       const inserts = [];
-      // i=0: 이번 달, i=1: 다음 달, ... i=months-1: 마지막 달
       for (let i = 0; i < months; i++) {
-        let targetMonth = baseMonth + i;
-        let targetYear = baseYear;
+        let targetMonth = startMonth + i;
+        let targetYear = startYear;
         while (targetMonth > 12) {
           targetMonth -= 12;
           targetYear += 1;
@@ -752,8 +841,7 @@ export default function AdminLessonsPage() {
           user_id: lesson.user_id,
           status: "결제 완료",
           tuition_snapshot: lesson.tuition_amount,
-          // 미래 달 기록은 prepaid_month를 설정하여 수입 통계에서 올바르게 처리
-          prepaid_month: i > 0 ? currentMonthStr : null,
+          prepaid_month: i > 0 || (targetYear > todayYear || (targetYear === todayYear && targetMonth > todayMonth)) ? currentMonthStr : null,
         });
       }
 
@@ -770,8 +858,8 @@ export default function AdminLessonsPage() {
         .update({ payment_date: lastFutureDate })
         .eq("id", lesson.id);
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
-      alert(`✅ ${lesson.student_name}님 ${months}개월 선납이 등록되었습니다.\n(이번 달 포함 총 ${months}개월)`);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
+      alert(`✅ ${lesson.student_name}님 ${months}개월 선납이 등록되었습니다.\n(${startMonthLabel} ~ ${endMonthLabel})`);
     } catch (error: any) {
       console.error("Advance payment error:", error);
       alert(`선납 등록 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
@@ -859,7 +947,7 @@ export default function AdminLessonsPage() {
 
       if (updateError) throw updateError;
 
-      await Promise.all([loadLessons(), loadLessonHistory()]);
+      await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       closeAddLessonByDateModal();
       alert(`✅ ${studentName}님의 납부가 ${selectedDateForAdd}로 등록되었습니다.`);
     } catch (error: any) {
@@ -1051,9 +1139,7 @@ export default function AdminLessonsPage() {
 
         {/* Stats */}
         {activeFilter === "active" && (() => {
-          const todayStr = getTodayKST();
-          const currentMonthStr = todayStr.substring(0, 7);
-          const paidCount = displayLessons.filter(l => l.payment_date && l.payment_date.substring(0, 7) === currentMonthStr).length;
+          const paidCount = displayLessons.filter(l => !!paidThisMonthMap[l.id]).length;
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -1188,9 +1274,7 @@ export default function AdminLessonsPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredLessons.map((lesson) => {
-                    const todayKST = getTodayKST();
-                    const currentMonthStr = todayKST.substring(0, 7);
-                    const isPaidThisMonth = lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
+                    const isPaidThisMonth = !!paidThisMonthMap[lesson.id];
 
                     return (
                       <tr key={lesson.id} className="hover:bg-gray-50">
@@ -1394,9 +1478,7 @@ export default function AdminLessonsPage() {
             {/* Mobile: Card View */}
             <div className="md:hidden divide-y divide-gray-200">
               {filteredLessons.map((lesson) => {
-                const todayKST = getTodayKST();
-                const currentMonthStr = todayKST.substring(0, 7);
-                const isPaidThisMonth = lesson.payment_date != null && lesson.payment_date.substring(0, 7) === currentMonthStr;
+                const isPaidThisMonth = !!paidThisMonthMap[lesson.id];
 
                 return (
                   <div key={lesson.id} className="p-4">
@@ -1680,22 +1762,31 @@ export default function AdminLessonsPage() {
                 </p>
               ) : (
                 <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
-                  {paymentHistoryDates.map((dateStr) => (
+                  {paymentHistoryDates.map((record) => (
                     <div
-                      key={dateStr}
+                      key={record.id}
                       className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg text-sm"
                     >
                       <span className="text-gray-800 font-medium">
-                        {new Date(dateStr).toLocaleDateString("ko-KR", {
+                        {new Date(record.completed_date).toLocaleDateString("ko-KR", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                           weekday: "short",
                         })}
                       </span>
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        결제 완료
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                          결제 완료
+                        </span>
+                        <button
+                          onClick={() => handleDeletePaymentHistory(record.id, record.completed_date)}
+                          className="px-2 py-1 bg-red-500 text-white hover:bg-red-600 rounded text-xs font-medium transition-colors"
+                          title="이 결제 내역 삭제"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

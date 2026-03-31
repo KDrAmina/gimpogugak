@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.2",
+    date: "2026-03-31",
+    changes: [
+      "납부 이력 개별 삭제 기능 추가: 납부 이력 모달에서 각 결제 내역을 개별적으로 삭제 가능 (중복/오류 장부 수동 정리)",
+      "스마트 선납(중복 방지) 로직 적용: 가장 최근 결제 완료 월을 조회하여 그다음 안 낸 달부터 순차 선납 (기존 납부 월 중복 생성 방지)",
+      "결제 상태 표시 버그 수정: payment_date 비교 방식에서 lesson_history 실제 기록 존재 여부 기반으로 변경 (선납 후에도 정확한 납부완료/미납부 표시)",
+    ],
+  },
+  {
     version: "4.7.1",
     date: "2026-03-31",
     changes: [
