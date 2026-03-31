@@ -23,8 +23,9 @@ export default function AdminDashboardPage() {
   const [monthlyTuition, setMonthlyTuition] = useState<number>(0);
   const [monthlyExternal, setMonthlyExternal] = useState<number>(0);
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // KST 기준 현재 월 (UTC+9)
+    const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   });
   const [tuitionDueList, setTuitionDueList] = useState<{ id: string; student_name: string; category: string; phone: string | null }[]>([]);
   const [changelogOpen, setChangelogOpen] = useState(false);
@@ -159,7 +160,10 @@ export default function AdminDashboardPage() {
   async function fetchMonthlyTuition(month: string) {
     const [year, mon] = month.split("-").map(Number);
     const startDate = `${year}-${String(mon).padStart(2, "0")}-01`;
-    const endDate = new Date(year, mon, 1).toISOString().split("T")[0];
+    // KST 시차 버그 방지: Date.toISOString() 대신 순수 문자열 연산
+    const nextYear = mon === 12 ? year + 1 : year;
+    const nextMonth = mon === 12 ? 1 : mon + 1;
+    const endDate = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
     // ── 정규 수강료 (lesson_history) ──
     try {
