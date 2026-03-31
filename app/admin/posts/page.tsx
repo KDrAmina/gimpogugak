@@ -6,6 +6,39 @@ import { useRouter } from "next/navigation";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 import { ChevronDown } from "lucide-react";
 
+function renderWithLinks(text: string) {
+  const urlRegex = /https?:\/\/[^\s<>"]+/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = urlRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const url = match[0];
+    parts.push(
+      <a
+        key={match.index}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-500 hover:underline break-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url}
+      </a>
+    );
+    lastIndex = match.index + url.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
 type Post = {
   id: string;
   title: string;
@@ -345,7 +378,7 @@ export default function AdminPostsPage() {
                   {isExpanded && (
                     <div className="px-4 pb-4 border-t border-gray-100">
                       <p className="mt-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                        {post.content}
+                        {renderWithLinks(post.content)}
                       </p>
                     </div>
                   )}

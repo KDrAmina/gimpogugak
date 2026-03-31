@@ -10,19 +10,12 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "4.5",
+    version: "4.4",
     date: "2026-03-31",
     changes: [
-      "[관리자] 공지사항 목록 아코디언 UI 적용: 클릭 시 본문이 아래로 부드럽게 펼쳐지며 whitespace-pre-wrap으로 줄바꿈 유지.",
+      "[공지사항] 아코디언 UI 적용 및 URL 자동 링크 변환 기능 추가.",
       "[관리자] 상단 메뉴바 모바일 가로 스크롤 적용: overflow-x-auto + scrollbar 숨김으로 메뉴 잘림 없이 스와이프 가능.",
       "[관리자] 메인 컨텐츠 영역 overflow-x-hidden 적용으로 화면 전체 좌우 흔들림 차단.",
-      "[공지사항] 본문 내 http/https URL 자동 감지 후 클릭 가능한 링크(<a>)로 변환: target=_blank, rel=noopener noreferrer, 파란색 밑줄 스타일 적용.",
-    ],
-  },
-  {
-    version: "4.4",
-    date: "2026-03-22",
-    changes: [
       "[광고 전환 추적] Google Ads 전체 사이트 태그(AW-17945851352) 삽입: layout.tsx head 내부에 next/script afterInteractive 전략으로 추가.",
       "[광고 전환 추적] lib/gtag.ts 추가: 전환 이벤트(AW-17945851352/CEsWCLqI4IwcENjrn-1C) 발송 trackConversion 공통 함수 생성.",
       "[광고 전환 추적] 전화문의 버튼 전환 추적 연결: ContactMapButtons, BlogContactSection, FixedCTA(데스크탑·모바일), Header(데스크탑·모바일), Footer, 수업안내 페이지, 문의 페이지의 모든 tel: 링크에 trackConversion onClick 적용.",

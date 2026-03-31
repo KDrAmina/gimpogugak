@@ -201,7 +201,7 @@ export default function NoticesPage() {
                       </h3>
                       {expandedPost !== post.id && (
                         <p className="text-sm text-gray-600 line-clamp-2">
-                          {post.content}
+                          {renderWithLinks(post.content)}
                         </p>
                       )}
                     </div>
