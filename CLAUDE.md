@@ -139,3 +139,4 @@ Use `server.ts` for Server Component DB queries.
 - All `changes` entries must be in **Korean**.
 - Increment version for each significant change.
 
+
