@@ -92,8 +92,11 @@ export default function AlimtalkPage() {
 
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
-        existing.totalTuition += row.tuition_amount || 0;
-        existing.lessonIds.push(row.id);
+        // 동일 lesson ID 중복 합산 방지
+        if (!existing.lessonIds.includes(row.id)) {
+          existing.totalTuition += row.tuition_amount || 0;
+          existing.lessonIds.push(row.id);
+        }
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }
@@ -439,7 +442,7 @@ export default function AlimtalkPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                      {s.totalTuition.toLocaleString()}원
+                      {s.totalTuition.toLocaleString("ko-KR")}원
                     </td>
                     <td className="px-4 py-3 text-center">
                       {editingIndex === i ? (

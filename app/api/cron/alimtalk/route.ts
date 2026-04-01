@@ -35,6 +35,7 @@ type GroupedTarget = {
   totalTuition: number;
   paymentDate: string | null;
   categories: string[];
+  lessonIds: string[];
 };
 
 export async function GET(req: Request) {
@@ -151,7 +152,11 @@ export async function GET(req: Request) {
 
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
-        existing.totalTuition += row.tuition_amount || 0;
+        // 동일 lesson ID 중복 합산 방지
+        if (!existing.lessonIds.includes(row.id)) {
+          existing.totalTuition += row.tuition_amount || 0;
+          existing.lessonIds.push(row.id);
+        }
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }
@@ -162,6 +167,7 @@ export async function GET(req: Request) {
           totalTuition: row.tuition_amount || 0,
           paymentDate: row.payment_date,
           categories: row.category ? [row.category] : [],
+          lessonIds: [row.id],
         });
       }
     }
@@ -210,7 +216,7 @@ export async function GET(req: Request) {
             templateId,
             variables: {
               "#{이름}": target.baseName,
-              "#{수강료}": target.totalTuition.toLocaleString(),
+              "#{수강료}": target.totalTuition.toLocaleString("ko-KR"),
               "#{결제일}": paymentDateStr,
             },
           },

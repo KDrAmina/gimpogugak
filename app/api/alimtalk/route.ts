@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           templateId,
           variables: {
             "#{이름}": target.name,
-            "#{수강료}": target.tuition.toLocaleString(),
+            "#{수강료}": target.tuition.toLocaleString("ko-KR"),
             "#{결제일}": paymentDateStr,
           },
         },

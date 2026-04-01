@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.10",
+    date: "2026-04-01",
+    changes: [
+      "알림톡 수강료 중복 합산 버그 픽스: 동일 lesson ID 중복 카운트 방지",
+      "알림톡 메시지 및 UI 수강료에 천 단위 콤마(,) 적용",
+    ],
+  },
+  {
     version: "4.7.9",
     date: "2026-04-01",
     changes: [
