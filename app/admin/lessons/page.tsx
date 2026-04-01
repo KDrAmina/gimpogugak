@@ -735,8 +735,16 @@ export default function AdminLessonsPage() {
     const today = getTodayKST();
     const currentMonth = today.substring(0, 7);
 
-    // Guard: already confirmed this month
-    if (lesson.payment_date && lesson.payment_date.substring(0, 7) === currentMonth) {
+    // Guard: already confirmed this month (lesson_history 기반 체크)
+    const { data: existingPayment } = await supabase
+      .from("lesson_history")
+      .select("id")
+      .eq("lesson_id", lessonId)
+      .eq("status", "결제 완료")
+      .gte("completed_date", `${currentMonth}-01`)
+      .lte("completed_date", `${currentMonth}-31`);
+
+    if (existingPayment && existingPayment.length > 0) {
       alert("이미 이번 달 입금이 확인된 수강생입니다.");
       return;
     }
@@ -747,6 +755,21 @@ export default function AdminLessonsPage() {
 
     setConfirmingPayment(lessonId);
     try {
+      // 1. lesson_history에 결제 완료 기록 INSERT (paymentStatusMap 연동)
+      const { error: historyError } = await supabase
+        .from("lesson_history")
+        .insert({
+          lesson_id: lessonId,
+          session_number: 0,
+          completed_date: today,
+          user_id: lesson.user_id,
+          status: "결제 완료",
+          tuition_snapshot: lesson.tuition_amount || 0,
+        });
+
+      if (historyError) throw historyError;
+
+      // 2. lessons.payment_date 업데이트
       const { error } = await supabase
         .from("lessons")
         .update({ payment_date: today })
@@ -754,7 +777,8 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      await Promise.all([loadLessons(), loadPaymentStatusMap()]);
+      // 3. 모든 관련 상태 새로고침 (캘린더 + 납부 상태 뱃지)
+      await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       alert("✅ 이번 달 입금이 확인되었습니다.");
     } catch (error) {
       console.error("Group payment confirmation error:", error);
