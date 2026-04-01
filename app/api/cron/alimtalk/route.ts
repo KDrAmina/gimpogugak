@@ -59,9 +59,18 @@ export async function GET(req: Request) {
     );
   }
 
-  if (!apiKey || !apiSecret || !pfId || !templateId || !senderPhone) {
+  const missingSolapi = [
+    !apiKey && "SOLAPI_API_KEY",
+    !apiSecret && "SOLAPI_API_SECRET",
+    !pfId && "SOLAPI_PF_ID",
+    !templateId && "SOLAPI_TEMPLATE_ID",
+    !senderPhone && "SOLAPI_SENDER_PHONE",
+  ].filter(Boolean);
+
+  if (missingSolapi.length > 0) {
+    console.error("Solapi 환경변수 누락:", missingSolapi.join(", "));
     return NextResponse.json(
-      { error: "Solapi 환경변수 누락" },
+      { error: `발송 오류: ${missingSolapi.join(", ")} 가 누락되었습니다.` },
       { status: 500 }
     );
   }
@@ -171,7 +180,7 @@ export async function GET(req: Request) {
 
     // Solapi SDK 동적 import
     const { SolapiMessageService } = await import("solapi");
-    const messageService = new SolapiMessageService(apiKey, apiSecret);
+    const messageService = new SolapiMessageService(apiKey!, apiSecret!);
 
     let success = 0;
     let fail = 0;

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 type Target = {
   name: string;
   phone: string;
@@ -29,19 +31,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
   }
 
-  // 환경변수 체크
-  const apiKey = process.env.SOLAPI_API_KEY;
-  const apiSecret = process.env.SOLAPI_API_SECRET;
-  const pfId = process.env.SOLAPI_PF_ID;
-  const templateId = process.env.SOLAPI_TEMPLATE_ID;
-  const senderPhone = process.env.SOLAPI_SENDER_PHONE;
+  // 환경변수 체크 — 누락된 변수명을 구체적으로 반환
+  const envVars = {
+    SOLAPI_API_KEY: process.env.SOLAPI_API_KEY,
+    SOLAPI_API_SECRET: process.env.SOLAPI_API_SECRET,
+    SOLAPI_PF_ID: process.env.SOLAPI_PF_ID,
+    SOLAPI_TEMPLATE_ID: process.env.SOLAPI_TEMPLATE_ID,
+    SOLAPI_SENDER_PHONE: process.env.SOLAPI_SENDER_PHONE,
+  };
 
-  if (!apiKey || !apiSecret || !pfId || !templateId || !senderPhone) {
+  const missing = Object.entries(envVars)
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+
+  if (missing.length > 0) {
+    console.error("Solapi 환경변수 누락:", missing.join(", "));
     return NextResponse.json(
-      { error: "Solapi 환경변수가 설정되지 않았습니다." },
+      { error: `발송 오류: ${missing.join(", ")} 가 누락되었습니다.` },
       { status: 500 }
     );
   }
+
+  const apiKey = envVars.SOLAPI_API_KEY!;
+  const apiSecret = envVars.SOLAPI_API_SECRET!;
+  const pfId = envVars.SOLAPI_PF_ID!;
+  const templateId = envVars.SOLAPI_TEMPLATE_ID!;
+  const senderPhone = envVars.SOLAPI_SENDER_PHONE!;
 
   try {
     const body = await req.json();

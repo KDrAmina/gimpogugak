@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.6",
+    date: "2026-04-01",
+    changes: [
+      "알림톡 발송 로직 서버/클라이언트 분리 및 환경변수 디버깅 강화",
+      "API 라우트에 force-dynamic 추가로 Vercel 캐싱 방지",
+      "환경변수 누락 시 어떤 변수가 빠졌는지 구체적으로 에러 메시지 반환",
+    ],
+  },
+  {
     version: "4.7.4",
     date: "2026-03-31",
     changes: [
