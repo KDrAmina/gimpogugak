@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.13",
+    date: "2026-04-02",
+    changes: [
+      "알림톡 수강료 뻥튀기 버그 완벽 픽스",
+      "수업 개별 삭제 기능 추가",
+      "과거 결제 이력 과목 스냅샷(category_snapshot) 적용",
+      "수강생 추가 시 동일 과목 중복 등록 원천 차단",
+    ],
+  },
+  {
     version: "4.7.11",
     date: "2026-04-02",
     changes: [

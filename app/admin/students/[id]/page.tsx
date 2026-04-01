@@ -32,6 +32,7 @@ type HistoryItem = {
   status: string | null;
   category: string;
   tuition_amount: number;
+  category_snapshot: string | null;
 };
 
 export default function StudentDetailPage() {
@@ -98,7 +99,7 @@ export default function StudentDetailPage() {
       if (lessonIds.length > 0) {
         const { data: histData } = await supabase
           .from("lesson_history")
-          .select("id, lesson_id, session_number, completed_date, status, tuition_snapshot, lessons!inner(category, tuition_amount)")
+          .select("id, lesson_id, session_number, completed_date, status, tuition_snapshot, category_snapshot, lessons!inner(category, tuition_amount)")
           .in("lesson_id", lessonIds)
           .order("completed_date", { ascending: false })
           .limit(50);
@@ -108,13 +109,42 @@ export default function StudentDetailPage() {
           session_number: h.session_number,
           completed_date: h.completed_date,
           status: h.status,
-          category: h.lessons?.category || "",
+          // category_snapshot(결제 시점 과목) 우선, 없으면 현재 과목 fallback
+          category: h.category_snapshot || h.lessons?.category || "",
           // tuition_snapshot(결제 시점 금액) 우선, 0이면 fallback으로 현재 수강료
           tuition_amount: (h.tuition_snapshot && h.tuition_snapshot > 0)
             ? h.tuition_snapshot
             : (h.lessons?.tuition_amount || 0),
+          category_snapshot: h.category_snapshot || null,
         })));
       }
+    }
+  }
+
+  async function handleDeleteLesson(lessonId: string, category: string) {
+    if (!window.confirm(`"${category}" 수업을 정말 삭제하시겠습니까?\n관련된 모든 이력(lesson_history)도 함께 삭제됩니다.`)) {
+      return;
+    }
+    try {
+      // 먼저 관련 lesson_history 삭제
+      await supabase
+        .from("lesson_history")
+        .delete()
+        .eq("lesson_id", lessonId);
+
+      // lessons row 삭제
+      const { error } = await supabase
+        .from("lessons")
+        .delete()
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      await loadStudentData();
+      alert("✅ 수업이 삭제되었습니다.");
+    } catch (error) {
+      console.error("Delete lesson error:", error);
+      alert("수업 삭제 중 오류가 발생했습니다.");
     }
   }
 
@@ -344,11 +374,17 @@ export default function StudentDetailPage() {
                   </span>
                   <span className="font-medium text-gray-900 truncate">{lesson.category}</span>
                 </div>
-                <div className="text-gray-500 text-right shrink-0 space-x-2 text-xs">
+                <div className="flex items-center gap-2 text-gray-500 text-right shrink-0 text-xs">
                   {lesson.tuition_amount > 0 && <span>₩{lesson.tuition_amount.toLocaleString()}</span>}
                   {lesson.payment_date && (
                     <span>납부 {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월</span>
                   )}
+                  <button
+                    onClick={() => handleDeleteLesson(lesson.id, lesson.category)}
+                    className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
             ))}

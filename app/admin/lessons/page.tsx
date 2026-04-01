@@ -289,6 +289,7 @@ export default function AdminLessonsPage() {
           session_number,
           completed_date,
           status,
+          category_snapshot,
           lessons (
             category,
             user_id,
@@ -320,7 +321,8 @@ export default function AdminLessonsPage() {
         .filter((item: any) => item.lessons?.profiles?.role === "user")
         .map((item: any) => {
           const studentName = item.lessons?.profiles?.name || "Unknown";
-          const category = item.lessons?.category || "성인개인";
+          // category_snapshot(결제 시점 과목) 우선, 없으면 현재 과목 fallback
+          const category = item.category_snapshot || item.lessons?.category || "성인개인";
           return {
             id: item.id,
             lesson_id: item.lesson_id,
@@ -641,7 +643,7 @@ export default function AdminLessonsPage() {
       const categoryString = newLesson.categories.join(", ");
       const paymentMonth = newLesson.payment_date.substring(0, 7); // "YYYY-MM"
 
-      // Guard: 동일 수강생 + 동일 카테고리 + 동일 연월 중복 등록 방지
+      // Guard: 동일 수강생 + 동일 카테고리 + 수업 중(active) 중복 등록 원천 차단
       const { data: activeLessons } = await supabase
         .from("lessons")
         .select("id, category, payment_date")
@@ -653,8 +655,8 @@ export default function AdminLessonsPage() {
         for (const existing of activeLessons) {
           const existingCats = existing.category.split(", ").map((c: string) => c.trim());
           const duplicates = newCats.filter(c => existingCats.includes(c));
-          if (duplicates.length > 0 && existing.payment_date?.substring(0, 7) === paymentMonth) {
-            alert(`이미 이번 달(${paymentMonth.replace("-", "년 ")}월) 수강료가 처리되었습니다.\n(중복 수업: ${duplicates.join(", ")})`);
+          if (duplicates.length > 0) {
+            alert(`이미 수강 중인 과목입니다.\n(중복 수업: ${duplicates.join(", ")})`);
             return;
           }
         }
@@ -765,6 +767,7 @@ export default function AdminLessonsPage() {
           user_id: lesson.user_id,
           status: "결제 완료",
           tuition_snapshot: lesson.tuition_amount || 0,
+          category_snapshot: lesson.category || null,
         });
 
       if (historyError) throw historyError;
@@ -865,6 +868,7 @@ export default function AdminLessonsPage() {
           user_id: lesson.user_id,
           status: "결제 완료",
           tuition_snapshot: lesson.tuition_amount,
+          category_snapshot: lesson.category || null,
           prepaid_month: i > 0 || (targetYear > todayYear || (targetYear === todayYear && targetMonth > todayMonth)) ? currentMonthStr : null,
         });
       }
@@ -947,7 +951,7 @@ export default function AdminLessonsPage() {
         return;
       }
 
-      // 모든 수업(개인/단체 동일): 납부 기록 등록 (tuition_snapshot: 결제 시점 수강료 스냅샷)
+      // 모든 수업(개인/단체 동일): 납부 기록 등록 (tuition_snapshot + category_snapshot: 결제 시점 스냅샷)
       const { error: historyError } = await supabase
         .from("lesson_history")
         .insert({
@@ -957,6 +961,7 @@ export default function AdminLessonsPage() {
           user_id: userId,
           status: "결제 완료",
           tuition_snapshot: selectedLessonForAdd.tuition_amount || 0,
+          category_snapshot: selectedLessonForAdd.category || null,
         });
 
       if (historyError) {
