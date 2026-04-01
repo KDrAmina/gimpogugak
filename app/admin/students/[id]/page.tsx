@@ -110,7 +110,7 @@ export default function StudentDetailPage() {
           completed_date: h.completed_date,
           status: h.status,
           // category_snapshot(결제 시점 과목) 우선, 없으면 현재 과목 fallback
-          category: h.category_snapshot || h.lessons?.category || "",
+          category: h.category_snapshot || h.lessons?.category || "과목 정보 없음",
           // tuition_snapshot(결제 시점 금액) 우선, 0이면 fallback으로 현재 수강료
           tuition_amount: (h.tuition_snapshot && h.tuition_snapshot > 0)
             ? h.tuition_snapshot

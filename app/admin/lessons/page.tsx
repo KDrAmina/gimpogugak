@@ -322,7 +322,7 @@ export default function AdminLessonsPage() {
         .map((item: any) => {
           const studentName = item.lessons?.profiles?.name || "Unknown";
           // category_snapshot(결제 시점 과목) 우선, 없으면 현재 과목 fallback
-          const category = item.category_snapshot || item.lessons?.category || "성인개인";
+          const category = item.category_snapshot || item.lessons?.category || "과목 정보 없음";
           return {
             id: item.id,
             lesson_id: item.lesson_id,
@@ -364,9 +364,23 @@ export default function AdminLessonsPage() {
       if (countError) throw countError;
 
       const syncedSession = count ?? 0;
+
+      // 남은 결제 이력 중 최신 날짜로 payment_date 롤백
+      const { data: remainingPayments } = await supabase
+        .from("lesson_history")
+        .select("completed_date")
+        .eq("lesson_id", lessonId)
+        .eq("status", "결제 완료")
+        .order("completed_date", { ascending: false })
+        .limit(1);
+
+      const latestPaymentDate = remainingPayments && remainingPayments.length > 0
+        ? remainingPayments[0].completed_date
+        : null;
+
       const { error } = await supabase
         .from("lessons")
-        .update({ current_session: syncedSession })
+        .update({ current_session: syncedSession, payment_date: latestPaymentDate })
         .eq("id", lessonId);
 
       if (error) throw error;
@@ -565,6 +579,8 @@ export default function AdminLessonsPage() {
   async function handleDeletePaymentHistory(historyId: string, dateStr: string) {
     if (!confirm(`이 결제 내역(${new Date(dateStr).toLocaleDateString("ko-KR")})을 정말 삭제하시겠습니까?`)) return;
 
+    const lessonId = selectedLessonForHistory?.id;
+
     try {
       const { error } = await supabase
         .from("lesson_history")
@@ -572,6 +588,26 @@ export default function AdminLessonsPage() {
         .eq("id", historyId);
 
       if (error) throw error;
+
+      // 삭제 후 남은 결제 이력 중 가장 최신 날짜로 payment_date 롤백
+      if (lessonId) {
+        const { data: remaining } = await supabase
+          .from("lesson_history")
+          .select("completed_date")
+          .eq("lesson_id", lessonId)
+          .eq("status", "결제 완료")
+          .order("completed_date", { ascending: false })
+          .limit(1);
+
+        const latestDate = remaining && remaining.length > 0
+          ? remaining[0].completed_date
+          : null;
+
+        await supabase
+          .from("lessons")
+          .update({ payment_date: latestDate })
+          .eq("id", lessonId);
+      }
 
       // Remove from local state
       setPaymentHistoryDates((prev) => prev.filter((r) => r.id !== historyId));

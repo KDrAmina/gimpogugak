@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.14",
+    date: "2026-04-02",
+    changes: [
+      "결제 이력 삭제 시 납부월(payment_date) 자동 롤백 동기화",
+      "결제 이력 UI에 과목 스냅샷(category_snapshot) 최우선 렌더링 적용",
+    ],
+  },
+  {
     version: "4.7.13",
     date: "2026-04-02",
     changes: [
