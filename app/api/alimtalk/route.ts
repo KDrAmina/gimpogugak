@@ -31,12 +31,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
   }
 
-  // 환경변수 체크 — 정적 접근 (Next.js 빌드 타임 치환 필수)
-  const apiKey = process.env.SOLAPI_API_KEY;
-  const apiSecret = process.env.SOLAPI_API_SECRET;
-  const pfId = process.env.SOLAPI_PF_ID;
-  const templateId = process.env.SOLAPI_TEMPLATE_ID;
-  const senderPhone = process.env.SOLAPI_SENDER_PHONE;
+  // 환경변수 런타임 로드 (함수 내부에서만 접근)
+  const apiKey = process.env.SOLAPI_API_KEY as string;
+  const apiSecret = process.env.SOLAPI_API_SECRET as string;
+  const pfId = process.env.SOLAPI_PF_ID as string;
+  const templateId = process.env.SOLAPI_TEMPLATE_ID as string;
+  const senderPhone = process.env.SOLAPI_SENDER_PHONE as string;
+
+  console.log("알림톡 환경변수 로드 상태:", { apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId, templateId: !!templateId, senderPhone: !!senderPhone });
 
   const missing: string[] = [];
   if (!apiKey) missing.push("SOLAPI_API_KEY");
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     // Solapi SDK 동적 import
     const { SolapiMessageService } = await import("solapi");
-    const messageService = new SolapiMessageService(apiKey!, apiSecret!);
+    const messageService = new SolapiMessageService(apiKey, apiSecret);
 
     let success = 0;
     let fail = 0;
@@ -92,10 +94,10 @@ export async function POST(req: NextRequest) {
         scheduledDate?: string;
       } = {
         to: phone,
-        from: senderPhone!,
+        from: senderPhone,
         kakaoOptions: {
-          pfId: pfId!,
-          templateId: templateId!,
+          pfId,
+          templateId,
           variables: {
             "#{이름}": target.name,
             "#{수강료}": target.tuition.toLocaleString(),

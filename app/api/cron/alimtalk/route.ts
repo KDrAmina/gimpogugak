@@ -43,14 +43,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 환경변수 체크
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const apiKey = process.env.SOLAPI_API_KEY;
-  const apiSecret = process.env.SOLAPI_API_SECRET;
-  const pfId = process.env.SOLAPI_PF_ID;
-  const templateId = process.env.SOLAPI_TEMPLATE_ID;
-  const senderPhone = process.env.SOLAPI_SENDER_PHONE;
+  // 환경변수 런타임 로드 (함수 내부에서만 접근)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+  const apiKey = process.env.SOLAPI_API_KEY as string;
+  const apiSecret = process.env.SOLAPI_API_SECRET as string;
+  const pfId = process.env.SOLAPI_PF_ID as string;
+  const templateId = process.env.SOLAPI_TEMPLATE_ID as string;
+  const senderPhone = process.env.SOLAPI_SENDER_PHONE as string;
+
+  console.log("크론 알림톡 환경변수 로드 상태:", { apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId, templateId: !!templateId, senderPhone: !!senderPhone, supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey });
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return NextResponse.json(
@@ -179,7 +181,7 @@ export async function GET(req: Request) {
 
     // Solapi SDK 동적 import
     const { SolapiMessageService } = await import("solapi");
-    const messageService = new SolapiMessageService(apiKey!, apiSecret!);
+    const messageService = new SolapiMessageService(apiKey, apiSecret);
 
     let success = 0;
     let fail = 0;
@@ -202,10 +204,10 @@ export async function GET(req: Request) {
       try {
         await messageService.sendOne({
           to: phone,
-          from: senderPhone!,
+          from: senderPhone,
           kakaoOptions: {
-            pfId: pfId!,
-            templateId: templateId!,
+            pfId,
+            templateId,
             variables: {
               "#{이름}": target.baseName,
               "#{수강료}": target.totalTuition.toLocaleString(),

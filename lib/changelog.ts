@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.9",
+    date: "2026-04-01",
+    changes: [
+      "환경변수 전역 스코프 선언을 런타임(함수 내부) 호출로 변경, as string 타입 단언 적용",
+    ],
+  },
+  {
     version: "4.7.8",
     date: "2026-04-01",
     changes: [
