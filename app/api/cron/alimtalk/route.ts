@@ -202,10 +202,10 @@ export async function GET(req: Request) {
       try {
         await messageService.sendOne({
           to: phone,
-          from: senderPhone,
+          from: senderPhone!,
           kakaoOptions: {
-            pfId,
-            templateId,
+            pfId: pfId!,
+            templateId: templateId!,
             variables: {
               "#{이름}": target.baseName,
               "#{수강료}": target.totalTuition.toLocaleString(),

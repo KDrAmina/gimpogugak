@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.8",
+    date: "2026-04-01",
+    changes: [
+      "TypeScript 환경변수 타입 에러(string | undefined) 단언 처리",
+    ],
+  },
+  {
     version: "4.7.7",
     date: "2026-04-01",
     changes: [

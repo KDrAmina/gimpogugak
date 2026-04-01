@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Solapi SDK 동적 import
     const { SolapiMessageService } = await import("solapi");
-    const messageService = new SolapiMessageService(apiKey, apiSecret);
+    const messageService = new SolapiMessageService(apiKey!, apiSecret!);
 
     let success = 0;
     let fail = 0;
@@ -92,10 +92,10 @@ export async function POST(req: NextRequest) {
         scheduledDate?: string;
       } = {
         to: phone,
-        from: senderPhone,
+        from: senderPhone!,
         kakaoOptions: {
-          pfId,
-          templateId,
+          pfId: pfId!,
+          templateId: templateId!,
           variables: {
             "#{이름}": target.name,
             "#{수강료}": target.tuition.toLocaleString(),
