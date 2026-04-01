@@ -106,7 +106,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "DB 조회 실패" }, { status: 500 });
     }
 
-    const rows = (data || []) as unknown as LessonRow[];
+    const rawRows = (data || []) as unknown as LessonRow[];
+    // lesson.id 기준으로 완벽하게 중복 제거 (Cartesian Product 방지)
+    const uniqueLessonMap = new Map<string, LessonRow>();
+    for (const row of rawRows) {
+      if (!uniqueLessonMap.has(row.id)) {
+        uniqueLessonMap.set(row.id, row);
+      }
+    }
+    const rows = Array.from(uniqueLessonMap.values());
 
     // payment_date의 '일'이 오늘과 일치하는 수강생 필터 (수동 제외 대상 원천 차단)
     const todayTargets = rows.filter((r) => {
@@ -152,11 +160,8 @@ export async function GET(req: Request) {
 
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
-        // 동일 lesson ID 중복 합산 방지
-        if (!existing.lessonIds.includes(row.id)) {
-          existing.totalTuition += row.tuition_amount || 0;
-          existing.lessonIds.push(row.id);
-        }
+        existing.totalTuition += row.tuition_amount || 0;
+        existing.lessonIds.push(row.id);
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }

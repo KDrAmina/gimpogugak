@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.11",
+    date: "2026-04-02",
+    changes: [
+      "알림톡 수강료 뻥튀기 버그 완벽 수정 (DB Fetch 및 고유 Lesson 중복 제거 로직 적용)",
+    ],
+  },
+  {
     version: "4.7.10",
     date: "2026-04-01",
     changes: [

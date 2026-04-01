@@ -75,13 +75,23 @@ export default function AlimtalkPage() {
       return;
     }
 
-    const rows = (data || []) as unknown as LessonRow[];
+    const rawRows = (data || []) as unknown as LessonRow[];
+    // 1단계: lesson.id 기준으로 완벽하게 중복 제거 (Cartesian Product 방지)
+    const uniqueLessonMap = new Map<string, LessonRow>();
+    for (const row of rawRows) {
+      if (!uniqueLessonMap.has(row.id)) {
+        uniqueLessonMap.set(row.id, row);
+      }
+    }
+    const rows = Array.from(uniqueLessonMap.values());
+
     const filtered = rows.filter(
       (r) => r.profiles?.status === "active" && r.profiles?.phone
     );
 
     const { day: todayDay } = getKSTToday();
 
+    // 2단계: 수강생별 그룹화 (이미 고유한 lesson만 존재하므로 중복 합산 불가)
     const groupMap = new Map<string, GroupedStudent>();
 
     for (const row of filtered) {
@@ -92,11 +102,8 @@ export default function AlimtalkPage() {
 
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
-        // 동일 lesson ID 중복 합산 방지
-        if (!existing.lessonIds.includes(row.id)) {
-          existing.totalTuition += row.tuition_amount || 0;
-          existing.lessonIds.push(row.id);
-        }
+        existing.totalTuition += row.tuition_amount || 0;
+        existing.lessonIds.push(row.id);
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }
