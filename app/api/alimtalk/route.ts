@@ -31,18 +31,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
   }
 
-  // 환경변수 체크 — 누락된 변수명을 구체적으로 반환
-  const envVars = {
-    SOLAPI_API_KEY: process.env.SOLAPI_API_KEY,
-    SOLAPI_API_SECRET: process.env.SOLAPI_API_SECRET,
-    SOLAPI_PF_ID: process.env.SOLAPI_PF_ID,
-    SOLAPI_TEMPLATE_ID: process.env.SOLAPI_TEMPLATE_ID,
-    SOLAPI_SENDER_PHONE: process.env.SOLAPI_SENDER_PHONE,
-  };
+  // 환경변수 체크 — 정적 접근 (Next.js 빌드 타임 치환 필수)
+  const apiKey = process.env.SOLAPI_API_KEY;
+  const apiSecret = process.env.SOLAPI_API_SECRET;
+  const pfId = process.env.SOLAPI_PF_ID;
+  const templateId = process.env.SOLAPI_TEMPLATE_ID;
+  const senderPhone = process.env.SOLAPI_SENDER_PHONE;
 
-  const missing = Object.entries(envVars)
-    .filter(([, v]) => !v)
-    .map(([k]) => k);
+  const missing: string[] = [];
+  if (!apiKey) missing.push("SOLAPI_API_KEY");
+  if (!apiSecret) missing.push("SOLAPI_API_SECRET");
+  if (!pfId) missing.push("SOLAPI_PF_ID");
+  if (!templateId) missing.push("SOLAPI_TEMPLATE_ID");
+  if (!senderPhone) missing.push("SOLAPI_SENDER_PHONE");
 
   if (missing.length > 0) {
     console.error("Solapi 환경변수 누락:", missing.join(", "));
@@ -51,12 +52,6 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-
-  const apiKey = envVars.SOLAPI_API_KEY!;
-  const apiSecret = envVars.SOLAPI_API_SECRET!;
-  const pfId = envVars.SOLAPI_PF_ID!;
-  const templateId = envVars.SOLAPI_TEMPLATE_ID!;
-  const senderPhone = envVars.SOLAPI_SENDER_PHONE!;
 
   try {
     const body = await req.json();

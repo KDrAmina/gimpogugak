@@ -59,13 +59,12 @@ export async function GET(req: Request) {
     );
   }
 
-  const missingSolapi = [
-    !apiKey && "SOLAPI_API_KEY",
-    !apiSecret && "SOLAPI_API_SECRET",
-    !pfId && "SOLAPI_PF_ID",
-    !templateId && "SOLAPI_TEMPLATE_ID",
-    !senderPhone && "SOLAPI_SENDER_PHONE",
-  ].filter(Boolean);
+  const missingSolapi: string[] = [];
+  if (!apiKey) missingSolapi.push("SOLAPI_API_KEY");
+  if (!apiSecret) missingSolapi.push("SOLAPI_API_SECRET");
+  if (!pfId) missingSolapi.push("SOLAPI_PF_ID");
+  if (!templateId) missingSolapi.push("SOLAPI_TEMPLATE_ID");
+  if (!senderPhone) missingSolapi.push("SOLAPI_SENDER_PHONE");
 
   if (missingSolapi.length > 0) {
     console.error("Solapi 환경변수 누락:", missingSolapi.join(", "));

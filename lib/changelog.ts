@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.7",
+    date: "2026-04-01",
+    changes: [
+      "Next.js 환경변수 동적 접근(Dynamic Access) 에러 픽스: 모든 솔라피 환경변수를 정적(Static) 접근 방식으로 수정",
+    ],
+  },
+  {
     version: "4.7.6",
     date: "2026-04-01",
     changes: [
