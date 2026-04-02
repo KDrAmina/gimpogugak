@@ -24,7 +24,9 @@
       "Bash(find /c/Users/JUN/gimpo-gugak -type f -name \"*.ts\" -path \"*/types/*\" 2>/dev/null | head -20)",
       "Bash(find /c/Users/JUN/gimpo-gugak -name *type* -type f ! -path */node_modules/* -o -name *supabase* -type f ! -path */node_modules/*)",
       "Bash(find /c/Users/JUN/gimpo-gugak -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.html -o -name *.json \\\\\\))",
-      "Bash(find /c/Users/JUN/gimpo-gugak -name *.types.ts -o -name database*)"
+      "Bash(find /c/Users/JUN/gimpo-gugak -name *.types.ts -o -name database*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }
