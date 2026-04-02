@@ -371,7 +371,7 @@ export default function AdminDashboardPage() {
             정규: ₩{monthlyTuition.toLocaleString()} / 외부: ₩{monthlyExternal.toLocaleString()}
           </p>
           <p className="mt-0.5 text-xs text-violet-500">
-            {selectedMonth.replace("-", "년 ")}월 · 수강료 + 체험비 · 외부강의 합산
+            {selectedMonth.replace("-", "년 ")}월 · 수강료 + 체험비 · 외부강의 · 강사수수료 합산
           </p>
         </div>
       </div>

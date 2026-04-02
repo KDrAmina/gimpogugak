@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.20",
+    date: "2026-04-02",
+    changes: [
+      "외부수입 카테고리에 '강사수수료' 항목 추가",
+    ],
+  },
+  {
     version: "4.7.19",
     date: "2026-04-02",
     changes: [
