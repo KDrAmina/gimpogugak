@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.17",
+    date: "2026-04-02",
+    changes: [
+      "새 과목 추가 시 카테고리 다중 선택(체크박스) UI 복구 및 콤마 연결 저장 로직 적용",
+    ],
+  },
+  {
     version: "4.7.16",
     date: "2026-04-02",
     changes: [

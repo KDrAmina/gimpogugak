@@ -48,13 +48,13 @@ export default function StudentDetailPage() {
 
   // 새 과목 추가 모달
   const [showNewSubject, setShowNewSubject] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
+  const [newCategories, setNewCategories] = useState<string[]>([]);
   const [newTuition, setNewTuition] = useState('');
   const [newSubjectSaving, setNewSubjectSaving] = useState(false);
 
   // 타임머신 모달
   const [showTimeMachine, setShowTimeMachine] = useState(false);
-  const [tmCategory, setTmCategory] = useState('');
+  const [tmCategories, setTmCategories] = useState<string[]>([]);
   const [tmTuition, setTmTuition] = useState('');
   const [tmStartMonth, setTmStartMonth] = useState('');
   const [tmEndMonth, setTmEndMonth] = useState('');
@@ -195,21 +195,24 @@ export default function StudentDetailPage() {
     }
   }
 
+  // 체크박스 토글 헬퍼
+  function toggleCategory(list: string[], cat: string): string[] {
+    return list.includes(cat) ? list.filter(c => c !== cat) : [...list, cat];
+  }
+
   // 새 과목 추가 핸들러
   async function handleNewSubject() {
-    if (!newCategory) { alert("카테고리를 선택해주세요."); return; }
+    if (newCategories.length === 0) { alert("카테고리를 1개 이상 선택해주세요."); return; }
     const tuition = parseInt(newTuition) || 0;
     if (tuition <= 0) { alert("수강료를 입력해주세요."); return; }
 
-    // 진행 중인 동일 과목 중복 체크
-    const duplicate = lessons.find(l => l.category === newCategory && l.is_active);
-    if (duplicate) { alert("이미 진행 중인 과목입니다."); return; }
+    const categoryStr = newCategories.join(", ");
 
     setNewSubjectSaving(true);
     try {
       const { error } = await supabase.from("lessons").insert({
         user_id: userId,
-        category: newCategory.trim(),
+        category: categoryStr,
         tuition_amount: tuition,
         is_active: true,
         current_session: 0,
@@ -218,7 +221,7 @@ export default function StudentDetailPage() {
 
       await loadStudentData();
       setShowNewSubject(false);
-      setNewCategory('');
+      setNewCategories([]);
       setNewTuition('');
       alert("✅ 새 과목이 추가되었습니다.");
     } catch (err) {
@@ -231,11 +234,13 @@ export default function StudentDetailPage() {
 
   // 타임머신 (과거 이력 일괄 등록) 핸들러
   async function handleTimeMachine() {
-    if (!tmCategory) { alert("카테고리를 선택해주세요."); return; }
+    if (tmCategories.length === 0) { alert("카테고리를 1개 이상 선택해주세요."); return; }
     const tuition = parseInt(tmTuition) || 0;
     if (tuition <= 0) { alert("수강료를 입력해주세요."); return; }
     if (!tmStartMonth || !tmEndMonth) { alert("시작월과 종료월을 입력해주세요."); return; }
     if (tmStartMonth > tmEndMonth) { alert("시작월이 종료월보다 클 수 없습니다."); return; }
+
+    const categoryStr = tmCategories.join(", ");
 
     setTmSaving(true);
     try {
@@ -244,7 +249,7 @@ export default function StudentDetailPage() {
         .from("lessons")
         .insert({
           user_id: userId,
-          category: tmCategory.trim(),
+          category: categoryStr,
           tuition_amount: tuition,
           is_active: false,
           current_session: 0,
@@ -281,7 +286,7 @@ export default function StudentDetailPage() {
           completed_date: dateStr,
           status: "결제 완료",
           tuition_snapshot: tuition,
-          category_snapshot: tmCategory.trim(),
+          category_snapshot: categoryStr,
         });
         sessionNum++;
         month++;
@@ -303,7 +308,7 @@ export default function StudentDetailPage() {
 
       await loadStudentData();
       setShowTimeMachine(false);
-      setTmCategory('');
+      setTmCategories([]);
       setTmTuition('');
       setTmStartMonth('');
       setTmEndMonth('');
@@ -576,17 +581,20 @@ export default function StudentDetailPage() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">새 과목 추가</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">카테고리</label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">카테고리 선택</option>
+                <label className="block text-sm text-gray-600 mb-2">카테고리 (복수 선택 가능)</label>
+                <div className="flex flex-wrap gap-3">
                   {CATEGORY_OPTIONS.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <label key={cat} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newCategories.includes(cat)}
+                        onChange={() => setNewCategories(prev => toggleCategory(prev, cat))}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{cat}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">수강료 (원)</label>
@@ -626,17 +634,20 @@ export default function StudentDetailPage() {
             <p className="text-xs text-gray-500 mb-4">시작월~종료월까지 매월 1건씩 결제 완료 이력을 생성합니다. (종료된 과목으로 등록)</p>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">카테고리</label>
-                <select
-                  value={tmCategory}
-                  onChange={(e) => setTmCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="">카테고리 선택</option>
+                <label className="block text-sm text-gray-600 mb-2">카테고리 (복수 선택 가능)</label>
+                <div className="flex flex-wrap gap-3">
                   {CATEGORY_OPTIONS.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <label key={cat} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tmCategories.includes(cat)}
+                        onChange={() => setTmCategories(prev => toggleCategory(prev, cat))}
+                        className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">{cat}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">수강료 (원/월)</label>
