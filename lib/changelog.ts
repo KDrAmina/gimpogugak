@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.19",
+    date: "2026-04-02",
+    changes: [
+      "전체 수업 내역 최신순 정렬 및 알림톡 리스트 결제일 기준/발송 제외 하단 정렬 적용",
+    ],
+  },
+  {
     version: "4.7.18",
     date: "2026-04-02",
     changes: [

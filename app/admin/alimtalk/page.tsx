@@ -155,14 +155,20 @@ export default function AlimtalkPage() {
       return s;
     });
 
-    // 오늘 대상 먼저, 그 다음 결제일 순
+    // 1순위: 발송 제외(알림톡 OFF 또는 0원) → 최하단
+    // 2순위: 결제일(payment_day) 오름차순
+    // 3순위: 이름 가나다순
     sorted.sort((a, b) => {
-      if (a.isToday && !b.isToday) return -1;
-      if (!a.isToday && b.isToday) return 1;
-      if (!a.paymentDate && !b.paymentDate) return 0;
-      if (!a.paymentDate) return 1;
-      if (!b.paymentDate) return -1;
-      return a.paymentDate.localeCompare(b.paymentDate);
+      const aExcluded = !a.alimtalkEnabled || a.totalTuition <= 0;
+      const bExcluded = !b.alimtalkEnabled || b.totalTuition <= 0;
+      if (aExcluded && !bExcluded) return 1;
+      if (!aExcluded && bExcluded) return -1;
+
+      const aDay = a.paymentDate ? new Date(a.paymentDate + "T00:00:00").getDate() : 32;
+      const bDay = b.paymentDate ? new Date(b.paymentDate + "T00:00:00").getDate() : 32;
+      if (aDay !== bDay) return aDay - bDay;
+
+      return a.baseName.localeCompare(b.baseName, "ko");
     });
 
     setStudents(sorted);

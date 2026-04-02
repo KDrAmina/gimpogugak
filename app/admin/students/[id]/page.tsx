@@ -549,7 +549,20 @@ export default function StudentDetailPage() {
           <p className="text-sm text-gray-400">등록된 수업이 없습니다.</p>
         ) : (
           <div className="divide-y divide-gray-100">
-            {lessons.map(lesson => (
+            {[...lessons].sort((a, b) => {
+              // 1순위: 진행중 최상단
+              if (a.is_active && !b.is_active) return -1;
+              if (!a.is_active && b.is_active) return 1;
+              // 2순위: endMonth(최근 결제월) 내림차순
+              const aDates = (a.lesson_history || []).map(h => h.completed_date).filter(Boolean).sort();
+              const bDates = (b.lesson_history || []).map(h => h.completed_date).filter(Boolean).sort();
+              const aEnd = aDates.length > 0 ? aDates[aDates.length - 1] : "";
+              const bEnd = bDates.length > 0 ? bDates[bDates.length - 1] : "";
+              if (!aEnd && !bEnd) return 0;
+              if (!aEnd) return 1;
+              if (!bEnd) return -1;
+              return bEnd.localeCompare(aEnd);
+            }).map(lesson => (
               <div key={lesson.id} className="py-3 flex items-center justify-between gap-4 text-sm">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <button
