@@ -10,6 +10,13 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.18",
+    date: "2026-04-02",
+    changes: [
+      "전체 수업 내역에 단일 납부월 대신 실제 수강 기간(시작월~종료월) 표시 적용",
+    ],
+  },
+  {
     version: "4.7.17",
     date: "2026-04-02",
     changes: [

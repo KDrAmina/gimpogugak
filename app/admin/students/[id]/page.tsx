@@ -15,6 +15,10 @@ type StudentProfile = {
   created_at: string;
 };
 
+type LessonHistoryDate = {
+  completed_date: string;
+};
+
 type StudentLesson = {
   id: string;
   category: string;
@@ -23,6 +27,7 @@ type StudentLesson = {
   payment_date: string | null;
   is_active: boolean;
   created_at: string;
+  lesson_history: LessonHistoryDate[];
 };
 
 type HistoryItem = {
@@ -105,7 +110,7 @@ export default function StudentDetailPage() {
   async function loadStudentData() {
     const [profileRes, lessonsRes] = await Promise.all([
       supabase.from("profiles").select("id, name, email, phone, created_at").eq("id", userId).single(),
-      supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, created_at, lesson_history(completed_date)").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
@@ -558,9 +563,15 @@ export default function StudentDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 text-gray-500 text-right shrink-0 text-xs">
                   {lesson.tuition_amount > 0 && <span>₩{lesson.tuition_amount.toLocaleString()}</span>}
-                  {lesson.payment_date && (
-                    <span>납부 {lesson.payment_date.substring(0, 7).replace('-', '년 ')}월</span>
-                  )}
+                  <span>{(() => {
+                    const dates = (lesson.lesson_history || []).map(h => h.completed_date).filter(Boolean).sort();
+                    if (dates.length === 0) return "납부 이력 없음";
+                    const fmt = (d: string) => { const [y, m] = d.split("-"); return `${Number(y)}년 ${Number(m)}월`; };
+                    const start = fmt(dates[0]);
+                    if (lesson.is_active) return `${start} ~ 현재`;
+                    const end = fmt(dates[dates.length - 1]);
+                    return start === end ? start : `${start} ~ ${end}`;
+                  })()}</span>
                   <button
                     onClick={() => handleDeleteLesson(lesson.id, lesson.category)}
                     className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 transition-colors"
