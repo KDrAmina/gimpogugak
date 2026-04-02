@@ -35,6 +35,8 @@ type HistoryItem = {
   category_snapshot: string | null;
 };
 
+const CATEGORY_OPTIONS = ['성인단체', '성인개인', '어린이단체', '어린이개인'] as const;
+
 export default function StudentDetailPage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [lessons, setLessons] = useState<StudentLesson[]>([]);
@@ -174,11 +176,34 @@ export default function StudentDetailPage() {
     setEditingMemo(false);
   }
 
+  // 수업 상태 토글 핸들러 (진행중 ↔ 종료)
+  async function handleToggleStatus(lessonId: string, currentActive: boolean) {
+    const newStatus = !currentActive;
+    const label = newStatus ? "진행중" : "종료";
+    if (!window.confirm(`이 수업을 "${label}" 상태로 변경하시겠습니까?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from("lessons")
+        .update({ is_active: newStatus })
+        .eq("id", lessonId);
+      if (error) throw error;
+      await loadStudentData();
+    } catch (err) {
+      console.error("Toggle status error:", err);
+      alert("상태 변경 중 오류가 발생했습니다.");
+    }
+  }
+
   // 새 과목 추가 핸들러
   async function handleNewSubject() {
-    if (!newCategory.trim()) { alert("카테고리를 입력해주세요."); return; }
+    if (!newCategory) { alert("카테고리를 선택해주세요."); return; }
     const tuition = parseInt(newTuition) || 0;
     if (tuition <= 0) { alert("수강료를 입력해주세요."); return; }
+
+    // 진행 중인 동일 과목 중복 체크
+    const duplicate = lessons.find(l => l.category === newCategory && l.is_active);
+    if (duplicate) { alert("이미 진행 중인 과목입니다."); return; }
 
     setNewSubjectSaving(true);
     try {
@@ -206,7 +231,7 @@ export default function StudentDetailPage() {
 
   // 타임머신 (과거 이력 일괄 등록) 핸들러
   async function handleTimeMachine() {
-    if (!tmCategory.trim()) { alert("카테고리를 입력해주세요."); return; }
+    if (!tmCategory) { alert("카테고리를 선택해주세요."); return; }
     const tuition = parseInt(tmTuition) || 0;
     if (tuition <= 0) { alert("수강료를 입력해주세요."); return; }
     if (!tmStartMonth || !tmEndMonth) { alert("시작월과 종료월을 입력해주세요."); return; }
@@ -517,9 +542,13 @@ export default function StudentDetailPage() {
             {lessons.map(lesson => (
               <div key={lesson.id} className="py-3 flex items-center justify-between gap-4 text-sm">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className={`shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium ${lesson.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  <button
+                    onClick={() => handleToggleStatus(lesson.id, lesson.is_active)}
+                    className={`shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium cursor-pointer transition-colors ${lesson.is_active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                    title={`클릭하면 "${lesson.is_active ? "종료" : "진행중"}"로 변경`}
+                  >
                     {lesson.is_active ? "진행중" : "종료"}
-                  </span>
+                  </button>
                   <span className="font-medium text-gray-900 truncate">{lesson.category}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-500 text-right shrink-0 text-xs">
@@ -548,13 +577,16 @@ export default function StudentDetailPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">카테고리</label>
-                <input
-                  type="text"
+                <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="예: 가야금, 해금, 판소리"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                >
+                  <option value="">카테고리 선택</option>
+                  {CATEGORY_OPTIONS.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">수강료 (원)</label>
@@ -595,13 +627,16 @@ export default function StudentDetailPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">카테고리</label>
-                <input
-                  type="text"
+                <select
                   value={tmCategory}
                   onChange={(e) => setTmCategory(e.target.value)}
-                  placeholder="예: 가야금, 해금, 판소리"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+                >
+                  <option value="">카테고리 선택</option>
+                  {CATEGORY_OPTIONS.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">수강료 (원/월)</label>

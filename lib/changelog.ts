@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.16",
+    date: "2026-04-02",
+    changes: [
+      "수강 과목 드롭다운 선택 적용 및 수업 상태(진행/종료) 토글 버튼 구현",
+      "진행 중인 동일 과목 중복 등록 방지",
+    ],
+  },
+  {
     version: "4.7.15",
     date: "2026-04-02",
     changes: [
