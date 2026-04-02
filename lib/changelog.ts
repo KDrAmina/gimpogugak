@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.7.15",
+    date: "2026-04-02",
+    changes: [
+      "과거 결제 이력 일괄 등록(타임머신) 기능 구현",
+      "특정 수강생 새 과목 추가 기능 구현",
+      "알림톡 합산 철통 방어 (is_active 필터 이중 검증)",
+    ],
+  },
+  {
     version: "4.7.14",
     date: "2026-04-02",
     changes: [

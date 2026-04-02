@@ -89,6 +89,7 @@ export async function GET(req: Request) {
 
   try {
     // 활성 수강생 중 payment_date가 있는 레슨 조회
+    // ⚠️ 철통 방어: is_active=true만 조회 → 과거 이력(is_active=false)은 합산에서 원천 차단
     const { data, error } = await supabase
       .from("lessons")
       .select(`
