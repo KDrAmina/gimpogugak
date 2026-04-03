@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.8.0",
+    date: "2026-04-03",
+    changes: [
+      "통계 대시보드 신규 추가 (관리자 메뉴 > 📊 통계)",
+      "요약 카드 4종: 이번 달 총매출, 전월 대비 증감률, 수강료, 외부수입",
+      "Recharts 누적 막대 차트: 최근 12개월 수강료 + 외부수입 월별 추이",
+      "누적 VIP 수강생 TOP 10 랭킹 테이블 (전체 기간 결제 총액 순위)",
+    ],
+  },
+  {
     version: "4.7.31",
     date: "2026-04-03",
     changes: [
