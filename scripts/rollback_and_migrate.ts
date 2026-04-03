@@ -1,5 +1,5 @@
-/**
- * LESSON_DATA.xlsx → Supabase 롤백 & 재마이그레이션 (v4.7.26)
+﻿/**
+ * LESSON_DATA.xlsx → Supabase 롤백 & 재마이그레이션 (v4.7.29)
  *
  * ─ STEP 1: 절대 시간 기준 완전 롤백 (2026-04-02 00:00:00 KST 이후 생성 전량 삭제)
  *   · external_income 전량 DELETE
@@ -9,14 +9,17 @@
  *
  * ─ STEP 2: 완전 픽스 재마이그레이션
  *   Fix 1. lessons INSERT 시 status 컬럼 사용 금지 (is_active만 사용)
- *   Fix 2. 외부24년: '대금' 또는 '해금' 포함 행만 → 강사수수료
- *   Fix 3. 외부25/26년: 체험비/기타/강사수수료 분류 유지
- *   Fix 4. 활성 수강생 26년 데이터 완전 스킵 (민다현 제외)
- *   Fix 5. 이율/이윤 → 기존 010-9968-3256 프로필에 lesson_history만 삽입
- *   Fix 6. 유지연 25년 → is_active=false 강제
- *   Fix 7. 신규 프로필 status='active' 명시
- *   Fix 8. 외부수입 중복 제거: date+type+amount+description 동일 항목 1개만 INSERT
- *   Fix 9. 과거 수강생 일괄 승인: 마이그레이션된 모든 프로필 status='active' 강제
+ *   Fix 2. 외부24/25/26년 모두 동일 규칙 적용 (체험비/기타/강사수수료, 대금/해금 필터 폐기)
+ *   Fix 3. 활성 수강생 26년 1~2월 → 새 수업 생성 X, 기존 활성 수업에 history 직접 삽입
+ *          (3~4월은 기존 관리자 UI 기록 유지, 스킵)
+ *   Fix 9. 금액 파싱 강화: 텍스트 혼합 셀("20만원" 등)도 숫자 추출
+ *   Fix 10. 수강생 추가 드롭다운: @migrate.local 계정 UI 필터 (lessons/page.tsx)
+ *   Fix 4. 이율/이윤 → 기존 010-9968-3256 프로필에 lesson_history만 삽입
+ *   Fix 5. 유지연 25년 → is_active=false 강제 (80만원 단기 결제)
+ *   Fix 6. 신규 프로필 status='active' 명시
+ *   Fix 7. 외부수입 중복 제거: date+type+amount+description 동일 항목 1개만 INSERT
+ *   Fix 8. 과거 수강생 일괄 승인: 마이그레이션된 모든 프로필 status='active' 강제
+ *   Fix 9. 금액 파싱 강화: 텍스트 혼합 셀("20만원" 등)도 숫자 추출
  *
  * 실행:
  *   npx ts-node --project scripts/tsconfig.json scripts/rollback_and_migrate.ts
@@ -258,13 +261,26 @@ function parseStudentSheet(wb: XLSX.WorkBook, sheetName: string): RawStudentRow[
     const name = String(row[1]).trim();
     const phone = normalizePhone(row[2]);
     const excelCategory = normalizeCategory(String(row[3] ?? ""));
-    const baseRate = typeof row[5] === "number" ? row[5] : 0;
+
+    // 금액 파싱 강화: 숫자형 또는 "20만원", "200,000" 같은 문자열 셀 모두 처리 (Fix 9)
+    function parseManWon(raw: any): number {
+      if (typeof raw === "number") return raw > 0 ? raw : 0;
+      if (typeof raw === "string" && raw.trim()) {
+        const n = parseInt(raw.replace(/[^0-9]/g, "")) || 0;
+        // 원 단위로 입력된 경우(1000 초과)는 만원 단위로 변환
+        return n > 1000 ? Math.round(n / 10000) : n;
+      }
+      return 0;
+    }
+
+    const baseRate = parseManWon(row[5]);
 
     const payments: MonthlyPayment[] = [];
     for (let m = 0; m < 12; m++) {
       const dateVal = row[7 + m * 2];
-      const amountVal = row[8 + m * 2];
-      if (amountVal != null && typeof amountVal === "number" && amountVal > 0) {
+      const rawAmountVal = row[8 + m * 2];
+      const numericAmount = parseManWon(rawAmountVal);
+      if (numericAmount > 0) {
         let day = 1;
         if (typeof dateVal === "number" && dateVal >= 1 && dateVal <= 31) {
           day = dateVal;
@@ -272,7 +288,7 @@ function parseStudentSheet(wb: XLSX.WorkBook, sheetName: string): RawStudentRow[
           const m2 = dateVal.match(/(\d+)/);
           if (m2) day = parseInt(m2[1]);
         }
-        payments.push({ month: m + 1, day, amount: amountVal });
+        payments.push({ month: m + 1, day, amount: numericAmount });
       }
     }
 
@@ -287,60 +303,11 @@ function parseStudentSheet(wb: XLSX.WorkBook, sheetName: string): RawStudentRow[
 // ────────────────────────────────────────────────────
 
 /**
- * 외부24년 전용 파서
- * - '대금' 또는 '해금' 단어가 포함된 행만 수집 → 전부 강사수수료
- * - 나머지 모든 행은 무시
- */
-function parseExternal24Sheet(wb: XLSX.WorkBook): ExternalIncomeRow[] {
-  const ws = wb.Sheets["외부24년"];
-  if (!ws) return [];
-  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-  const results: ExternalIncomeRow[] = [];
-
-  for (const row of rows) {
-    if (!row) continue;
-
-    const c0 = String(row[0] ?? "").trim();
-    const c1 = String(row[1] ?? "").trim();
-    const rowText = c0 + " " + c1;
-
-    // 대금 또는 해금이 포함된 행만 처리
-    if (!rowText.includes("대금") && !rowText.includes("해금")) continue;
-
-    const description = c1 || c0 || "강사수수료";
-    const type = "강사수수료";
-
-    // monthBaseIdx=9 (외부24년 컬럼 구조)
-    let foundAny = false;
-    for (let m = 0; m < 12; m++) {
-      const dateCol   = 9 + m * 3;
-      const amountCol = 9 + m * 3 + 1;
-      const dateVal   = row[dateCol];
-      const amountVal = row[amountCol];
-
-      if (amountVal != null && typeof amountVal === "number" && amountVal > 0) {
-        let day = 1;
-        if (typeof dateVal === "number" && dateVal >= 1 && dateVal <= 31) {
-          day = dateVal;
-        }
-        results.push({ type, description, year: 2024, month: m + 1, day, amountMan: amountVal });
-        foundAny = true;
-      }
-    }
-
-    if (foundAny) {
-      console.log(`    → [${type}] "${description}"`);
-    }
-  }
-  return results;
-}
-
-/**
- * 외부25년, 외부26년 파서
- * - 체험비 / 기타 / 강사수수료 분류 유지
+ * 외부수입 시트 파서 (24/25/26년 공통)
+ * - 체험비 / 기타 / 강사수수료 분류 (24년도 대금/해금 필터 폐기, Fix 2)
  *
  * @param monthBaseIdx 월 데이터 시작 컬럼 인덱스
- *   - 외부25년: 8, 외부26년: 9
+ *   - 외부24년: 9, 외부25년: 8, 외부26년: 9
  */
 function parseExternalSheet(
   wb: XLSX.WorkBook,
@@ -538,7 +505,7 @@ async function rollbackAll(): Promise<void> {
     console.log("  ℹ️  [2] 삭제할 is_active=false lessons 없음");
   }
 
-  // ── [3] lesson_history 전량 삭제 (민다현 제외) ─────
+  // ?? [3] lesson_history ??: session_number=0 (?????? ????, ??? ??) ?????
   const { data: mindaProfiles } = await supabase
     .from("profiles").select("id").like("name", "%민다현%");
   const mindaProfileIds = (mindaProfiles || []).map((p: any) => p.id);
@@ -551,7 +518,8 @@ async function rollbackAll(): Promise<void> {
 
   const { data: histAll } = await supabase
     .from("lesson_history").select("id, lesson_id")
-    .gte("created_at", ROLLBACK_SINCE);
+    .gte("created_at", ROLLBACK_SINCE)
+    .eq("session_number", 0); // ??? ?? ??(session_number>=1) ??
   const histToDelete = (histAll || [])
     .filter((h: any) => !mindaLessonIds.includes(h.lesson_id))
     .map((h: any) => h.id);
@@ -899,6 +867,88 @@ async function handleFreeStudents(existingProfiles: ExistingProfile[]): Promise<
 }
 
 // ────────────────────────────────────────────────────
+// 17-b. 활성 수업에 Jan-Feb history 직접 삽입 (26년 처리 전용)
+// ────────────────────────────────────────────────────
+
+/**
+ * 활성 수강생의 26년 1~2월 데이터를 기존 is_active=true 수업에 history로 직접 삽입.
+ * 새 is_active=false 수업을 만들지 않으므로 중복 카운팅이 없다.
+ */
+async function insertHistoryForActiveLesson(
+  profileId: string,
+  excelCategory: string,
+  filteredPayments: MonthlyPayment[],
+  year: number
+): Promise<void> {
+  if (filteredPayments.length === 0) return;
+
+  if (DRY_RUN) {
+    for (const p of filteredPayments) {
+      console.log(`      [DRY] ???? history: ${excelCategory} ${year}? ${p.month}? ${p.amount}??`);
+    }
+    historyCount += filteredPayments.length;
+    return;
+  }
+
+  // 이 프로필의 is_active=true 수업 조회
+  const { data: activeLessons, error: lErr } = await supabase
+    .from("lessons")
+    .select("id, category")
+    .eq("user_id", profileId)
+    .eq("is_active", true);
+
+  if (lErr || !activeLessons || activeLessons.length === 0) {
+    console.log(`      ??  ?? ?? ?? ? is_active=false ???? ??`);
+    const tuitionWon = filteredPayments[filteredPayments.length - 1].amount * 10000;
+    await createLessonWithHistory(profileId, excelCategory, tuitionWon, filteredPayments, year, false);
+    return;
+  }
+
+  // 카테고리 매칭: 정확 일치 → 부분 일치 → 첫 번째 활성 수업
+  const targetLesson =
+    activeLessons.find((l) => l.category === excelCategory) ??
+    activeLessons.find((l) => (l.category || "").includes(excelCategory.split(",")[0].trim())) ??
+    activeLessons[0];
+
+  // 이미 존재하는 Jan-Feb 기록 확인 (중복 방지)
+  const { data: existingH } = await supabase
+    .from("lesson_history")
+    .select("completed_date")
+    .eq("lesson_id", targetLesson.id)
+    .gte("completed_date", `${year}-01-01`)
+    .lt("completed_date", `${year}-03-01`);
+
+  const existingDates = new Set(
+    (existingH || []).map((h: any) => String(h.completed_date).slice(0, 10))
+  );
+
+  const newRows = filteredPayments
+    .filter((p) => !existingDates.has(toDateStr(year, p.month, p.day)))
+    .map((p) => ({
+      lesson_id: targetLesson.id,
+      session_number: 0,
+      completed_date: toDateStr(year, p.month, p.day),
+      user_id: profileId,
+      status: "결제 완료",
+      tuition_snapshot: p.amount * 10000,
+      category_snapshot: targetLesson.category || excelCategory,
+    }));
+
+  if (newRows.length === 0) {
+    console.log(`      ??  ${year}? 1~2? ?? ?? (${existingDates.size}?), ??`);
+    return;
+  }
+
+  const { error: hErr } = await supabase.from("lesson_history").insert(newRows);
+  if (hErr) {
+    console.error(`      ? ???? history INSERT ??:`, hErr.message);
+  } else {
+    historyCount += newRows.length;
+    console.log(`      ? ????(${targetLesson.id.slice(0, 8)}?) ${year}? 1~2? ${newRows.length}? ??`);
+  }
+}
+
+// ────────────────────────────────────────────────────
 // 18. 외부수입 중복 제거 + INSERT
 // ────────────────────────────────────────────────────
 
@@ -992,7 +1042,7 @@ async function approveAllMigratedProfiles(profileIds: string[]): Promise<void> {
 
 async function main() {
   console.log("═══════════════════════════════════════════════════════");
-  console.log(" 김포국악원 롤백 & 재마이그레이션 (v4.7.26)");
+  console.log(" 김포국악원 롤백 & 재마이그레이션 (v4.7.29)");
   console.log(DRY_RUN ? " (DRY RUN — DB 변경 없음)" : " (LIVE — DB 반영)");
   console.log("═══════════════════════════════════════════════════════\n");
 
@@ -1101,17 +1151,38 @@ async function main() {
       if (deleted > 0) console.log(`    🗑️  종료된 수업 ${deleted}건 삭제`);
     }
 
+    const validCategories = [
+      "성인단체", "성인개인", "어린이개인", "어린이단체", "어린이개인, 어린이단체",
+    ];
+
     // 연도별 수업 생성
     for (const [year, catMap] of person.yearData) {
-      // ★ Fix 2: 활성 수강생의 26년 데이터 완전 스킵 (민다현 제외) ★
-      if (year === 2026
+      // ★ Fix 3: 활성 수강생 26년 → 1~2월은 기존 활성 수업에 직접 삽입, 3~4월 스킵 ★
+      const is26ActiveStudent = year === 2026
         && activePhones.has(person.phone!)
-        && person.phone !== MINDAHYUN_PHONE) {
+        && person.phone !== MINDAHYUN_PHONE;
+
+      if (is26ActiveStudent) {
         skippedYear26++;
-        console.log(`    ⏭️  ${year}년 스킵 (현재 활성 수강생)`);
-        continue;
+        console.log(`    📅  ${year}년 1~2월 → 기존 활성 수업에 직접 삽입 (3~4월 스킵)`);
+
+        for (const [excelCat, payments] of catMap) {
+          const jan_feb = payments.filter((p) => p.month <= 2);
+          if (jan_feb.length === 0) continue;
+
+          const baseRate = person.baseRates.get(year)?.get(excelCat) ?? 0;
+          const segments = determineCategorySegments(jan_feb, excelCat, baseRate);
+
+          for (const seg of segments) {
+            if (seg.payments.length === 0) continue;
+            if (!validCategories.includes(seg.category)) continue;
+            await insertHistoryForActiveLesson(profileId, seg.category, seg.payments, year);
+          }
+        }
+        continue; // 이 year(2026) 처리 완료, 다음 year로
       }
 
+      // 23·24·25년, 그리고 민다현의 26년 → 정상 수업 생성
       for (const [excelCat, payments] of catMap) {
         if (payments.length === 0) continue;
 
@@ -1120,14 +1191,9 @@ async function main() {
 
         for (const seg of segments) {
           if (seg.payments.length === 0) continue;
-
-          const validCategories = [
-            "성인단체", "성인개인", "어린이개인", "어린이단체", "어린이개인, 어린이단체",
-          ];
           if (!validCategories.includes(seg.category)) continue;
 
           // 모든 마이그레이션 레코드 기본: is_active=false (종료됨)
-          // Fix 4: 유지연은 위에서 이미 26년 제거 + 25년 단일화 → 무조건 false
           let isActive = false;
 
           // 민다현만 최신 연도 is_active=true
@@ -1158,8 +1224,8 @@ async function main() {
 
   const externalRecords: ExternalIncomeRow[] = [];
 
-  console.log("  [외부24년] 파싱 중... (대금/해금 포함 행만 → 강사수수료)");
-  const ext24 = parseExternal24Sheet(wb);
+  console.log("  [외부24년] 파싱 중... (25/26년과 동일 규칙: 체험비/기타/강사수수료)");
+  const ext24 = parseExternalSheet(wb, "외부24년", 2024, 9);
   console.log(`  외부24년: ${ext24.length}건`);
   externalRecords.push(...ext24);
 

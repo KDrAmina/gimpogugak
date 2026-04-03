@@ -251,7 +251,10 @@ export default function AdminLessonsPage() {
       }
 
       const assignedUserIds = new Set(assignedLessons?.map(l => l.user_id) || []);
-      const unassigned = (allUsers || []).filter(user => !assignedUserIds.has(user.id));
+      // @migrate.local = migration ?? ??? -> ??? ?? ?? ??
+      const unassigned = (allUsers || []).filter(
+        (user) => !assignedUserIds.has(user.id) && !user.email?.endsWith('@migrate.local')
+      );
 
       setUnassignedUsers(unassigned);
     } catch (error) {

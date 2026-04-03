@@ -57,13 +57,14 @@ export default function AdminStudentsPage() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch lesson status for each student
+      // 현재 활성 수업만 조회 (is_active=true) — 과거 수강생은 이 목록에 포함되지 않음
       const { data: lessonsData } = await supabase
         .from("lessons")
-        .select("id, user_id, is_active, category, tuition_amount, payment_date");
+        .select("id, user_id, category, tuition_amount, payment_date")
+        .eq("is_active", true);
 
       const lessonMap = new Map(
-        lessonsData?.map(l => [l.user_id, { id: l.id, is_active: l.is_active, category: l.category, tuition_amount: l.tuition_amount, payment_date: l.payment_date }]) || []
+        lessonsData?.map(l => [l.user_id, { id: l.id, category: l.category, tuition_amount: l.tuition_amount, payment_date: l.payment_date }]) || []
       );
 
       const studentsWithLessons = (profilesData || []).map(student => {
@@ -71,17 +72,18 @@ export default function AdminStudentsPage() {
         return {
           ...student,
           lesson_id: lesson?.id,
-          lesson_status: lesson
-            ? (lesson.is_active ? 'active' as const : 'ended' as const)
-            : 'none' as const,
+          lesson_status: lesson ? 'active' as const : 'none' as const,
           lesson_category: lesson?.category || '',
           lesson_tuition: lesson?.tuition_amount || 0,
           lesson_payment_date: lesson?.payment_date || null,
         };
       });
 
-      setStudents(studentsWithLessons);
-      console.log("✅ Loaded", studentsWithLessons.length, "active students (excluding admin)");
+      // 현재 활성 수업이 있는 수강생만 표시 (과거 수강생 및 미등록 제외)
+      const activeOnly = studentsWithLessons.filter(s => !!s.lesson_id);
+
+      setStudents(activeOnly);
+      console.log("✅ Loaded", activeOnly.length, "currently active students");
     } catch (error) {
       console.error("Error fetching active students:", error);
       alert("수강생 목록을 불러오는 중 오류가 발생했습니다.");
@@ -560,20 +562,14 @@ export default function AdminStudentsPage() {
                           </div>
                         </td>
                         <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center">
-                          {student.lesson_status === 'active' ? (
-                            <button
-                              onClick={() => handleEndLesson(student.name || "회원", student.lesson_id)}
-                              disabled={!student.lesson_id}
-                              className="px-2 py-1 text-xs text-red-600 border border-red-500 rounded hover:bg-red-50 transition-colors font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="수업 종료"
-                            >
-                              종료
-                            </button>
-                          ) : student.lesson_status === 'ended' ? (
-                            <span className="text-xs text-gray-500">종료됨</span>
-                          ) : (
-                            <span className="text-xs text-gray-400">대기중</span>
-                          )}
+                          <button
+                            onClick={() => handleEndLesson(student.name || "회원", student.lesson_id)}
+                            disabled={!student.lesson_id}
+                            className="px-2 py-1 text-xs text-red-600 border border-red-500 rounded hover:bg-red-50 transition-colors font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="수업 종료"
+                          >
+                            종료
+                          </button>
                         </td>
                         <td className="px-3 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-1 md:gap-2">
