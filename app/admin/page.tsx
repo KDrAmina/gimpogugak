@@ -399,22 +399,21 @@ export default function AdminDashboardPage() {
           )}
         </button>
 
-        {/* Widget 2: System Status */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        {/* Widget 2: 통계 대시보드 바로가기 */}
+        <button
+          type="button"
+          onClick={() => router.push("/admin/statistics")}
+          className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-sm p-6 hover:shadow-lg hover:scale-[1.02] transition-all text-left cursor-pointer w-full"
+        >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">시스템 상태</h3>
-            <div className="text-3xl">✅</div>
+            <h3 className="text-sm font-medium text-white/80">통계 대시보드</h3>
+            <div className="text-2xl">📊</div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <p className="text-lg font-semibold text-green-600">
-              정상 운영 중
-            </p>
-          </div>
-          <p className="mt-2 text-xs text-gray-500">
-            모든 시스템이 정상 작동하고 있습니다
+          <p className="text-lg font-bold text-white">재무 현황 보기</p>
+          <p className="mt-2 text-xs text-white/70">
+            월별 매출 · VIP 수강생 · 수입 분석 →
           </p>
-        </div>
+        </button>
 
         {/* Widget 3: 알림톡 발송 관리 */}
         <button
