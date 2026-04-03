@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -103,14 +103,8 @@ export default function AdminDashboardPage() {
 
       if (error) throw error;
 
-      // Deduplicate by user_id (same logic as lessons list page)
-      // created_at DESC 정렬이므로 Set에 먼저 들어오는 것(최신)이 유지됨
-      const seenUserIds = new Set<string>();
-      const sum = (data || []).reduce((acc, l: { user_id: string; tuition_amount?: number }) => {
-        if (seenUserIds.has(l.user_id)) return acc;
-        seenUserIds.add(l.user_id);
-        return acc + (l.tuition_amount || 0);
-      }, 0);
+      // ?? ?? ?? ?? (?? ?? ??)
+      const sum = (data || []).reduce((acc, l) => acc + (l.tuition_amount || 0), 0);
       setTotalTuition(sum);
     } catch (error) {
       console.error("Error fetching total tuition:", error);
