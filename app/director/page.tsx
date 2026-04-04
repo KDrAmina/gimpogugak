@@ -78,7 +78,7 @@ export default function DirectorPage() {
 
       <div className="mb-12">
         <p className="text-[#666] leading-relaxed">
-          백석예술대학교 국악과를 졸업하고 10년 이상 현장에서 민요를 가르쳐왔습니다.
+          본 원장은 무형문화재 제3호 놀량사거리 이수자로 20년 이상 현장에서 민요를 가르쳐왔습니다.
           <br />
           전통의 깊이를 잃지 않으면서도, 누구나 쉽고 즐겁게 우리 소리를 즐길 수 있도록 지도합니다.
         </p>
