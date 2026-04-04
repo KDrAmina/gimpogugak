@@ -9,6 +9,36 @@ export type ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  // ────────────────────────────────────────────────────────────────────────
+  // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
+  // ────────────────────────────────────────────────────────────────────────
+  {
+    version: "5.1.0",
+    date: "2026-04-04",
+    changes: [
+      "[DB] profiles 테이블에 inflow_route(유입경로) 컬럼 신규 추가 (ALTER TABLE profiles ADD COLUMN IF NOT EXISTS inflow_route text)",
+      "[DB] scripts/sync_inflow_route.ts 작성: cleaned_inflow_data.csv → profiles.inflow_route Upsert 스크립트 (이름+전화번호 키 매칭, 유입경로 안전 덮어씌우기)",
+      "[DB] scripts/add_inflow_route_column.sql 작성: 컬럼 추가 DDL 파일",
+      "[통계] 정규 수강생 유입경로 현황 위젯 추가: 기존 '체험→등록 전환 퍼널' 위젯을 삭제하고 가로형 바 차트(Horizontal Bar)로 교체",
+      "[통계] 유입경로 색상 팔레트 정의: 네이버(파랑), 지인소개(초록), 배너광고(노랑), 체험전환(보라) 등 경로별 컬러 구분",
+      "[통계] 월평균 매출 계산 분모 정밀화: 실제 운영 개월 수 하드코딩 (2023=7개월, 2024=12, 2025=12, 2026=4, 전체=35개월)",
+      "[통계] 우리인력 → 민경임 이름 강제 치환: normalizeName() 함수 추가, VIP TOP10 및 studentStats 합산 시 동일인으로 처리",
+      "[통계] profiles.inflow_route 데이터를 fetchAll에서 함께 조회하는 inflowProfiles 상태 추가",
+    ],
+  },
+  {
+    version: "5.0.0",
+    date: "2026-04-04",
+    changes: [
+      "[DB] scripts/sync_external_income.ts 신규 작성: LESSON_DATA.xlsx '기타' 섹션 → external_income 테이블 정밀 Upsert 스크립트",
+      "[DB] 외부수입 '공연비' 카테고리 파싱 추가 (기존: 체험비·강사수수료·기타·외부강의, 신규: 공연비 포함 5종)",
+      "[DB] 기타 섹션 파싱 로직: Row 1 헤더행에서 '1월' 컬럼 위치 자동 감지(monthStartCol), 시트별 다른 오프셋 처리 (외부25년=4, 나머지=9)",
+      "[DB] Upsert 키: (income_date, amount, type) 3-way 매칭, type 수정 시 (income_date, amount) 2-way 폴백으로 카테고리 자동 변경",
+      "[DB] 외부23년 시트 신규 처리: 기존 migrate.ts에서 누락된 2023년 체험비 12건 INSERT",
+      "[DB] 수행 결과: INSERT 38건, UPDATE 49건 (이름 오기입 수정·유입경로 채움·공연비 타입 변환 6건 포함), SKIP 21건",
+      "[데이터] cleaned_inflow_data.csv 생성: 원본 178행 → 중복 82건 제거 → 고유 수강생 96명, 네이버(48)·지인소개(12)·배너광고(7)·없음(20) 등 10개 경로 집계",
+    ],
+  },
   {
     version: "4.9.0",
     date: "2026-04-02",
@@ -277,6 +307,18 @@ export const CHANGELOG: ChangelogEntry[] = [
       "특정 월 캘린더 리셋: 현재 보고 있는 연도/월의 납부 내역만 타겟 삭제 (이전/이후 달 데이터 유지)",
       "다개월 선납 기능: 수업 관리 리스트에서 미래 달 납부완료 데이터를 일괄 자동 생성",
       "수강료/과목 정보 수정 기능: 회원관리 목록에서 수강 과목(카테고리)과 수강료를 모달로 변경 가능",
+    ],
+  },
+  {
+    version: "4.6.5",
+    date: "2026-03-25",
+    changes: [
+      "[DB 마이그레이션 초기] scripts/migrate.ts 최초 작성: LESSON_DATA.xlsx(23년~26년 수강 시트 + 외부수입 시트) → Supabase 일괄 이관",
+      "[DB] 수강생 시트 파싱: 이름·전화번호·카테고리·월별 결제일·금액 추출, 어린이단체/개인 금액 기반 카테고리 세그먼트 자동 분리 로직 구현",
+      "[DB] 외부수입 시트 파싱: 강사수수료 키워드 기반 추출, 연도별 monthBaseIdx(월 컬럼 오프셋) 지정",
+      "[DB] 수강생 Auth 유저 자동 생성: supabase.auth.admin.createUser() + profiles upsert 연동",
+      "[DB] 멱등성 보장: 중복 실행 시 기존 is_active=false lessons + lesson_history 자동 삭제 후 재삽입",
+      "[DB] migration_preview.json: 마이그레이션 결과 프리뷰(93명, 활성 35명) 파일 생성",
     ],
   },
   {

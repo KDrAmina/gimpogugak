@@ -21,6 +21,12 @@ interface LessonInner  { tuition_amount: number; category: string; is_active?: b
 interface HistoryRow   { completed_date?: string; tuition_snapshot: number; prepaid_month: string | null; lessons: LessonInner | null; }
 interface ExternalRow  { income_date: string; amount: number; type: string; }
 interface ActiveLesson { category: string; tuition_amount: number; }
+interface InflowProfile { name: string; phone: string | null; inflow_route: string | null; }
+
+// 우리인력 → 민경임 이름 강제 치환
+function normalizeName(name: string): string {
+  return name === "우리인력" ? "민경임" : name;
+}
 
 const YEAR_OPTIONS = [
   { value: "all",  label: "전체 기간" },
@@ -63,20 +69,23 @@ export default function StatisticsPage() {
   const [allHistory, setAllHistory]     = useState<HistoryRow[]>([]);
   const [allExternal, setAllExternal]   = useState<ExternalRow[]>([]);
   const [activeLesson, setActiveLesson] = useState<ActiveLesson[]>([]);
+  const [inflowProfiles, setInflowProfiles] = useState<InflowProfile[]>([]);
 
   useEffect(() => { fetchAll(); }, []); // eslint-disable-line
 
   async function fetchAll() {
-    const [{ data: hist }, { data: ext }, { data: active }] = await Promise.all([
+    const [{ data: hist }, { data: ext }, { data: active }, { data: inflow }] = await Promise.all([
       supabase.from("lesson_history")
         .select("completed_date,tuition_snapshot,prepaid_month,lessons!inner(tuition_amount,category,is_active,profiles!inner(name,phone))")
         .eq("status", "결제 완료").limit(10000),
       supabase.from("external_income").select("income_date,amount,type").limit(5000),
       supabase.from("lessons").select("category,tuition_amount").eq("is_active", true).limit(500),
+      supabase.from("profiles").select("name,phone,inflow_route").limit(1000),
     ]);
     setAllHistory((hist as unknown as HistoryRow[]) ?? []);
     setAllExternal((ext as unknown as ExternalRow[]) ?? []);
     setActiveLesson((active as unknown as ActiveLesson[]) ?? []);
+    setInflowProfiles((inflow as unknown as InflowProfile[]) ?? []);
     setLoading(false);
   }
 
@@ -105,14 +114,15 @@ export default function StatisticsPage() {
     for (const row of allHistory) {
       const prof = row.lessons?.profiles;
       if (!prof?.name) continue;
+      const name = normalizeName(prof.name); // 우리인력 → 민경임 합산
       const eff = getEff(row);
       if (!eff) continue;
       const isAct = row.lessons?.is_active ?? false;
-      const prev  = map.get(prof.name);
+      const prev  = map.get(name);
       if (!prev) {
-        map.set(prof.name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: tuitionOf(row), phone: prof.phone });
+        map.set(name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: tuitionOf(row), phone: prof.phone });
       } else {
-        map.set(prof.name, {
+        map.set(name, {
           firstMonth: eff < prev.firstMonth ? eff : prev.firstMonth,
           lastMonth:  eff > prev.lastMonth  ? eff : prev.lastMonth,
           isActive:   isAct || prev.isActive,
@@ -178,8 +188,9 @@ export default function StatisticsPage() {
       if (selectedYear !== "all" && !eff.startsWith(selectedYear)) continue;
       const prof = row.lessons?.profiles;
       if (!prof?.name) continue;
-      const prev2 = map.get(prof.name) ?? { name: prof.name, phone: prof.phone, total: 0 };
-      map.set(prof.name, { ...prev2, total: prev2.total + tuitionOf(row) });
+      const name = normalizeName(prof.name); // 우리인력 → 민경임 합산
+      const prev2 = map.get(name) ?? { name, phone: prof.phone, total: 0 };
+      map.set(name, { ...prev2, total: prev2.total + tuitionOf(row) });
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 10);
   }, [allHistory, selectedYear]);
@@ -225,20 +236,35 @@ export default function StatisticsPage() {
     return map;
   }, [activeLesson]);
 
-  // [NEW] 체험 건수 — 체험→등록 전환 퍼널용 (선택 기간의 외부수입 중 체험비 건수)
-  const 체험건수 = useMemo(() =>
-    allExternal.filter(r => {
-      if (selectedYear !== "all" && !r.income_date.startsWith(selectedYear)) return false;
-      return r.type === "체험비";
-    }).length,
-  [allExternal, selectedYear]);
+  // [NEW] 정규 수강생 유입경로 현황 — profiles.inflow_route 집계
+  const inflowStats = useMemo((): Array<{ route: string; count: number; color: string }> => {
+    const INFLOW_COLORS: Record<string, string> = {
+      "네이버": "#3b82f6", "지인소개": "#10b981", "배너광고": "#f59e0b",
+      "체험전환": "#8b5cf6", "당근": "#f97316", "농협": "#06b6d4",
+      "인스타": "#ec4899", "블로그": "#6366f1", "요양보호센터": "#14b8a6", "없음": "#9ca3af",
+    };
+    const map = new Map<string, number>();
+    for (const p of inflowProfiles) {
+      const route = p.inflow_route ?? "없음";
+      map.set(route, (map.get(route) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([route, count]) => ({ route, count, color: INFLOW_COLORS[route] ?? "#94a3b8" }))
+      .filter(d => d.route !== "없음" || d.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [inflowProfiles]);
 
   const periodTuition  = periodChartData.reduce((s, d) => s + d.tuition, 0);
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
   const periodTotal    = periodTuition + periodExtTotal;
-  const periodAvg      = periodChartData.length > 0 ? Math.round(periodTotal / periodChartData.length) : 0;
-  const avgLabel       = selectedYear === "all" ? "연 평균 매출" : "월 평균 매출";
-  const avgSubLabel    = selectedYear === "all" ? "4개년 평균" : selectedYear + "년 월 평균";
+
+  // [FIX] 월평균 계산 분모 정밀화 — 실제 운영 개월 수 하드코딩
+  // 2023: 6월 오픈 → 7개월 (6~12월), 2024: 12개월, 2025: 12개월, 2026: 현재 4월 → 4개월, 전체: 35개월
+  const AVG_DENOM: Record<string, number> = { "2023": 7, "2024": 12, "2025": 12, "2026": 4, "all": 35 };
+  const periodAvgDenom = AVG_DENOM[selectedYear] ?? periodChartData.length;
+  const periodAvg      = periodAvgDenom > 0 ? Math.round(periodTotal / periodAvgDenom) : 0;
+  const avgLabel       = selectedYear === "all" ? "월 평균 매출" : "월 평균 매출";
+  const avgSubLabel    = selectedYear === "all" ? "전체 35개월 평균" : selectedYear + "년 ÷ " + periodAvgDenom + "개월";
   const totalNewPeriod = periodStudentFlow.reduce((s, d) => s + d.new, 0);
   const totalActiveStudentsCurrent = activeLesson.length;
   const bestPeriod     = [...periodChartData].sort((a, b) => (b.tuition+b.external)-(a.tuition+a.external))[0];
@@ -250,8 +276,6 @@ export default function StatisticsPage() {
   // [NEW] 수입 목표 달성률: 선택 기간의 총수입 / 목표금액
   const TARGET      = selectedYear === "all" ? TARGET_ALL : TARGET_YEAR;
   const achievement = Math.round((periodTotal / TARGET) * 100);
-  // [NEW] 체험→등록 전환율: 체험 건수 대비 신규 등록 비율
-  const conversionRate = 체험건수 > 0 ? Math.round((totalNewPeriod / 체험건수) * 100) : 0;
 
   if (loading) {
     return (
@@ -458,50 +482,37 @@ export default function StatisticsPage() {
           <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
         </div>
 
-        {/* [NEW] 체험 행사 → 정규 등록 전환 퍼널 */}
+        {/* [NEW] 정규 수강생 유입경로 현황 — 가로형 바 차트 */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-base font-bold text-gray-900 mb-1">체험 → 정규 등록 전환 퍼널</h2>
-          <p className="text-xs text-gray-400 mb-6">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 체험비 건수 대비 신규 등록 전환율</p>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-gray-700">체험 방문</span>
-                <span className="text-sm font-bold text-gray-900">{체험건수}건</span>
-              </div>
-              <div className="w-full bg-indigo-50 rounded-xl h-10 overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-10 w-full rounded-xl flex items-center justify-end pr-4">
-                  <span className="text-white text-xs font-bold">100%</span>
+          <h2 className="text-base font-bold text-gray-900 mb-1">정규 수강생 유입경로 현황</h2>
+          <p className="text-xs text-gray-400 mb-5">총 {inflowProfiles.length}명 기준 경로별 분포</p>
+          <div className="space-y-3">
+            {inflowStats.map((d) => {
+              const pct = inflowProfiles.length > 0 ? Math.round((d.count / inflowProfiles.length) * 100) : 0;
+              return (
+                <div key={d.route}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-gray-700">{d.route}</span>
+                    <span className="text-sm font-bold text-gray-900">{d.count}명
+                      <span className="text-xs font-normal text-gray-400 ml-1">({pct}%)</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                    <div
+                      className="h-6 rounded-full flex items-center justify-end pr-2.5 transition-all duration-700"
+                      style={{ width: Math.max(pct, 3) + "%", background: d.color }}
+                    >
+                      {pct >= 12 && <span className="text-white text-xs font-bold">{pct}%</span>}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <div className="flex flex-col items-center">
-                <div className="w-0.5 h-3 bg-gray-200" />
-                <div className="w-2.5 h-2.5 border-r-2 border-b-2 border-gray-300 rotate-45 -mt-1" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-gray-700">신규 등록</span>
-                <span className="text-sm font-bold text-gray-900">{totalNewPeriod}명</span>
-              </div>
-              <div className="w-full bg-emerald-50 rounded-xl h-10 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-emerald-400 to-teal-500 h-10 rounded-xl flex items-center justify-end pr-4 transition-all duration-700"
-                  style={{ width: conversionRate > 0 ? Math.min(conversionRate, 100) + "%" : "4%" }}
-                >
-                  {conversionRate > 15 && <span className="text-white text-xs font-bold">{conversionRate}%</span>}
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-              <p className="text-xs text-gray-400 mb-1">전환율</p>
-              <p className={`text-3xl font-black ${conversionRate >= 50 ? "text-emerald-600" : conversionRate >= 20 ? "text-amber-500" : "text-gray-700"}`}>
-                {conversionRate}%
+              );
+            })}
+            {inflowStats.length === 0 && (
+              <p className="text-gray-400 text-sm text-center py-6">
+                데이터 없음 — profiles.inflow_route 컬럼 확인 필요
               </p>
-              <p className="text-xs text-gray-400 mt-1">체험 {체험건수}건 → 신규 {totalNewPeriod}명</p>
-              {체험건수 === 0 && <p className="text-xs text-gray-300 mt-1">체험비 외부수입 데이터 없음</p>}
-            </div>
+            )}
           </div>
         </div>
       </div>
