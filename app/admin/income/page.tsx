@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type IncomeType = "체험비" | "외부강의" | "강사수수료" | "기타";
+type IncomeType = "체험비" | "외부강의" | "강사수수료" | "공연비" | "기타";
 
 type ExternalIncome = {
   id: string;
@@ -58,6 +58,7 @@ const TYPE_COLORS: Record<IncomeType, string> = {
   체험비: "bg-amber-100 text-amber-800",
   외부강의: "bg-blue-100 text-blue-800",
   강사수수료: "bg-purple-100 text-purple-800",
+  공연비: "bg-emerald-100 text-emerald-800",
   기타: "bg-gray-100 text-gray-800",
 };
 
@@ -149,6 +150,7 @@ export default function AdminIncomePage() {
   const 체험비Total = monthRecords.filter((r) => r.type === "체험비").reduce((s, r) => s + r.amount, 0);
   const 외부강의Total = monthRecords.filter((r) => r.type === "외부강의").reduce((s, r) => s + r.amount, 0);
   const 강사수수료Total = monthRecords.filter((r) => r.type === "강사수수료").reduce((s, r) => s + r.amount, 0);
+  const 공연비Total = monthRecords.filter((r) => r.type === "공연비").reduce((s, r) => s + r.amount, 0);
   const 기타Total = monthRecords.filter((r) => r.type === "기타").reduce((s, r) => s + r.amount, 0);
 
   function prevMonth() {
@@ -256,7 +258,7 @@ export default function AdminIncomePage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">외부 수입 관리</h1>
-          <p className="text-sm text-gray-500 mt-1">체험비 · 외부강의 · 강사수수료 · 기타 수입 기록</p>
+          <p className="text-sm text-gray-500 mt-1">체험비 · 외부강의 · 강사수수료 · 공연비 · 기타 수입 기록</p>
         </div>
         <button
           onClick={() => openAdd(selectedDate ?? undefined)}
@@ -331,8 +333,8 @@ export default function AdminIncomePage() {
           </div>
 
           {/* 월 요약 카드 */}
-          <div className="grid grid-cols-2 gap-4 mb-3">
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+            <div className="col-span-2 md:col-span-3 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
               <p className="text-xs text-emerald-700 font-medium mb-1">
                 {year}년 {month}월 합계
               </p>
@@ -346,8 +348,6 @@ export default function AdminIncomePage() {
                 ₩{체험비Total.toLocaleString()}
               </p>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-5">
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <p className="text-xs text-blue-700 font-medium mb-1">외부강의</p>
               <p className="text-xl font-bold text-blue-900">
@@ -360,8 +360,12 @@ export default function AdminIncomePage() {
                 ₩{강사수수료Total.toLocaleString()}
               </p>
             </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 mb-5">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+              <p className="text-xs text-emerald-700 font-medium mb-1">공연비</p>
+              <p className="text-xl font-bold text-emerald-900">
+                ₩{공연비Total.toLocaleString()}
+              </p>
+            </div>
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
               <p className="text-xs text-gray-600 font-medium mb-1">기타</p>
               <p className="text-xl font-bold text-gray-800">
@@ -559,7 +563,7 @@ export default function AdminIncomePage() {
                   구분 *
                 </label>
                 <div className="flex gap-3 flex-wrap">
-                  {(["체험비", "외부강의", "강사수수료", "기타"] as IncomeType[]).map((t) => (
+                  {(["체험비", "외부강의", "강사수수료", "공연비", "기타"] as IncomeType[]).map((t) => (
                     <label key={t} className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
@@ -584,6 +588,8 @@ export default function AdminIncomePage() {
                     ? "정기성 · 월별 외부 강의 수입"
                     : form.type === "강사수수료"
                     ? "강사에게 지급하는 수수료"
+                    : form.type === "공연비"
+                    ? "공연·행사 출연 등 공연 관련 수입"
                     : "위 항목에 해당하지 않는 기타 수입"}
                 </p>
               </div>
