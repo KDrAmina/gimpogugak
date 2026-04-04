@@ -54,7 +54,7 @@ function makePeriodLabel(period: string, type: "year" | "month"): string {
 
 const CATEGORY_LABELS: Record<string, string> = { "어린이개인": "어린이 개인", "어린이단체": "어린이 단체", "성인개인": "성인 개인", "성인단체": "성인 단체" };
 const CATEGORY_COLORS: Record<string, string> = { "어린이개인": "#6366f1", "어린이단체": "#22c55e", "성인개인": "#f59e0b", "성인단체": "#ef4444" };
-const EXTERNAL_COLORS: Record<string, string> = { "체험비": "#f59e0b", "강사수수료": "#8b5cf6", "기타": "#6b7280" };
+const EXTERNAL_COLORS: Record<string, string> = { "체험비": "#f59e0b", "강사수수료": "#8b5cf6", "기타": "#6b7280", "공연비": "#10b981" };
 const CATEGORIES = ["어린이개인", "어린이단체", "성인개인", "성인단체"];
 export default function StatisticsPage() {
   const supabase = createClient();
