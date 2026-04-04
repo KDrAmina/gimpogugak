@@ -10,6 +10,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "4.9.0",
+    date: "2026-04-02",
+    changes: [
+      "통계 대시보드 UI 전면 리뉴얼: 모던 SaaS 스타일 (rounded-2xl, 그라디언트 카드, shadow-sm)",
+      "AreaChart 컴포넌트(StatsArea) 신규 추가: 그라디언트 채움 에리어 차트로 매출 추이 시각화 개선",
+      "기간 필터 버그 수정: 활성 수강생 — is_active 기준 대신 선택 기간 결제이력 있는 고유 학생 수로 변경",
+      "기간 필터 버그 수정: 평균 수강 유지 기간 — 선택 기간 내 결제 학생의 첫~마지막 결제 스팬 평균으로 변경",
+      "신규 KPI: 수입 목표 달성률 카드 추가 (진행 바, 100% 초과 시 초록색 변경, 잔여 금액 표시)",
+      "신규 KPI: 체험→정규 등록 전환 퍼널 카드 추가 (체험비 건수 vs 신규 등록 수 비율 시각화)",
+      "KPI 레이아웃 개편: 8개 카드를 2행×4열 그리드로 정렬, Row1 그라디언트 / Row2 화이트 카드",
+    ],
+  },
+  {
     version: "4.8.3",
     date: "2026-04-04",
     changes: [

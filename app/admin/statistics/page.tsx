@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +12,16 @@ import type { LineData } from "@/components/StatsLine";
 function Loader({ h }: { h: number }) {
   return <div className="flex items-center justify-center" style={{ height: h }}><p className="text-gray-400 text-sm animate-pulse">차트 로딩 중...</p></div>;
 }
-const StatsChart = nextDynamic(() => import("@/components/StatsChart"), { ssr: false, loading: () => <Loader h={340} /> });
+const StatsArea  = nextDynamic(() => import("@/components/StatsArea"),  { ssr: false, loading: () => <Loader h={300} /> });
 const StatsDonut = nextDynamic(() => import("@/components/StatsDonut"), { ssr: false, loading: () => <Loader h={260} /> });
-const StatsLine  = nextDynamic(() => import("@/components/StatsLine"),  { ssr: false, loading: () => <Loader h={300} /> });
+const StatsLine  = nextDynamic(() => import("@/components/StatsLine"),  { ssr: false, loading: () => <Loader h={280} /> });
 
-// ── 타입 ──────────────────────────────────────────────────────────────
 interface ProfileInner { name: string; phone: string | null; }
 interface LessonInner  { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
 interface HistoryRow   { completed_date?: string; tuition_snapshot: number; prepaid_month: string | null; lessons: LessonInner | null; }
 interface ExternalRow  { income_date: string; amount: number; type: string; }
 interface ActiveLesson { category: string; tuition_amount: number; }
 
-// ── 기간 필터 옵션 (2023~2026 + 전체 기간) ───────────────────────────
 const YEAR_OPTIONS = [
   { value: "all",  label: "전체 기간" },
   { value: "2023", label: "2023년" },
@@ -32,7 +30,9 @@ const YEAR_OPTIONS = [
   { value: "2026", label: "2026년" },
 ];
 
-// ── 유틸 ──────────────────────────────────────────────────────────────
+const TARGET_YEAR = 60_000_000;
+const TARGET_ALL  = 240_000_000;
+
 function fmtAmount(n: number): string {
   if (n >= 100000000) return (n / 100000000).toFixed(1) + "억";
   if (n >= 10000) return Math.round(n / 10000).toLocaleString() + "만";
@@ -40,19 +40,13 @@ function fmtAmount(n: number): string {
 }
 function fmtSign(n: number): string { return n >= 0 ? "+" + n.toFixed(1) + "%" : n.toFixed(1) + "%"; }
 function tuitionOf(r: HistoryRow): number { return r.tuition_snapshot > 0 ? r.tuition_snapshot : (r.lessons?.tuition_amount ?? 0); }
-
-// 선납 결제는 prepaid_month 기준, 일반 결제는 completed_date 앞 7자(YYYY-MM)
 function getEff(r: HistoryRow): string | null { return r.prepaid_month ?? r.completed_date?.substring(0, 7) ?? null; }
-
-// period = "2024"(year) or "2024-03"(month) → [start, end) 날짜 문자열
 function getPeriodRange(period: string, type: "year" | "month"): [string, string] {
   if (type === "year") return [period + "-01-01", (parseInt(period) + 1) + "-01-01"];
   const y = period.substring(0, 4); const m = parseInt(period.substring(5)); const nm = m + 1;
   return [y + "-" + String(m).padStart(2, "0") + "-01",
     nm > 12 ? (parseInt(y) + 1) + "-01-01" : y + "-" + String(nm).padStart(2, "0") + "-01"];
 }
-
-// 차트 x축 레이블: year mode="23년" / month mode="25년 4월"
 function makePeriodLabel(period: string, type: "year" | "month"): string {
   if (type === "year") return period.slice(2) + "년";
   return String(parseInt(period.substring(0, 4))).slice(2) + "년 " + parseInt(period.substring(5)) + "월";
@@ -62,30 +56,22 @@ const CATEGORY_LABELS: Record<string, string> = { "어린이개인": "어린이 
 const CATEGORY_COLORS: Record<string, string> = { "어린이개인": "#6366f1", "어린이단체": "#22c55e", "성인개인": "#f59e0b", "성인단체": "#ef4444" };
 const EXTERNAL_COLORS: Record<string, string> = { "체험비": "#f59e0b", "강사수수료": "#8b5cf6", "기타": "#6b7280" };
 const CATEGORIES = ["어린이개인", "어린이단체", "성인개인", "성인단체"];
-
-// ── 메인 컴포넌트 ─────────────────────────────────────────────────────
 export default function StatisticsPage() {
   const supabase = createClient();
-
-  // 기간 필터 state — 기본값 전체 기간
   const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [loading, setLoading]       = useState(true);
-  // 전체 데이터를 한 번만 fetch → 이후 클라이언트 측에서 selectedYear로 필터링
-  const [allHistory, setAllHistory]   = useState<HistoryRow[]>([]);
-  const [allExternal, setAllExternal] = useState<ExternalRow[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [allHistory, setAllHistory]     = useState<HistoryRow[]>([]);
+  const [allExternal, setAllExternal]   = useState<ExternalRow[]>([]);
   const [activeLesson, setActiveLesson] = useState<ActiveLesson[]>([]);
 
   useEffect(() => { fetchAll(); }, []); // eslint-disable-line
 
   async function fetchAll() {
     const [{ data: hist }, { data: ext }, { data: active }] = await Promise.all([
-      // 전체 결제이력 (날짜 필터 없음) — is_active, profiles 포함
       supabase.from("lesson_history")
         .select("completed_date,tuition_snapshot,prepaid_month,lessons!inner(tuition_amount,category,is_active,profiles!inner(name,phone))")
         .eq("status", "결제 완료").limit(10000),
-      // 전체 외부수입 (날짜 필터 없음) — income_date, amount, type 포함
       supabase.from("external_income").select("income_date,amount,type").limit(5000),
-      // 현재 활성 수업 (카테고리 현황 전용)
       supabase.from("lessons").select("category,tuition_amount").eq("is_active", true).limit(500),
     ]);
     setAllHistory((hist as unknown as HistoryRow[]) ?? []);
@@ -94,9 +80,6 @@ export default function StatisticsPage() {
     setLoading(false);
   }
 
-  // ── 선택 기간에 따라 periods 배열 생성 ─────────────────────────────
-  // "all" → 연도별 4개 ["2023","2024","2025","2026"]
-  // 특정 연도 → 해당 연도 12개 월 ["2024-01", ..., "2024-12"]
   const { periods, periodType } = useMemo<{ periods: string[]; periodType: "year" | "month" }>(() => {
     if (selectedYear === "all") return { periods: ["2023","2024","2025","2026"], periodType: "year" };
     const ms: string[] = [];
@@ -104,16 +87,12 @@ export default function StatisticsPage() {
     return { periods: ms, periodType: "month" };
   }, [selectedYear]);
 
-  // ── 기간별 차트 데이터 (StatsChart props용) ─────────────────────────
-  // selectedYear 변경 → periods 변경 → periodChartData 재계산 → StatsChart 리렌더링
   const periodChartData = useMemo((): MonthlyChartData[] => {
     return periods.map((period) => {
       const [start, end] = getPeriodRange(period, periodType);
-      // allHistory에서 유효 결제월(prepaid_month or completed_date)이 [start, end) 에 속하는 것 집계
       const tuition = allHistory
         .filter((r) => { const e = getEff(r); return !!e && (e + "-01") >= start && (e + "-01") < end; })
         .reduce((s, r) => s + tuitionOf(r), 0);
-      // allExternal에서 income_date가 [start, end) 에 속하는 것 집계
       const external = allExternal
         .filter((r) => r.income_date >= start && r.income_date < end)
         .reduce((s, r) => s + r.amount, 0);
@@ -121,9 +100,6 @@ export default function StatisticsPage() {
     });
   }, [periods, periodType, allHistory, allExternal]);
 
-  // ── 학생별 종합 통계 맵 (전체 기간 기준 — 필터 무관) ──────────────
-  // key: 학생 이름 / value: 첫 결제월, 마지막 결제월, 활성여부, 누적금액, 전화번호
-  // 신규/이탈 분석 · VIP · 평균유지기간에 공통 사용
   const studentStats = useMemo(() => {
     const map = new Map<string, { firstMonth: string; lastMonth: string; isActive: boolean; total: number; phone: string | null }>();
     for (const row of allHistory) {
@@ -148,10 +124,39 @@ export default function StatisticsPage() {
     return map;
   }, [allHistory]);
 
-  // ── 기간별 신규 유입 / 이탈 (StatsLine props용) ──────────────────────
-  // 신규: 해당 기간에 첫 결제가 시작된 학생
-  // 이탈: is_active=false이고 마지막 결제가 해당 기간인 학생
-  // periodType에 따라 firstMonth/lastMonth를 연도 or 월 단위로 변환해 집계
+  // [BUG FIX] 활성 수강생 & 평균 수강 유지 기간 — 선택 기간 기준으로 수정
+  // 활성 수강생: 선택 기간에 결제이력이 1건이라도 있는 고유 학생 수
+  // 평균 수강 기간: 선택 기간 내 첫~마지막 결제 스팬 평균
+  const { activePeriodStudents, avgDuration } = useMemo(() => {
+    const names = new Set<string>();
+    const periodMap = new Map<string, { first: string; last: string }>();
+    for (const row of allHistory) {
+      const eff = getEff(row);
+      if (!eff) continue;
+      if (selectedYear !== "all" && !eff.startsWith(selectedYear)) continue;
+      const name = row.lessons?.profiles?.name;
+      if (!name) continue;
+      names.add(name);
+      const prev = periodMap.get(name);
+      if (!prev) {
+        periodMap.set(name, { first: eff, last: eff });
+      } else {
+        periodMap.set(name, {
+          first: eff < prev.first ? eff : prev.first,
+          last:  eff > prev.last  ? eff : prev.last,
+        });
+      }
+    }
+    const durs: number[] = [];
+    for (const [, s] of periodMap) {
+      const fp = s.first.split("-").map(Number), lp = s.last.split("-").map(Number);
+      const d = (lp[0] - fp[0]) * 12 + (lp[1] - fp[1]) + 1;
+      if (d >= 1 && d <= 60) durs.push(d);
+    }
+    const avg = durs.length > 0 ? durs.reduce((a, b) => a + b, 0) / durs.length : 0;
+    return { activePeriodStudents: names.size, avgDuration: avg };
+  }, [allHistory, selectedYear]);
+
   const periodStudentFlow = useMemo((): LineData[] => {
     const newMap   = new Map<string, number>();
     const churnMap = new Map<string, number>();
@@ -161,20 +166,15 @@ export default function StatisticsPage() {
       if (periods.includes(fp)) newMap.set(fp, (newMap.get(fp) ?? 0) + 1);
       if (!s.isActive && periods.includes(lp)) churnMap.set(lp, (churnMap.get(lp) ?? 0) + 1);
     }
-    // periodChartData와 동일한 레이블 순서 유지
     return periodChartData.map((d, i) => ({
       month: d.month, new: newMap.get(periods[i]) ?? 0, churned: churnMap.get(periods[i]) ?? 0,
     }));
   }, [studentStats, periods, periodType, periodChartData]);
-
-  // ── VIP TOP 10 (selectedYear 기간 내 결제 총액 기준) ────────────────
-  // selectedYear 변경 시 allHistory를 재필터링해 리렌더링
   const periodVip10 = useMemo(() => {
     const map = new Map<string, { name: string; phone: string | null; total: number }>();
     for (const row of allHistory) {
       const eff = getEff(row);
       if (!eff) continue;
-      // selectedYear !== "all"이면 해당 연도에 속하는 결제만 포함
       if (selectedYear !== "all" && !eff.startsWith(selectedYear)) continue;
       const prof = row.lessons?.profiles;
       if (!prof?.name) continue;
@@ -184,19 +184,16 @@ export default function StatisticsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 10);
   }, [allHistory, selectedYear]);
 
-  // ── 수입 구성 도넛 (StatsDonut props용, 선택 기간 기준) ────────────
-  // periodChartData에서 수강료 합산, allExternal에서 외부수입 type별 합산
   const incomeBreakdown = useMemo((): PieData[] => {
     const tuit = periodChartData.reduce((s, d) => s + d.tuition, 0);
     const filteredExt = selectedYear === "all" ? allExternal : allExternal.filter(r => r.income_date.startsWith(selectedYear));
     const extByType = new Map<string, number>();
     for (const r of filteredExt) extByType.set(r.type, (extByType.get(r.type) ?? 0) + r.amount);
-    const result: PieData[] = [{ name: "수강료", value: tuit, color: "#3b82f6" }];
+    const result: PieData[] = [{ name: "수강료", value: tuit, color: "#6366f1" }];
     extByType.forEach((val, key) => result.push({ name: key, value: val, color: EXTERNAL_COLORS[key] ?? "#94a3b8" }));
     return result.filter((d) => d.value > 0);
   }, [periodChartData, allExternal, selectedYear]);
 
-  // ── 외부수입 파이프라인 (type별 그룹핑, 선택 기간 기준) ─────────────
   const extPipelineData = useMemo((): PieData[] => {
     const filtered = selectedYear === "all" ? allExternal : allExternal.filter(r => r.income_date.startsWith(selectedYear));
     const map = new Map<string, number>();
@@ -207,8 +204,6 @@ export default function StatisticsPage() {
   }, [allExternal, selectedYear]);
   const extPipelineTotal = extPipelineData.reduce((s, d) => s + d.value, 0);
 
-  // ── 전년 대비 증감 ────────────────────────────────────────────────
-  // "all" → 25년 vs 24년 비교 / 특정 연도 → 해당 연도 vs 전년도 비교
   const { yoyPct, yoyPos, yoyPrevTotal, yoyCompLabel } = useMemo(() => {
     const compareYear = selectedYear === "all" ? "2025" : selectedYear;
     const prevYear = String(parseInt(compareYear) - 1);
@@ -220,19 +215,6 @@ export default function StatisticsPage() {
              yoyPrevTotal: prevT, yoyCompLabel: prevYear + "년 대비" };
   }, [selectedYear, allHistory, allExternal]);
 
-  // ── 평균 수강 유지 기간 (전체 기간 기준 — 필터 무관) ─────────────
-  const avgDuration = useMemo(() => {
-    const durs: number[] = [];
-    for (const [, s] of studentStats) {
-      if (s.isActive) continue;
-      const fp = s.firstMonth.split("-").map(Number), lp = s.lastMonth.split("-").map(Number);
-      const d = (lp[0] - fp[0]) * 12 + (lp[1] - fp[1]) + 1;
-      if (d >= 1 && d <= 60) durs.push(d);
-    }
-    return durs.length > 0 ? durs.reduce((a, b) => a + b, 0) / durs.length : 0;
-  }, [studentStats]);
-
-  // ── 수강생 카테고리 현황 (항상 활성 수업 기준 — 필터 무관) ─────────
   const categoryStats = useMemo(() => {
     const map = new Map<string, { count: number; monthlyTotal: number }>();
     for (const l of activeLesson) {
@@ -242,9 +224,15 @@ export default function StatisticsPage() {
     }
     return map;
   }, [activeLesson]);
-  const totalActiveStudents = activeLesson.length;
 
-  // ── 파생 값 ──────────────────────────────────────────────────────
+  // [NEW] 체험 건수 — 체험→등록 전환 퍼널용 (선택 기간의 외부수입 중 체험비 건수)
+  const 체험건수 = useMemo(() =>
+    allExternal.filter(r => {
+      if (selectedYear !== "all" && !r.income_date.startsWith(selectedYear)) return false;
+      return r.type === "체험비";
+    }).length,
+  [allExternal, selectedYear]);
+
   const periodTuition  = periodChartData.reduce((s, d) => s + d.tuition, 0);
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
   const periodTotal    = periodTuition + periodExtTotal;
@@ -252,33 +240,38 @@ export default function StatisticsPage() {
   const avgLabel       = selectedYear === "all" ? "연 평균 매출" : "월 평균 매출";
   const avgSubLabel    = selectedYear === "all" ? "4개년 평균" : selectedYear + "년 월 평균";
   const totalNewPeriod = periodStudentFlow.reduce((s, d) => s + d.new, 0);
+  const totalActiveStudentsCurrent = activeLesson.length;
   const bestPeriod     = [...periodChartData].sort((a, b) => (b.tuition+b.external)-(a.tuition+a.external))[0];
   const worstPeriod    = [...periodChartData].filter(d => d.tuition+d.external > 0).sort((a, b) => (a.tuition+a.external)-(b.tuition+b.external))[0];
   const hlLabel        = selectedYear === "all" ? "연도" : "월";
   const periodRangeLabel = selectedYear === "all" ? "2023 ~ 2026년 전체" : selectedYear + "년 1월 ~ 12월";
   const chartSubtitle  = selectedYear === "all" ? "연도별 수강료 + 외부수입" : selectedYear + "년 월별 수강료 + 외부수입";
 
+  // [NEW] 수입 목표 달성률: 선택 기간의 총수입 / 목표금액
+  const TARGET      = selectedYear === "all" ? TARGET_ALL : TARGET_YEAR;
+  const achievement = Math.round((periodTotal / TARGET) * 100);
+  // [NEW] 체험→등록 전환율: 체험 건수 대비 신규 등록 비율
+  const conversionRate = 체험건수 > 0 ? Math.round((totalNewPeriod / 체험건수) * 100) : 0;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-gray-500 text-sm">데이터 분석 중...</p>
         </div>
       </div>
     );
   }
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pb-12">
 
-      {/* ── 헤더 + 기간 필터 토글 ── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      {/* ── 헤더 + 기간 필터 ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">통계 대시보드</h1>
-          <p className="text-gray-500 text-sm mt-1">{periodRangeLabel} 재무 현황</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">통계 대시보드</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{periodRangeLabel} 재무 현황</p>
         </div>
-        {/* 기간 필터 — 클릭 시 selectedYear 변경 → 모든 차트/카드 즉시 리렌더링 */}
         <div className="flex flex-wrap gap-2">
           {YEAR_OPTIONS.map((opt) => (
             <button
@@ -287,8 +280,8 @@ export default function StatisticsPage() {
               onClick={() => setSelectedYear(opt.value)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 selectedYear === opt.value
-                  ? "bg-blue-600 text-white shadow-md scale-105"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "bg-white text-gray-500 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
               }`}
             >
               {opt.label}
@@ -297,58 +290,114 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      {/* ── 요약 카드 8개 (2행 × 4열) — 모두 selectedYear 기준으로 업데이트 ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-5 text-white shadow-lg">
-          <p className="text-blue-100 text-xs font-medium">{selectedYear === "all" ? "전체 기간 총매출" : selectedYear + "년 총매출"}</p>
-          <p className="text-2xl font-bold mt-2">{fmtAmount(periodTotal)}원</p>
-          <p className="text-blue-200 text-xs mt-1">{periodRangeLabel}</p>
+      {/* ── KPI Row 1: 4 gradient cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {/* 기간 총매출 */}
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 shadow-lg text-white">
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-medium text-white/70">{selectedYear === "all" ? "전체 기간 총매출" : selectedYear + "년 총매출"}</p>
+            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-base">💰</div>
+          </div>
+          <p className="text-2xl font-bold">{fmtAmount(periodTotal)}원</p>
+          <p className="text-xs text-white/60 mt-1">{periodRangeLabel}</p>
         </div>
-        {/* 전년 대비 증감: all이면 25년vs24년, 특정 연도면 해당vs전년 */}
-        <div className={`rounded-2xl p-5 shadow-lg text-white ${yoyPos ? "bg-gradient-to-br from-emerald-500 to-emerald-600" : "bg-gradient-to-br from-rose-500 to-rose-600"}`}>
-          <p className="text-white/80 text-xs font-medium">{yoyCompLabel}</p>
-          <p className="text-2xl font-bold mt-2">{fmtSign(yoyPct)}</p>
-          <p className="text-white/70 text-xs mt-1">전년 {fmtAmount(yoyPrevTotal)}원</p>
+
+        {/* 전년 대비 증감 */}
+        <div className={`rounded-2xl p-5 shadow-lg text-white ${yoyPos ? "bg-gradient-to-br from-emerald-500 to-teal-600" : "bg-gradient-to-br from-rose-500 to-pink-600"}`}>
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-medium text-white/70">{yoyCompLabel}</p>
+            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-base">{yoyPos ? "📈" : "📉"}</div>
+          </div>
+          <p className="text-2xl font-bold">{fmtSign(yoyPct)}</p>
+          <p className="text-xs text-white/60 mt-1">전년 {fmtAmount(yoyPrevTotal)}원</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-gray-500 text-xs font-medium">기간 수강료</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{fmtAmount(periodTuition)}원</p>
-          <div className="flex items-center gap-1 mt-1"><span className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-xs text-gray-400">정규수업 합계</span></div>
+
+        {/* [BUG FIX] 활성 수강생 — 선택 기간 결제이력 있는 고유 학생 수 */}
+        <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-5 shadow-lg text-white">
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-medium text-white/70">활성 수강생</p>
+            <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-base">👥</div>
+          </div>
+          <p className="text-2xl font-bold">{activePeriodStudents}<span className="text-base font-normal ml-1">명</span></p>
+          <p className="text-xs text-white/60 mt-1">{selectedYear === "all" ? "전체 기간 결제 학생" : selectedYear + "년 결제 학생"}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-gray-500 text-xs font-medium">기간 외부수입</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{fmtAmount(periodExtTotal)}원</p>
-          <div className="flex items-center gap-1 mt-1"><span className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-xs text-gray-400">체험비·수수료·기타</span></div>
-        </div>
-        <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg">
-          <p className="text-white/80 text-xs font-medium">활성 수강생</p>
-          <p className="text-2xl font-bold mt-2">{totalActiveStudents}<span className="text-base font-normal ml-1">명</span></p>
-          <p className="text-white/70 text-xs mt-1">현재 등록 수업 기준</p>
-        </div>
-        {/* 월/연 평균: selectedYear가 all이면 연 평균, 특정 연도면 월 평균 */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-gray-500 text-xs font-medium">{avgLabel}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{fmtAmount(periodAvg)}원</p>
-          <p className="text-xs text-gray-400 mt-1">{avgSubLabel}</p>
-        </div>
-        <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl p-5 text-white shadow-lg">
-          <p className="text-white/80 text-xs font-medium">평균 수강 유지 기간</p>
-          <p className="text-2xl font-bold mt-2">{avgDuration.toFixed(1)}<span className="text-base font-normal ml-1">개월</span></p>
-          <p className="text-white/70 text-xs mt-1">종료 수업 전체 기준</p>
-        </div>
-        {/* 신규 유입: 선택 기간 내 첫 결제 학생 수 */}
-        <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl p-5 text-white shadow-lg">
-          <p className="text-white/80 text-xs font-medium">기간 신규 유입</p>
-          <p className="text-2xl font-bold mt-2">{totalNewPeriod}<span className="text-base font-normal ml-1">명</span></p>
-          <p className="text-white/70 text-xs mt-1">{periodRangeLabel}</p>
+
+        {/* [NEW] 수입 목표 달성률 — 진행 바 카드 */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500">수입 목표 달성률</p>
+            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center text-base">🎯</div>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{Math.min(achievement, 999)}%</p>
+          <p className="text-xs text-gray-400 mt-0.5 mb-3">{fmtAmount(periodTotal)} / 목표 {fmtAmount(TARGET)}</p>
+          {/* 진행 바: 100% 초과 시 파란색에서 초록색으로 변경 */}
+          <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+            <div
+              className={`h-2.5 rounded-full transition-all duration-700 ${achievement >= 100 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" : "bg-gradient-to-r from-blue-400 to-indigo-500"}`}
+              style={{ width: Math.min(achievement, 100) + "%" }}
+            />
+          </div>
+          <p className={`text-xs mt-2 font-medium ${achievement >= 100 ? "text-emerald-600" : "text-gray-400"}`}>
+            {achievement >= 100 ? "목표 달성!" : "잔여 " + fmtAmount(Math.max(TARGET - periodTotal, 0)) + "원"}
+          </p>
         </div>
       </div>
 
-      {/* ── 하이라이트 배너 (최고/최저 기간) ── */}
+      {/* ── KPI Row 2: 4 white metric cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-medium text-gray-500">{avgLabel}</p>
+            <span className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-sm">📊</span>
+          </div>
+          <p className="text-xl font-bold text-gray-900">{fmtAmount(periodAvg)}원</p>
+          <p className="text-xs text-gray-400 mt-1">{avgSubLabel}</p>
+        </div>
+
+        {/* [BUG FIX] 평균 수강 유지 기간 — 선택 기간 결제 학생 기준 */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-medium text-gray-500">평균 수강 유지 기간</p>
+            <span className="w-7 h-7 bg-teal-50 rounded-lg flex items-center justify-center text-sm">⏱️</span>
+          </div>
+          <p className="text-xl font-bold text-gray-900">{avgDuration.toFixed(1)}<span className="text-sm font-normal text-gray-500 ml-1">개월</span></p>
+          <p className="text-xs text-gray-400 mt-1">{selectedYear === "all" ? "전체" : selectedYear + "년"} 결제 학생 기준</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-medium text-gray-500">기간 신규 유입</p>
+            <span className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center text-sm">🆕</span>
+          </div>
+          <p className="text-xl font-bold text-gray-900">{totalNewPeriod}<span className="text-sm font-normal text-gray-500 ml-1">명</span></p>
+          <p className="text-xs text-gray-400 mt-1">{periodRangeLabel}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <p className="text-xs font-medium text-gray-500 mb-3">기간 수입 내역</p>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-2 h-2 rounded-full bg-indigo-500" />수강료</span>
+              <span className="text-sm font-bold text-gray-900">{fmtAmount(periodTuition)}원</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-2 h-2 rounded-full bg-amber-400" />외부수입</span>
+              <span className="text-sm font-bold text-gray-900">{fmtAmount(periodExtTotal)}원</span>
+            </div>
+            <div className="border-t border-gray-100 pt-2 flex justify-between items-center">
+              <span className="text-xs font-semibold text-gray-600">합계</span>
+              <span className="text-sm font-bold text-indigo-600">{fmtAmount(periodTotal)}원</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* ── 하이라이트 배너 ── */}
       {(bestPeriod || worstPeriod) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {bestPeriod && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4">
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-4">
               <span className="text-3xl">🏆</span>
               <div>
                 <p className="text-xs text-amber-600 font-medium">최고 매출 {hlLabel}</p>
@@ -358,7 +407,7 @@ export default function StatisticsPage() {
             </div>
           )}
           {worstPeriod && (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center gap-4">
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-4">
               <span className="text-3xl">📉</span>
               <div>
                 <p className="text-xs text-slate-500 font-medium">최저 매출 {hlLabel}</p>
@@ -370,148 +419,191 @@ export default function StatisticsPage() {
         </div>
       )}
 
-      {/* ── 매출 추이 차트 + 수입 구성 도넛 ── */}
-      {/* StatsChart data: periodChartData — selectedYear에 따라 연도별 or 월별 자동 전환 */}
+      {/* ── 매출 추이 AreaChart (2/3) + 수입 구성 도넛 (1/3) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">매출 추이</h2>
-              <p className="text-gray-400 text-sm mt-0.5">{chartSubtitle}</p>
+              <h2 className="text-base font-bold text-gray-900">매출 추이</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{chartSubtitle}</p>
             </div>
-            <div className="text-sm sm:text-right">
-              <p className="text-gray-500">기간 합산</p>
-              <p className="text-xl font-bold text-gray-900">{fmtAmount(periodTotal)}원</p>
+            <div className="text-right shrink-0">
+              <p className="text-xs text-gray-400">기간 합산</p>
+              <p className="text-lg font-bold text-indigo-600">{fmtAmount(periodTotal)}원</p>
             </div>
           </div>
-          <StatsChart data={periodChartData} />
+          <StatsArea data={periodChartData} />
         </div>
-        {/* StatsDonut data: incomeBreakdown — selectedYear 기준 필터링 */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">수입 구성 분석</h2>
-          <p className="text-gray-400 text-sm mb-4">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 수입 유형별 비중</p>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="text-base font-bold text-gray-900 mb-1">수입 구성 분석</h2>
+          <p className="text-xs text-gray-400 mb-4">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 수입 유형별 비중</p>
           <StatsDonut data={incomeBreakdown} />
         </div>
       </div>
 
-      {/* ── 신규 유입 vs 이탈 추이 ── */}
-      {/* StatsLine data: periodStudentFlow — selectedYear 기준 집계 */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">신규 유입 vs 이탈 추이</h2>
-            <p className="text-gray-400 text-sm mt-0.5">{selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 첫 결제 학생 vs 수강 종료 학생</p>
+      {/* ── 신규/이탈 LineChart (1/2) + [NEW] 체험→등록 전환 퍼널 (1/2) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">신규 유입 vs 이탈 추이</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 학생 변동</p>
+            </div>
+            <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
+              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-blue-500 inline-block" />신규</span>
+              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
+            </div>
           </div>
-          <div className="flex gap-5 text-xs text-gray-500 flex-shrink-0">
-            <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-blue-500 inline-block" />신규 유입</span>
-            <span className="flex items-center gap-1.5"><span className="w-6 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
+          <StatsLine data={periodStudentFlow} />
+          <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
+        </div>
+
+        {/* [NEW] 체험 행사 → 정규 등록 전환 퍼널 */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="text-base font-bold text-gray-900 mb-1">체험 → 정규 등록 전환 퍼널</h2>
+          <p className="text-xs text-gray-400 mb-6">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 체험비 건수 대비 신규 등록 전환율</p>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-semibold text-gray-700">체험 방문</span>
+                <span className="text-sm font-bold text-gray-900">{체험건수}건</span>
+              </div>
+              <div className="w-full bg-indigo-50 rounded-xl h-10 overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-10 w-full rounded-xl flex items-center justify-end pr-4">
+                  <span className="text-white text-xs font-bold">100%</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="flex flex-col items-center">
+                <div className="w-0.5 h-3 bg-gray-200" />
+                <div className="w-2.5 h-2.5 border-r-2 border-b-2 border-gray-300 rotate-45 -mt-1" />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-semibold text-gray-700">신규 등록</span>
+                <span className="text-sm font-bold text-gray-900">{totalNewPeriod}명</span>
+              </div>
+              <div className="w-full bg-emerald-50 rounded-xl h-10 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-emerald-400 to-teal-500 h-10 rounded-xl flex items-center justify-end pr-4 transition-all duration-700"
+                  style={{ width: conversionRate > 0 ? Math.min(conversionRate, 100) + "%" : "4%" }}
+                >
+                  {conversionRate > 15 && <span className="text-white text-xs font-bold">{conversionRate}%</span>}
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+              <p className="text-xs text-gray-400 mb-1">전환율</p>
+              <p className={`text-3xl font-black ${conversionRate >= 50 ? "text-emerald-600" : conversionRate >= 20 ? "text-amber-500" : "text-gray-700"}`}>
+                {conversionRate}%
+              </p>
+              <p className="text-xs text-gray-400 mt-1">체험 {체험건수}건 → 신규 {totalNewPeriod}명</p>
+              {체험건수 === 0 && <p className="text-xs text-gray-300 mt-1">체험비 외부수입 데이터 없음</p>}
+            </div>
           </div>
         </div>
-        <StatsLine data={periodStudentFlow} />
-        <p className="text-xs text-gray-400 mt-4">※ 신규: 해당 기간 첫 결제 학생 / 이탈: is_active=false 수업의 마지막 결제 기준</p>
       </div>
-
-      {/* ── 수강생 카테고리 현황 (항상 현재 활성 기준) ── */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">수강생 카테고리 현황</h2>
-        <p className="text-gray-400 text-sm mb-5">현재 활성 수업 기준 카테고리별 인원 및 월 수강료</p>
+      {/* ── 수강생 카테고리 현황 ── */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h2 className="text-base font-bold text-gray-900 mb-1">수강생 카테고리 현황</h2>
+        <p className="text-xs text-gray-400 mb-5">현재 활성 수업 기준 카테고리별 인원 및 월 수강료</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {CATEGORIES.map((cat) => {
             const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
-            const pct = totalActiveStudents > 0 ? Math.round((st.count / totalActiveStudents) * 100) : 0;
+            const pct = totalActiveStudentsCurrent > 0 ? Math.round((st.count / totalActiveStudentsCurrent) * 100) : 0;
             const color = CATEGORY_COLORS[cat] ?? "#94a3b8";
             return (
-              <div key={cat} className="rounded-xl border border-gray-100 bg-gray-50 p-4 hover:bg-gray-100 transition-colors">
+              <div key={cat} className="rounded-2xl border border-gray-100 p-4 hover:border-indigo-200 transition-colors bg-gray-50/50">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-700">{CATEGORY_LABELS[cat] ?? cat}</span>
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full text-white" style={{ background: color }}>{st.count}명</span>
+                  <span className="text-sm font-semibold text-gray-700">{CATEGORY_LABELS[cat] ?? cat}</span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: color }}>{st.count}명</span>
                 </div>
-                <p className="text-xl font-bold text-gray-900 mb-2">{fmtAmount(st.monthlyTotal)}원</p>
-                <p className="text-xs text-gray-400 mb-2">월 수강료 합계</p>
+                <p className="text-xl font-bold text-gray-900 mb-1">{fmtAmount(st.monthlyTotal)}원</p>
+                <p className="text-xs text-gray-400 mb-3">월 수강료 합계</p>
                 <div className="w-full bg-gray-200 rounded-full h-1.5">
                   <div className="h-1.5 rounded-full transition-all" style={{ width: pct + "%", background: color }} />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">전체의 {pct}%</p>
+                <p className="text-xs text-gray-400 mt-1.5">전체의 {pct}%</p>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* ── 외부수입 파이프라인 (extPipelineData: selectedYear 기준 필터링) ── */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">외부수입 파이프라인 분석</h2>
-        <p className="text-gray-400 text-sm mb-6">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 카테고리별 외부수입 비중 및 총액</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      {/* ── 외부수입 파이프라인 (1/2) + VIP TOP 10 (1/2) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="text-base font-bold text-gray-900 mb-1">외부수입 파이프라인 분석</h2>
+          <p className="text-xs text-gray-400 mb-5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 카테고리별 외부수입 비중</p>
           <StatsDonut data={extPipelineData} />
-          <div className="space-y-4">
+          <div className="space-y-3 mt-4">
             {extPipelineData.map((d) => {
               const pct = extPipelineTotal > 0 ? Math.round((d.value / extPipelineTotal) * 100) : 0;
               return (
-                <div key={d.name} className="flex items-start gap-3">
-                  <span className="w-3 h-3 rounded-sm flex-shrink-0 mt-1" style={{ background: d.color }} />
+                <div key={d.name} className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-semibold text-gray-800">{d.name}</span>
+                      <span className="text-sm font-medium text-gray-700">{d.name}</span>
                       <span className="text-sm font-bold text-gray-900">{d.value.toLocaleString()}원</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="h-2 rounded-full transition-all" style={{ width: pct + "%", background: d.color }} />
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="h-1.5 rounded-full" style={{ width: pct + "%", background: d.color }} />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">외부수입의 {pct}%</p>
                   </div>
+                  <span className="text-xs text-gray-400 w-8 text-right shrink-0">{pct}%</span>
                 </div>
               );
             })}
             {extPipelineData.length === 0 && <p className="text-gray-400 text-sm">데이터 없음</p>}
-            <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
+            <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
               <span className="text-sm font-semibold text-gray-700">합계</span>
-              <span className="text-lg font-bold text-gray-900">{extPipelineTotal.toLocaleString()}원</span>
+              <span className="text-base font-bold text-gray-900">{extPipelineTotal.toLocaleString()}원</span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── VIP TOP 10 (periodVip10: selectedYear 기간 내 결제 총액 기준) ── */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">VIP 수강생 TOP 10</h2>
-          <p className="text-gray-400 text-sm mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 결제 총액 순위</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-3 px-3 text-gray-400 font-medium w-12">순위</th>
-                <th className="text-left py-3 px-3 text-gray-400 font-medium">이름</th>
-                <th className="text-left py-3 px-3 text-gray-400 font-medium">연락처</th>
-                <th className="text-right py-3 px-3 text-gray-400 font-medium">결제 총액</th>
-                <th className="py-3 px-3 text-gray-400 font-medium w-36 hidden sm:table-cell">비중</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periodVip10.map((v, i) => {
-                const maxT = periodVip10[0]?.total ?? 1;
-                const pct  = Math.round((v.total / maxT) * 100);
-                const medal = ["🥇","🥈","🥉"][i] ?? null;
-                return (
-                  <tr key={v.name + i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="py-3.5 px-3">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 font-medium">{i+1}</span>}</td>
-                    <td className="py-3.5 px-3 font-medium text-gray-900">{v.name}</td>
-                    <td className="py-3.5 px-3 text-gray-500 font-mono text-xs">{v.phone ?? "—"}</td>
-                    <td className="py-3.5 px-3 text-right font-bold text-gray-900">{v.total.toLocaleString()}원</td>
-                    <td className="py-3.5 px-3 hidden sm:table-cell">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-blue-500 h-1.5 rounded-full" style={{ width: pct + "%" }} /></div>
-                        <span className="text-gray-400 text-xs w-8 text-right">{pct}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {periodVip10.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-gray-400">데이터 없음</td></tr>}
-            </tbody>
-          </table>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-gray-900">VIP 수강생 TOP 10</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 결제 총액 순위</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs w-10">순위</th>
+                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs">이름</th>
+                  <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs">결제 총액</th>
+                  <th className="py-2.5 px-2 text-gray-400 font-medium text-xs w-28 hidden sm:table-cell">비중</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodVip10.map((v, i) => {
+                  const maxT = periodVip10[0]?.total ?? 1;
+                  const pct  = Math.round((v.total / maxT) * 100);
+                  const medal = ["🥇","🥈","🥉"][i] ?? null;
+                  return (
+                    <tr key={v.name + i} className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors">
+                      <td className="py-3 px-2">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 text-xs font-medium">{i+1}</span>}</td>
+                      <td className="py-3 px-2 font-semibold text-gray-900">{v.name}</td>
+                      <td className="py-3 px-2 text-right font-bold text-gray-900">{v.total.toLocaleString()}원</td>
+                      <td className="py-3 px-2 hidden sm:table-cell">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: pct + "%" }} /></div>
+                          <span className="text-gray-400 text-xs w-7 text-right">{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {periodVip10.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">데이터 없음</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
