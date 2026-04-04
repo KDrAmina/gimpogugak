@@ -229,13 +229,36 @@ export default function StatisticsPage() {
 
   const categoryStats = useMemo(() => {
     const map = new Map<string, { count: number; monthlyTotal: number }>();
-    for (const l of activeLesson) {
-      const cat = l.category?.replace(/\s/g, "") ?? "기타";
-      const p2 = map.get(cat) ?? { count: 0, monthlyTotal: 0 };
-      map.set(cat, { count: p2.count + 1, monthlyTotal: p2.monthlyTotal + l.tuition_amount });
+
+    if (selectedYear === "all") {
+      // 전체 기간: 현재 활성 수업(activeLesson) 기준 — 기존 동작 유지
+      for (const l of activeLesson) {
+        const cat = l.category?.replace(/\s/g, "") ?? "기타";
+        const p2 = map.get(cat) ?? { count: 0, monthlyTotal: 0 };
+        map.set(cat, { count: p2.count + 1, monthlyTotal: p2.monthlyTotal + l.tuition_amount });
+      }
+    } else {
+      // [BUG FIX] 특정 연도 선택 시: 해당 연도 결제 이력이 존재하는 수강생만 집계
+      // 같은 수강생이 같은 카테고리에 여러 결제 이력을 가질 수 있으므로
+      // "이름:카테고리" 키로 중복 제거하여 인원수(count)를 정확히 산출
+      const seen = new Set<string>();
+      for (const row of allHistory) {
+        const eff = getEff(row);
+        if (!eff || !eff.startsWith(selectedYear)) continue; // 선택 연도 이외 제외
+        const prof = row.lessons?.profiles;
+        if (!prof?.name) continue;
+        const name = normalizeName(prof.name);
+        const cat = row.lessons?.category?.replace(/\s/g, "") ?? "기타";
+        const key = `${name}:${cat}`;
+        if (seen.has(key)) continue; // 동일 학생+카테고리 중복 집계 방지
+        seen.add(key);
+        const p2 = map.get(cat) ?? { count: 0, monthlyTotal: 0 };
+        // monthlyTotal: 해당 수강생의 월 수강료(tuition_amount) 합산
+        map.set(cat, { count: p2.count + 1, monthlyTotal: p2.monthlyTotal + (row.lessons?.tuition_amount ?? 0) });
+      }
     }
     return map;
-  }, [activeLesson]);
+  }, [activeLesson, allHistory, selectedYear]);
 
   // 유입경로 색상 팔레트
   const INFLOW_COLORS: Record<string, string> = {
@@ -244,58 +267,104 @@ export default function StatisticsPage() {
     "인스타": "#ec4899", "블로그": "#6366f1", "요양보호센터": "#14b8a6",
   };
 
-  // [NEW] 연도별 유입경로 트렌드 — profiles.inflow_route × lesson_history 첫 결제 연도 결합
+  // 유입경로 유효성 검사 헬퍼 — NULL·빈값·없음·(빈칸) 제외
+  const isValidRoute = (route: string | null): route is string =>
+    !!route && route.trim() !== "" && route !== "없음" && route !== "(빈칸)";
+
+  // [UPDATED] 유입경로 트렌드 — selectedYear에 따라 데이터 가공 방식 분기
+  // ① selectedYear === "all"  → X축: 연도(23년~26년), 첫 결제 연도 기준 집계
+  // ② selectedYear === "2024" → X축: 월별(1월~12월), 해당 연도 첫 결제 월 기준 드릴다운
   const inflowTrendData = useMemo(() => {
-    const YEARS = ["2023", "2024", "2025", "2026"];
+    const validCount = inflowProfiles.filter((p) => isValidRoute(p.inflow_route)).length;
 
-    // profiles.name → firstYear (studentStats는 lesson_history 기반 첫 결제월)
-    const nameToFirstYear = new Map<string, string>();
-    for (const [name, stats] of studentStats) {
-      nameToFirstYear.set(name, stats.firstMonth.substring(0, 4));
-    }
+    if (selectedYear === "all") {
+      // ── 전체 기간: X축을 연도(2023~2026)로 그룹핑 ──
+      const YEARS = ["2023", "2024", "2025", "2026"];
 
-    // 연도 × 경로별 카운트
-    const countMap = new Map<string, Map<string, number>>(); // year → route → count
-    const allRoutes = new Set<string>();
-
-    for (const p of inflowProfiles) {
-      const route = p.inflow_route;
-      // NULL / 빈값 / '없음' / '(빈칸)' 제외 — 허수 90명이 스케일 망치지 않도록
-      if (!route || route.trim() === "" || route === "없음" || route === "(빈칸)") continue;
-
-      const normalizedName = normalizeName(p.name);
-      const firstYear = nameToFirstYear.get(normalizedName);
-      if (!firstYear || !YEARS.includes(firstYear)) continue;
-
-      allRoutes.add(route);
-      if (!countMap.has(firstYear)) countMap.set(firstYear, new Map());
-      const yrMap = countMap.get(firstYear)!;
-      yrMap.set(route, (yrMap.get(route) ?? 0) + 1);
-    }
-
-    // 경로를 누적 합산 기준 내림차순 정렬
-    const routes = Array.from(allRoutes).sort((a, b) => {
-      const aTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(a) ?? 0), 0);
-      const bTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(b) ?? 0), 0);
-      return bTotal - aTotal;
-    });
-
-    const data = YEARS.map((year) => {
-      const point: Record<string, string | number> = { year };
-      const yrMap = countMap.get(year) ?? new Map();
-      for (const route of routes) {
-        point[route] = yrMap.get(route) ?? 0;
+      // profiles.name → 첫 결제 연도 (studentStats는 lesson_history 기반 첫 결제월 보유)
+      const nameToFirstYear = new Map<string, string>();
+      for (const [name, stats] of studentStats) {
+        nameToFirstYear.set(name, stats.firstMonth.substring(0, 4));
       }
-      return point;
-    });
 
-    // 유입경로가 확인된 수강생 수 (NULL/없음 제외)
-    const validCount = inflowProfiles.filter(
-      (p) => p.inflow_route && p.inflow_route.trim() !== "" && p.inflow_route !== "없음" && p.inflow_route !== "(빈칸)"
-    ).length;
+      const countMap = new Map<string, Map<string, number>>(); // year → route → count
+      const allRoutes = new Set<string>();
 
-    return { data, routes, colors: INFLOW_COLORS, validCount };
-  }, [inflowProfiles, studentStats]); // eslint-disable-line react-hooks/exhaustive-deps
+      for (const p of inflowProfiles) {
+        if (!isValidRoute(p.inflow_route)) continue;
+        const route = p.inflow_route;
+        const normalizedName = normalizeName(p.name);
+        const firstYear = nameToFirstYear.get(normalizedName);
+        if (!firstYear || !YEARS.includes(firstYear)) continue;
+
+        allRoutes.add(route);
+        if (!countMap.has(firstYear)) countMap.set(firstYear, new Map());
+        const yrMap = countMap.get(firstYear)!;
+        yrMap.set(route, (yrMap.get(route) ?? 0) + 1);
+      }
+
+      // 경로를 누적 합산 기준 내림차순 정렬
+      const routes = Array.from(allRoutes).sort((a, b) => {
+        const aTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(a) ?? 0), 0);
+        const bTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(b) ?? 0), 0);
+        return bTotal - aTotal;
+      });
+
+      // X축 라벨: 'YY년' 형식 (예: 23년, 24년)
+      const data = YEARS.map((year) => {
+        const point: Record<string, string | number> = { year: year.slice(2) + "년" };
+        const yrMap = countMap.get(year) ?? new Map();
+        for (const route of routes) point[route] = yrMap.get(route) ?? 0;
+        return point;
+      });
+
+      return { data, routes, colors: INFLOW_COLORS, validCount };
+    } else {
+      // ── 특정 연도 선택: X축을 월별(1월~12월)로 드릴다운 ──
+      // profiles.name → 첫 결제 월 ("YYYY-MM" 형식)
+      const nameToFirstMonth = new Map<string, string>();
+      for (const [name, stats] of studentStats) {
+        nameToFirstMonth.set(name, stats.firstMonth);
+      }
+
+      const countMap = new Map<string, Map<string, number>>(); // "YYYY-MM" → route → count
+      const allRoutes = new Set<string>();
+
+      for (const p of inflowProfiles) {
+        if (!isValidRoute(p.inflow_route)) continue;
+        const route = p.inflow_route;
+        const normalizedName = normalizeName(p.name);
+        const firstMonth = nameToFirstMonth.get(normalizedName);
+        // 선택 연도에 첫 결제한 수강생만 집계 (드릴다운)
+        if (!firstMonth || !firstMonth.startsWith(selectedYear)) continue;
+
+        allRoutes.add(route);
+        if (!countMap.has(firstMonth)) countMap.set(firstMonth, new Map());
+        const mMap = countMap.get(firstMonth)!;
+        mMap.set(route, (mMap.get(route) ?? 0) + 1);
+      }
+
+      // 경로를 누적 합산 기준 내림차순 정렬
+      const routes = Array.from(allRoutes).sort((a, b) => {
+        const aTotal = [...countMap.values()].reduce((s, m) => s + (m.get(a) ?? 0), 0);
+        const bTotal = [...countMap.values()].reduce((s, m) => s + (m.get(b) ?? 0), 0);
+        return bTotal - aTotal;
+      });
+
+      // 12개월 전체를 X축으로 생성 (데이터 없는 달도 0으로 포함)
+      // X축 라벨: 'M월' 형식 (예: 1월, 2월)
+      const data = Array.from({ length: 12 }, (_, i) => {
+        const monthKey = selectedYear + "-" + String(i + 1).padStart(2, "0"); // "YYYY-MM"
+        const monthLabel = (i + 1) + "월"; // "M월"
+        const point: Record<string, string | number> = { year: monthLabel };
+        const mMap = countMap.get(monthKey) ?? new Map();
+        for (const route of routes) point[route] = mMap.get(route) ?? 0;
+        return point;
+      });
+
+      return { data, routes, colors: INFLOW_COLORS, validCount };
+    }
+  }, [inflowProfiles, studentStats, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const periodTuition  = periodChartData.reduce((s, d) => s + d.tuition, 0);
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
@@ -525,14 +594,16 @@ export default function StatisticsPage() {
           <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
         </div>
 
-        {/* [NEW] 연도별 유입경로 트렌드 — 선 그래프 */}
+        {/* 유입경로 트렌드 — selectedYear에 따라 연도별/월별 드릴다운 전환 */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-base font-bold text-gray-900 mb-1">연도별 유입경로 트렌드</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-1">
+            {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 유입경로 트렌드
+          </h2>
           <p className="text-xs text-gray-400 mb-1">
             경로 확인된 수강생 {inflowTrendData.validCount}명 기준 (NULL·없음 제외)
           </p>
           <p className="text-xs text-gray-300 mb-4">
-            X축: 첫 결제 연도 기준 / Y축: 유입 수강생 수
+            X축: {selectedYear === "all" ? "첫 결제 연도" : selectedYear + "년 첫 결제 월"} 기준 / Y축: 유입 수강생 수
           </p>
           <InflowTrendChart
             data={inflowTrendData.data}
@@ -564,11 +635,18 @@ export default function StatisticsPage() {
       {/* ── 수강생 카테고리 현황 ── */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <h2 className="text-base font-bold text-gray-900 mb-1">수강생 카테고리 현황</h2>
-        <p className="text-xs text-gray-400 mb-5">현재 활성 수업 기준 카테고리별 인원 및 월 수강료</p>
+        <p className="text-xs text-gray-400 mb-5">
+          {selectedYear === "all" ? "현재 활성 수업 기준" : selectedYear + "년 결제 이력 기준"} 카테고리별 인원 및 월 수강료
+        </p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {CATEGORIES.map((cat) => {
+          {(() => {
+            // 비율 분모: 전체 기간은 현재 활성 수업 총수, 특정 연도는 해당 연도 집계 합계
+            const categoryTotal = selectedYear === "all"
+              ? totalActiveStudentsCurrent
+              : Array.from(categoryStats.values()).reduce((s, v) => s + v.count, 0);
+            return CATEGORIES.map((cat) => {
             const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
-            const pct = totalActiveStudentsCurrent > 0 ? Math.round((st.count / totalActiveStudentsCurrent) * 100) : 0;
+            const pct = categoryTotal > 0 ? Math.round((st.count / categoryTotal) * 100) : 0;
             const color = CATEGORY_COLORS[cat] ?? "#94a3b8";
             return (
               <div key={cat} className="rounded-2xl border border-gray-100 p-4 hover:border-indigo-200 transition-colors bg-gray-50/50">
@@ -584,7 +662,8 @@ export default function StatisticsPage() {
                 <p className="text-xs text-gray-400 mt-1.5">전체의 {pct}%</p>
               </div>
             );
-          })}
+          });
+          })()}
         </div>
       </div>
 
