@@ -13,6 +13,22 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.2.0",
+    date: "2026-04-04",
+    changes: [
+      "[스크립트] sync_inflow_route.ts: 이율/이윤 전화번호 별칭(010-2718-0838 → 010-9968-3256) 예외처리 추가",
+      "[스크립트] sync_inflow_route.ts: 김혜정 등 이름·전화번호 공백 전처리(replace(/\\s/g,'')) 매칭 강화",
+      "[스크립트] sync_inflow_route.ts: '없음'/(빈칸)/빈값 → NULL 처리, 기존 DB의 '없음' 값 일괄 NULL 덮어씌우기 쿼리 추가",
+      "[통계] 유입경로 차트 전면 개편: 가로형 바 차트 → Recharts LineChart 기반 '연도별 유입경로 트렌드' 선 그래프로 교체",
+      "[통계] InflowTrendChart 컴포넌트 신규 생성 (components/InflowTrendChart.tsx)",
+      "[통계] 유입경로 데이터 가공: profiles.inflow_route × lesson_history 첫 결제 연도 결합, NULL/없음 완전 필터링",
+      "[알림톡] 상태 배지 개편: 🟡 발송대기 / 🟢 발송완료+시간(KST) / 🔴 발송실패 3단계 배지 추가",
+      "[알림톡] notification_log 쿼리 확장: status·created_at 컬럼 추가 조회, 발송 시각 표시",
+      "[알림톡] 테스트 발송 버튼 추가: 크론 수동 실행 (api/admin/test-alimtalk 신규 라우트)",
+      "[알림톡] vercel.json 크론 설정 확인: 0 1 * * * (KST 10:00) 이미 정상 설정됨",
+    ],
+  },
+  {
     version: "5.1.0",
     date: "2026-04-04",
     changes: [

@@ -28,8 +28,10 @@ type GroupedStudent = {
   categories: string[];
   lessonIds: string[]; // 그룹 내 모든 lesson ID (결제일 일괄 수정용)
   selected: boolean;
-  isToday: boolean; // 오늘 자동 발송 대상 여부
-  sentToday: boolean; // 오늘 발송 완료 여부
+  isToday: boolean;       // 오늘 자동 발송 대상 여부
+  sentToday: boolean;     // 오늘 발송 완료 여부
+  sentStatus?: string;    // 'success' | 'fail' | 'invalid_phone'
+  sentAt?: string;        // ISO timestamp (발송 시각)
   alimtalkEnabled: boolean; // 알림톡 수동 ON/OFF
 };
 
@@ -49,6 +51,8 @@ export default function AlimtalkPage() {
   const [editDay, setEditDay] = useState("");
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<{ message?: string; success?: number; fail?: number; error?: string } | null>(null);
   const [result, setResult] = useState<{ success: number; fail: number } | null>(null);
   const [scheduledDate, setScheduledDate] = useState("");
   const [showManualSend, setShowManualSend] = useState(false);
@@ -129,17 +133,24 @@ export default function AlimtalkPage() {
       }
     }
 
-    // 오늘 발송 완료 로그 조회
+    // 오늘 발송 완료 로그 조회 (status·created_at 포함)
     const { dateStr: todayDateStr } = getKSTToday();
     const { data: sentLogs } = await supabase
       .from("notification_log")
-      .select("phone")
+      .select("phone, status, created_at")
       .eq("sent_date", todayDateStr)
       .eq("type", "auto_cron");
 
-    const sentPhones = new Set(
-      (sentLogs || []).map((r: { phone: string }) => r.phone)
-    );
+    type SentLog = { phone: string; status: string; created_at: string };
+    // 전화번호 → 최신 로그 맵 (중복 발송 시 마지막 기록 우선)
+    const sentMap = new Map<string, SentLog>();
+    for (const r of (sentLogs || []) as SentLog[]) {
+      const existing = sentMap.get(r.phone);
+      if (!existing || r.created_at > existing.created_at) {
+        sentMap.set(r.phone, r);
+      }
+    }
+    const sentPhones = new Set(sentMap.keys());
 
     // 오늘 발송 대상 마킹
     const sorted = Array.from(groupMap.values()).map((s) => {
@@ -147,10 +158,13 @@ export default function AlimtalkPage() {
         const payDay = new Date(s.paymentDate + "T00:00:00").getDate();
         s.isToday = payDay === todayDay;
       }
-      // 발송 완료 여부 마킹
+      // 발송 완료 여부 + 상태 마킹
       const cleanPhone = s.phone.replace(/[^0-9]/g, "");
-      if (sentPhones.has(cleanPhone) || sentPhones.has(s.phone)) {
+      const logEntry = sentMap.get(cleanPhone) ?? sentMap.get(s.phone);
+      if (logEntry) {
         s.sentToday = true;
+        s.sentStatus = logEntry.status;
+        s.sentAt = logEntry.created_at;
       }
       return s;
     });
@@ -342,6 +356,33 @@ export default function AlimtalkPage() {
     return `매월 ${d.getDate()}일`;
   }
 
+  function formatSentTime(iso: string): string {
+    try {
+      const d = new Date(iso);
+      const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+      const h = String(kst.getUTCHours()).padStart(2, "0");
+      const m = String(kst.getUTCMinutes()).padStart(2, "0");
+      return `${h}:${m}`;
+    } catch { return ""; }
+  }
+
+  /* ─── 크론 테스트 발송 ─── */
+  async function handleTestCron() {
+    if (!confirm("오늘 결제일인 수강생에게 알림톡을 즉시 발송합니다. (크론 수동 실행)")) return;
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/test-alimtalk", { method: "POST" });
+      const data = await res.json();
+      setTestResult(data);
+      await loadStudents();
+    } catch (err: unknown) {
+      setTestResult({ error: err instanceof Error ? err.message : "오류 발생" });
+    } finally {
+      setTestSending(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -357,13 +398,40 @@ export default function AlimtalkPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">
-          알림톡 자동 발송 관리
-        </h1>
-        <p className="text-sm text-gray-600">
-          매일 KST 오전 10시, 결제일이 해당하는 수강생에게 알림톡이 자동 발송됩니다.
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            알림톡 자동 발송 관리
+          </h1>
+          <p className="text-sm text-gray-600">
+            매일 KST 오전 10시, 결제일이 해당하는 수강생에게 알림톡이 자동 발송됩니다.
+          </p>
+        </div>
+        {/* 크론 테스트 발송 버튼 */}
+        <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleTestCron}
+            disabled={testSending}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow transition-colors"
+          >
+            {testSending ? "발송 중..." : "테스트 발송 (크론 수동 실행)"}
+          </button>
+          {testResult && (
+            <div className={`text-xs px-3 py-1.5 rounded-lg border ${
+              testResult.error
+                ? "bg-red-50 border-red-200 text-red-700"
+                : "bg-green-50 border-green-200 text-green-700"
+            }`}>
+              {testResult.error
+                ? `오류: ${testResult.error}`
+                : testResult.message
+                  ? testResult.message
+                  : `성공 ${testResult.success}건 / 실패 ${testResult.fail}건`
+              }
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 오늘 발송 현황 카드 */}
@@ -506,23 +574,29 @@ export default function AlimtalkPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {!s.alimtalkEnabled ? (
-                        <span className="inline-flex items-center px-2 py-0.5 bg-gray-200 text-gray-500 text-xs font-medium rounded-full">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(수동)
                         </span>
                       ) : s.sentToday ? (
-                        <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                          발송 완료
-                        </span>
+                        s.sentStatus === "fail" || s.sentStatus === "invalid_phone" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                            🔴 발송실패
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                            🟢 발송완료{s.sentAt ? ` ${formatSentTime(s.sentAt)}` : ""}
+                          </span>
+                        )
                       ) : s.isToday && s.totalTuition <= 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(0원)
                         </span>
                       ) : s.isToday ? (
-                        <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                          오늘 발송
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                          🟡 발송대기
                         </span>
                       ) : s.paymentDate ? (
-                        <span className="text-xs text-gray-500">대기</span>
+                        <span className="text-xs text-gray-400">대기</span>
                       ) : (
                         <span className="text-xs text-red-500">미설정</span>
                       )}

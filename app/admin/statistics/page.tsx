@@ -12,9 +12,10 @@ import type { LineData } from "@/components/StatsLine";
 function Loader({ h }: { h: number }) {
   return <div className="flex items-center justify-center" style={{ height: h }}><p className="text-gray-400 text-sm animate-pulse">차트 로딩 중...</p></div>;
 }
-const StatsArea  = nextDynamic(() => import("@/components/StatsArea"),  { ssr: false, loading: () => <Loader h={300} /> });
-const StatsDonut = nextDynamic(() => import("@/components/StatsDonut"), { ssr: false, loading: () => <Loader h={260} /> });
-const StatsLine  = nextDynamic(() => import("@/components/StatsLine"),  { ssr: false, loading: () => <Loader h={280} /> });
+const StatsArea        = nextDynamic(() => import("@/components/StatsArea"),        { ssr: false, loading: () => <Loader h={300} /> });
+const StatsDonut       = nextDynamic(() => import("@/components/StatsDonut"),       { ssr: false, loading: () => <Loader h={260} /> });
+const StatsLine        = nextDynamic(() => import("@/components/StatsLine"),        { ssr: false, loading: () => <Loader h={280} /> });
+const InflowTrendChart = nextDynamic(() => import("@/components/InflowTrendChart"), { ssr: false, loading: () => <Loader h={260} /> });
 
 interface ProfileInner { name: string; phone: string | null; }
 interface LessonInner  { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
@@ -236,23 +237,65 @@ export default function StatisticsPage() {
     return map;
   }, [activeLesson]);
 
-  // [NEW] 정규 수강생 유입경로 현황 — profiles.inflow_route 집계
-  const inflowStats = useMemo((): Array<{ route: string; count: number; color: string }> => {
-    const INFLOW_COLORS: Record<string, string> = {
-      "네이버": "#3b82f6", "지인소개": "#10b981", "배너광고": "#f59e0b",
-      "체험전환": "#8b5cf6", "당근": "#f97316", "농협": "#06b6d4",
-      "인스타": "#ec4899", "블로그": "#6366f1", "요양보호센터": "#14b8a6", "없음": "#9ca3af",
-    };
-    const map = new Map<string, number>();
-    for (const p of inflowProfiles) {
-      const route = p.inflow_route ?? "없음";
-      map.set(route, (map.get(route) ?? 0) + 1);
+  // 유입경로 색상 팔레트
+  const INFLOW_COLORS: Record<string, string> = {
+    "네이버": "#3b82f6", "지인소개": "#10b981", "배너광고": "#f59e0b",
+    "체험전환": "#8b5cf6", "당근": "#f97316", "농협": "#06b6d4",
+    "인스타": "#ec4899", "블로그": "#6366f1", "요양보호센터": "#14b8a6",
+  };
+
+  // [NEW] 연도별 유입경로 트렌드 — profiles.inflow_route × lesson_history 첫 결제 연도 결합
+  const inflowTrendData = useMemo(() => {
+    const YEARS = ["2023", "2024", "2025", "2026"];
+
+    // profiles.name → firstYear (studentStats는 lesson_history 기반 첫 결제월)
+    const nameToFirstYear = new Map<string, string>();
+    for (const [name, stats] of studentStats) {
+      nameToFirstYear.set(name, stats.firstMonth.substring(0, 4));
     }
-    return Array.from(map.entries())
-      .map(([route, count]) => ({ route, count, color: INFLOW_COLORS[route] ?? "#94a3b8" }))
-      .filter(d => d.route !== "없음" || d.count > 0)
-      .sort((a, b) => b.count - a.count);
-  }, [inflowProfiles]);
+
+    // 연도 × 경로별 카운트
+    const countMap = new Map<string, Map<string, number>>(); // year → route → count
+    const allRoutes = new Set<string>();
+
+    for (const p of inflowProfiles) {
+      const route = p.inflow_route;
+      // NULL / 빈값 / '없음' / '(빈칸)' 제외 — 허수 90명이 스케일 망치지 않도록
+      if (!route || route.trim() === "" || route === "없음" || route === "(빈칸)") continue;
+
+      const normalizedName = normalizeName(p.name);
+      const firstYear = nameToFirstYear.get(normalizedName);
+      if (!firstYear || !YEARS.includes(firstYear)) continue;
+
+      allRoutes.add(route);
+      if (!countMap.has(firstYear)) countMap.set(firstYear, new Map());
+      const yrMap = countMap.get(firstYear)!;
+      yrMap.set(route, (yrMap.get(route) ?? 0) + 1);
+    }
+
+    // 경로를 누적 합산 기준 내림차순 정렬
+    const routes = Array.from(allRoutes).sort((a, b) => {
+      const aTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(a) ?? 0), 0);
+      const bTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(b) ?? 0), 0);
+      return bTotal - aTotal;
+    });
+
+    const data = YEARS.map((year) => {
+      const point: Record<string, string | number> = { year };
+      const yrMap = countMap.get(year) ?? new Map();
+      for (const route of routes) {
+        point[route] = yrMap.get(route) ?? 0;
+      }
+      return point;
+    });
+
+    // 유입경로가 확인된 수강생 수 (NULL/없음 제외)
+    const validCount = inflowProfiles.filter(
+      (p) => p.inflow_route && p.inflow_route.trim() !== "" && p.inflow_route !== "없음" && p.inflow_route !== "(빈칸)"
+    ).length;
+
+    return { data, routes, colors: INFLOW_COLORS, validCount };
+  }, [inflowProfiles, studentStats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const periodTuition  = periodChartData.reduce((s, d) => s + d.tuition, 0);
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
@@ -482,38 +525,40 @@ export default function StatisticsPage() {
           <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
         </div>
 
-        {/* [NEW] 정규 수강생 유입경로 현황 — 가로형 바 차트 */}
+        {/* [NEW] 연도별 유입경로 트렌드 — 선 그래프 */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-base font-bold text-gray-900 mb-1">정규 수강생 유입경로 현황</h2>
-          <p className="text-xs text-gray-400 mb-5">총 {inflowProfiles.length}명 기준 경로별 분포</p>
-          <div className="space-y-3">
-            {inflowStats.map((d) => {
-              const pct = inflowProfiles.length > 0 ? Math.round((d.count / inflowProfiles.length) * 100) : 0;
-              return (
-                <div key={d.route}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-gray-700">{d.route}</span>
-                    <span className="text-sm font-bold text-gray-900">{d.count}명
-                      <span className="text-xs font-normal text-gray-400 ml-1">({pct}%)</span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-6 overflow-hidden">
-                    <div
-                      className="h-6 rounded-full flex items-center justify-end pr-2.5 transition-all duration-700"
-                      style={{ width: Math.max(pct, 3) + "%", background: d.color }}
-                    >
-                      {pct >= 12 && <span className="text-white text-xs font-bold">{pct}%</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {inflowStats.length === 0 && (
-              <p className="text-gray-400 text-sm text-center py-6">
-                데이터 없음 — profiles.inflow_route 컬럼 확인 필요
-              </p>
-            )}
-          </div>
+          <h2 className="text-base font-bold text-gray-900 mb-1">연도별 유입경로 트렌드</h2>
+          <p className="text-xs text-gray-400 mb-1">
+            경로 확인된 수강생 {inflowTrendData.validCount}명 기준 (NULL·없음 제외)
+          </p>
+          <p className="text-xs text-gray-300 mb-4">
+            X축: 첫 결제 연도 기준 / Y축: 유입 수강생 수
+          </p>
+          <InflowTrendChart
+            data={inflowTrendData.data}
+            routes={inflowTrendData.routes}
+            colors={inflowTrendData.colors}
+          />
+          {/* 경로별 범례 요약 */}
+          {inflowTrendData.routes.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {inflowTrendData.routes.map((route) => {
+                const total = inflowTrendData.data.reduce(
+                  (s, d) => s + (typeof d[route] === "number" ? (d[route] as number) : 0),
+                  0
+                );
+                return (
+                  <span
+                    key={route}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                    style={{ background: inflowTrendData.colors[route] ?? "#94a3b8" }}
+                  >
+                    {route} {total}명
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
       {/* ── 수강생 카테고리 현황 ── */}
