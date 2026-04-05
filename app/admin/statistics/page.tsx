@@ -86,6 +86,7 @@ export default function StatisticsPage() {
   const [activeLesson, setActiveLesson] = useState<ActiveLesson[]>([]);
   const [inflowProfiles, setInflowProfiles] = useState<InflowProfile[]>([]);
   const [yoyMode, setYoyMode]               = useState<"cumulative" | "overlay">("cumulative");
+  const [selectedYoyCategory, setSelectedYoyCategory] = useState<string>("어린이개인");
 
   // ── 수입 목표 달성률 편집 상태 ────────────────────────────────────────
   const [goalAmount, setGoalAmount]     = useState<number>(DEFAULT_GOAL_ALL);
@@ -247,6 +248,32 @@ export default function StatisticsPage() {
       return point;
     });
   }, [selectedYear, yoyMode, allExternal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 선택된 카테고리의 수강료를 월×연도 행렬로 계산 (카테고리별 YoY 비교) */
+  const yoyCategoryData = useMemo((): Array<Record<string, string | number>> => {
+    if (selectedYear !== "all" || yoyMode !== "overlay") return [];
+    return Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, "0");
+      const point: Record<string, string | number> = { month: (i + 1) + "월" };
+      for (const yr of YEARS_YOY) {
+        const start = yr + "-" + m + "-01";
+        const nextM = i + 2;
+        const end = nextM > 12 ? String(parseInt(yr) + 1) + "-01-01" : yr + "-" + String(nextM).padStart(2, "0") + "-01";
+        point[yr] = allHistory
+          .filter((r) => {
+            const e = getEff(r);
+            return (
+              !!e &&
+              (e + "-01") >= start &&
+              (e + "-01") < end &&
+              (r.lessons?.category?.replace(/\s/g, "") ?? "") === selectedYoyCategory
+            );
+          })
+          .reduce((s, r) => s + tuitionOf(r), 0);
+      }
+      return point;
+    });
+  }, [selectedYear, yoyMode, selectedYoyCategory, allHistory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** 신규 유입 수를 월×연도 행렬로 계산 (InflowTrendChart 형식: year 키 사용) */
   const yoyFlowData = useMemo((): Array<Record<string, string | number>> => {
@@ -773,54 +800,78 @@ export default function StatisticsPage() {
           <div>
             <h2 className="text-base font-bold text-gray-900">카테고리별 수강료 트렌드</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 카테고리 수강료 합계 추이
+              {yoyMode === "overlay"
+                ? "카테고리 선택 후 연도별 수강료 비교 (YoY)"
+                : (selectedYear === "all" ? "연도별" : selectedYear + "년 월별") + " 카테고리 수강료 합계 추이"}
             </p>
           </div>
-          {/* 카테고리별 수강료 합계 요약 (차트 우측) */}
-          <div className="flex flex-wrap gap-2 shrink-0">
+          {/* YoY 모드: 카테고리 선택 탭 / 일반 모드: 카테고리별 수강료 합계 요약 */}
+          {yoyMode === "overlay" ? (
+            <div className="flex flex-wrap gap-2 shrink-0">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedYoyCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    selectedYoyCategory === cat
+                      ? "text-white shadow-sm"
+                      : "bg-white border border-gray-200 hover:border-indigo-300 text-gray-500 hover:text-indigo-600"
+                  }`}
+                  style={selectedYoyCategory === cat ? { background: CATEGORY_COLORS[cat] } : {}}
+                >
+                  {CATEGORY_LABELS[cat]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 shrink-0">
+              {CATEGORIES.map((cat) => {
+                const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
+                return (
+                  <span
+                    key={cat}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                    style={{ background: CATEGORY_COLORS[cat] }}
+                  >
+                    {CATEGORY_LABELS[cat]} · {st.count}명
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <CategoryTrendChart
+          data={yoyMode === "overlay" ? yoyCategoryData : categoryTrendData}
+          categories={yoyMode === "overlay" ? YEARS_YOY : CATEGORIES}
+          colors={yoyMode === "overlay" ? YEAR_COLORS : CATEGORY_COLORS}
+          labels={yoyMode === "overlay" ? YEAR_LABELS : CATEGORY_LABELS}
+        />
+        {/* 카테고리별 인원/비중 요약 바 — YoY 겹쳐보기 모드에서는 숨김 */}
+        {yoyMode !== "overlay" && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-100">
             {CATEGORIES.map((cat) => {
               const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
+              const pct = categoryTotal > 0 ? Math.round((st.count / categoryTotal) * 100) : 0;
+              const color = CATEGORY_COLORS[cat];
               return (
-                <span
-                  key={cat}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
-                  style={{ background: CATEGORY_COLORS[cat] }}
-                >
-                  {CATEGORY_LABELS[cat]} · {st.count}명
-                </span>
+                <div key={cat} className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-600">{CATEGORY_LABELS[cat]}</span>
+                    <span className="text-xs font-bold" style={{ color }}>{st.count}명</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full" style={{ width: pct + "%", background: color }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>{fmtAmount(st.monthlyTotal)}원</span>
+                    <span>{pct}%</span>
+                  </div>
+                </div>
               );
             })}
           </div>
-        </div>
-        <CategoryTrendChart
-          data={categoryTrendData}
-          categories={CATEGORIES}
-          colors={CATEGORY_COLORS}
-          labels={CATEGORY_LABELS}
-        />
-        {/* 카테고리별 인원/비중 요약 바 */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-100">
-          {CATEGORIES.map((cat) => {
-            const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
-            const pct = categoryTotal > 0 ? Math.round((st.count / categoryTotal) * 100) : 0;
-            const color = CATEGORY_COLORS[cat];
-            return (
-              <div key={cat} className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-semibold text-gray-600">{CATEGORY_LABELS[cat]}</span>
-                  <span className="text-xs font-bold" style={{ color }}>{st.count}명</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                  <div className="h-1.5 rounded-full" style={{ width: pct + "%", background: color }} />
-                </div>
-                <div className="flex justify-between text-xs text-gray-400">
-                  <span>{fmtAmount(st.monthlyTotal)}원</span>
-                  <span>{pct}%</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        )}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
@@ -918,7 +969,7 @@ export default function StatisticsPage() {
             {extPipelineData.length === 0 && <p className="text-gray-400 text-sm">데이터 없음</p>}
             <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
               <span className="text-sm font-semibold text-gray-700">합계</span>
-              <span className="text-base font-bold text-gray-900">{extPipelineTotal.toLocaleString()}원</span>
+              <span className="text-base font-bold text-gray-900">{fmtAmount(extPipelineTotal)}원</span>
             </div>
           </div>
         </div>

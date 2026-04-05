@@ -27,6 +27,12 @@ interface LabelProps {
   outerRadius: number; percent: number;
 }
 
+function fmtTotal(n: number): string {
+  if (n >= 100_000_000) return (n / 100_000_000).toFixed(1) + "억";
+  if (n >= 10_000) return Math.round(n / 10_000).toLocaleString() + "만";
+  return n.toLocaleString();
+}
+
 function renderLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: LabelProps) {
   if (percent < 0.05) return null;
   const r = innerRadius + (outerRadius - innerRadius) * 0.55;
@@ -46,7 +52,7 @@ export default function StatsDonut({ data, title }: { data: PieData[]; title?: s
       {title && <p className="text-sm font-medium text-gray-600 mb-2 text-center">{title}</p>}
       <div className="text-center mb-1">
         <p className="text-xs text-gray-400">합계</p>
-        <p className="text-lg font-bold text-gray-900">{Math.round(total / 10000).toLocaleString()}만원</p>
+        <p className="text-lg font-bold text-gray-900">{fmtTotal(total)}원</p>
       </div>
       <ResponsiveContainer width="100%" height={240}>
         <PieChart>
