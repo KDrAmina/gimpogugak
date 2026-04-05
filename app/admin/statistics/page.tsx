@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = "force-dynamic";
 
@@ -12,19 +12,20 @@ import type { LineData } from "@/components/StatsLine";
 function Loader({ h }: { h: number }) {
   return <div className="flex items-center justify-center" style={{ height: h }}><p className="text-gray-400 text-sm animate-pulse">차트 로딩 중...</p></div>;
 }
-const StatsArea        = nextDynamic(() => import("@/components/StatsArea"),        { ssr: false, loading: () => <Loader h={300} /> });
-const StatsDonut       = nextDynamic(() => import("@/components/StatsDonut"),       { ssr: false, loading: () => <Loader h={260} /> });
-const StatsLine        = nextDynamic(() => import("@/components/StatsLine"),        { ssr: false, loading: () => <Loader h={280} /> });
-const InflowTrendChart = nextDynamic(() => import("@/components/InflowTrendChart"), { ssr: false, loading: () => <Loader h={260} /> });
+const StatsArea           = nextDynamic(() => import("@/components/StatsArea"),           { ssr: false, loading: () => <Loader h={300} /> });
+const StatsDonut          = nextDynamic(() => import("@/components/StatsDonut"),          { ssr: false, loading: () => <Loader h={260} /> });
+const StatsLine           = nextDynamic(() => import("@/components/StatsLine"),           { ssr: false, loading: () => <Loader h={280} /> });
+const InflowTrendChart    = nextDynamic(() => import("@/components/InflowTrendChart"),    { ssr: false, loading: () => <Loader h={260} /> });
+const CategoryTrendChart  = nextDynamic(() => import("@/components/CategoryTrendChart"),  { ssr: false, loading: () => <Loader h={260} /> });
+const ExternalTrendChart  = nextDynamic(() => import("@/components/ExternalTrendChart"),  { ssr: false, loading: () => <Loader h={240} /> });
 
-interface ProfileInner { name: string; phone: string | null; }
-interface LessonInner  { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
-interface HistoryRow   { completed_date?: string; tuition_snapshot: number; prepaid_month: string | null; lessons: LessonInner | null; }
-interface ExternalRow  { income_date: string; amount: number; type: string; }
-interface ActiveLesson { category: string; tuition_amount: number; }
+interface ProfileInner  { name: string; phone: string | null; }
+interface LessonInner   { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
+interface HistoryRow    { completed_date?: string; tuition_snapshot: number; prepaid_month: string | null; lessons: LessonInner | null; }
+interface ExternalRow   { income_date: string; amount: number; type: string; }
+interface ActiveLesson  { category: string; tuition_amount: number; }
 interface InflowProfile { name: string; phone: string | null; inflow_route: string | null; }
 
-// 우리인력 → 민경임 이름 강제 치환
 function normalizeName(name: string): string {
   return name === "우리인력" ? "민경임" : name;
 }
@@ -37,8 +38,12 @@ const YEAR_OPTIONS = [
   { value: "2026", label: "2026년" },
 ];
 
-const TARGET_YEAR = 60_000_000;
-const TARGET_ALL  = 240_000_000;
+// 기본 목표 금액 (사용자가 수정하지 않은 경우의 초기값)
+const DEFAULT_GOAL_YEAR = 60_000_000;
+const DEFAULT_GOAL_ALL  = 240_000_000;
+
+// localStorage 키 생성 (selectedYear별로 분리 저장)
+const goalKey = (year: string) => `revenueGoal_${year}`;
 
 function fmtAmount(n: number): string {
   if (n >= 100000000) return (n / 100000000).toFixed(1) + "억";
@@ -63,6 +68,10 @@ const CATEGORY_LABELS: Record<string, string> = { "어린이개인": "어린이 
 const CATEGORY_COLORS: Record<string, string> = { "어린이개인": "#6366f1", "어린이단체": "#22c55e", "성인개인": "#f59e0b", "성인단체": "#ef4444" };
 const EXTERNAL_COLORS: Record<string, string> = { "체험비": "#f59e0b", "강사수수료": "#8b5cf6", "기타": "#6b7280", "공연비": "#10b981" };
 const CATEGORIES = ["어린이개인", "어린이단체", "성인개인", "성인단체"];
+
+// 외부수입 트렌드에 표시할 유형 3가지
+const EXT_TREND_TYPES = ["체험비", "강사수수료", "기타"];
+
 export default function StatisticsPage() {
   const supabase = createClient();
   const [selectedYear, setSelectedYear] = useState<string>("all");
@@ -72,7 +81,42 @@ export default function StatisticsPage() {
   const [activeLesson, setActiveLesson] = useState<ActiveLesson[]>([]);
   const [inflowProfiles, setInflowProfiles] = useState<InflowProfile[]>([]);
 
+  // ── 수입 목표 달성률 편집 상태 ────────────────────────────────────────
+  const [goalAmount, setGoalAmount]     = useState<number>(DEFAULT_GOAL_ALL);
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [editGoalInput, setEditGoalInput] = useState("");
+
   useEffect(() => { fetchAll(); }, []); // eslint-disable-line
+
+  /**
+   * selectedYear 변경 시:
+   * 1. localStorage에서 해당 연도의 저장된 목표 금액을 불러옴
+   * 2. 저장값 없으면 기본값(연단위 6천만, 전체 2.4억)으로 초기화
+   */
+  useEffect(() => {
+    const saved = localStorage.getItem(goalKey(selectedYear));
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed > 0) { setGoalAmount(parsed); return; }
+    }
+    setGoalAmount(selectedYear === "all" ? DEFAULT_GOAL_ALL : DEFAULT_GOAL_YEAR);
+    setIsEditingGoal(false);
+  }, [selectedYear]);
+
+  /**
+   * 목표 금액 저장:
+   * - input 값에서 쉼표 제거 후 정수로 파싱
+   * - localStorage에 `revenueGoal_${selectedYear}` 키로 저장 (연도별 독립 관리)
+   * - Progress Bar가 goalAmount 변경에 따라 즉시 리렌더링됨 (useState 반응성)
+   */
+  function saveGoal() {
+    const parsed = parseInt(editGoalInput.replace(/,/g, ""), 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      localStorage.setItem(goalKey(selectedYear), String(parsed));
+      setGoalAmount(parsed);
+    }
+    setIsEditingGoal(false);
+  }
 
   async function fetchAll() {
     const [{ data: hist }, { data: ext }, { data: active }, { data: inflow }] = await Promise.all([
@@ -110,12 +154,58 @@ export default function StatisticsPage() {
     });
   }, [periods, periodType, allHistory, allExternal]);
 
+  // ── [NEW] 카테고리별 수강료 트렌드 데이터 ────────────────────────────
+  /**
+   * 각 기간(period)마다 4개 카테고리(어린이개인·어린이단체·성인개인·성인단체)별
+   * tuition_snapshot 합계를 계산하여 CategoryTrendChart에 전달합니다.
+   *
+   * selectedYear === "all" → X축: 연도(23년~26년)
+   * selectedYear === "2026" → X축: 월(1월~12월)
+   */
+  const categoryTrendData = useMemo((): Array<Record<string, string | number>> => {
+    return periods.map((period) => {
+      const [start, end] = getPeriodRange(period, periodType);
+      const point: Record<string, string | number> = { month: makePeriodLabel(period, periodType) };
+      for (const cat of CATEGORIES) {
+        point[cat] = allHistory
+          .filter((r) => {
+            const e = getEff(r);
+            return (
+              !!e &&
+              (e + "-01") >= start &&
+              (e + "-01") < end &&
+              (r.lessons?.category?.replace(/\s/g, "") ?? "") === cat
+            );
+          })
+          .reduce((s, r) => s + tuitionOf(r), 0);
+      }
+      return point;
+    });
+  }, [periods, periodType, allHistory]);
+
+  // ── [NEW] 외부수입 유형별 월별 트렌드 데이터 ──────────────────────────
+  /**
+   * 각 기간(period)마다 체험비·강사수수료·기타 3가지 외부수입 유형별 금액을 집계합니다.
+   * 어떤 달에 어떤 외부수입이 발생했는지 트렌드를 파악하는 용도입니다.
+   */
+  const extTrendData = useMemo((): Array<Record<string, string | number>> => {
+    return periods.map((period) => {
+      const [start, end] = getPeriodRange(period, periodType);
+      const filtered = allExternal.filter((r) => r.income_date >= start && r.income_date < end);
+      const point: Record<string, string | number> = { month: makePeriodLabel(period, periodType) };
+      for (const type of EXT_TREND_TYPES) {
+        point[type] = filtered.filter((r) => r.type === type).reduce((s, r) => s + r.amount, 0);
+      }
+      return point;
+    });
+  }, [periods, periodType, allExternal]);
+
   const studentStats = useMemo(() => {
     const map = new Map<string, { firstMonth: string; lastMonth: string; isActive: boolean; total: number; phone: string | null }>();
     for (const row of allHistory) {
       const prof = row.lessons?.profiles;
       if (!prof?.name) continue;
-      const name = normalizeName(prof.name); // 우리인력 → 민경임 합산
+      const name = normalizeName(prof.name);
       const eff = getEff(row);
       if (!eff) continue;
       const isAct = row.lessons?.is_active ?? false;
@@ -135,9 +225,6 @@ export default function StatisticsPage() {
     return map;
   }, [allHistory]);
 
-  // [BUG FIX] 활성 수강생 & 평균 수강 유지 기간 — 선택 기간 기준으로 수정
-  // 활성 수강생: 선택 기간에 결제이력이 1건이라도 있는 고유 학생 수
-  // 평균 수강 기간: 선택 기간 내 첫~마지막 결제 스팬 평균
   const { activePeriodStudents, avgDuration } = useMemo(() => {
     const names = new Set<string>();
     const periodMap = new Map<string, { first: string; last: string }>();
@@ -181,6 +268,7 @@ export default function StatisticsPage() {
       month: d.month, new: newMap.get(periods[i]) ?? 0, churned: churnMap.get(periods[i]) ?? 0,
     }));
   }, [studentStats, periods, periodType, periodChartData]);
+
   const periodVip10 = useMemo(() => {
     const map = new Map<string, { name: string; phone: string | null; total: number }>();
     for (const row of allHistory) {
@@ -189,7 +277,7 @@ export default function StatisticsPage() {
       if (selectedYear !== "all" && !eff.startsWith(selectedYear)) continue;
       const prof = row.lessons?.profiles;
       if (!prof?.name) continue;
-      const name = normalizeName(prof.name); // 우리인력 → 민경임 합산
+      const name = normalizeName(prof.name);
       const prev2 = map.get(name) ?? { name, phone: prof.phone, total: 0 };
       map.set(name, { ...prev2, total: prev2.total + tuitionOf(row) });
     }
@@ -229,139 +317,105 @@ export default function StatisticsPage() {
 
   const categoryStats = useMemo(() => {
     const map = new Map<string, { count: number; monthlyTotal: number }>();
-
     if (selectedYear === "all") {
-      // 전체 기간: 현재 활성 수업(activeLesson) 기준 — 기존 동작 유지
       for (const l of activeLesson) {
         const cat = l.category?.replace(/\s/g, "") ?? "기타";
         const p2 = map.get(cat) ?? { count: 0, monthlyTotal: 0 };
         map.set(cat, { count: p2.count + 1, monthlyTotal: p2.monthlyTotal + l.tuition_amount });
       }
     } else {
-      // [BUG FIX] 특정 연도 선택 시: 해당 연도 결제 이력이 존재하는 수강생만 집계
-      // 같은 수강생이 같은 카테고리에 여러 결제 이력을 가질 수 있으므로
-      // "이름:카테고리" 키로 중복 제거하여 인원수(count)를 정확히 산출
       const seen = new Set<string>();
       for (const row of allHistory) {
         const eff = getEff(row);
-        if (!eff || !eff.startsWith(selectedYear)) continue; // 선택 연도 이외 제외
+        if (!eff || !eff.startsWith(selectedYear)) continue;
         const prof = row.lessons?.profiles;
         if (!prof?.name) continue;
         const name = normalizeName(prof.name);
         const cat = row.lessons?.category?.replace(/\s/g, "") ?? "기타";
         const key = `${name}:${cat}`;
-        if (seen.has(key)) continue; // 동일 학생+카테고리 중복 집계 방지
+        if (seen.has(key)) continue;
         seen.add(key);
         const p2 = map.get(cat) ?? { count: 0, monthlyTotal: 0 };
-        // monthlyTotal: 해당 수강생의 월 수강료(tuition_amount) 합산
         map.set(cat, { count: p2.count + 1, monthlyTotal: p2.monthlyTotal + (row.lessons?.tuition_amount ?? 0) });
       }
     }
     return map;
   }, [activeLesson, allHistory, selectedYear]);
 
-  // 유입경로 색상 팔레트
   const INFLOW_COLORS: Record<string, string> = {
     "네이버": "#3b82f6", "지인소개": "#10b981", "배너광고": "#f59e0b",
     "체험전환": "#8b5cf6", "당근": "#f97316", "농협": "#06b6d4",
     "인스타": "#ec4899", "블로그": "#6366f1", "요양보호센터": "#14b8a6",
   };
 
-  // 유입경로 유효성 검사 헬퍼 — NULL·빈값·없음·(빈칸) 제외
   const isValidRoute = (route: string | null): route is string =>
     !!route && route.trim() !== "" && route !== "없음" && route !== "(빈칸)";
 
-  // [UPDATED] 유입경로 트렌드 — selectedYear에 따라 데이터 가공 방식 분기
-  // ① selectedYear === "all"  → X축: 연도(23년~26년), 첫 결제 연도 기준 집계
-  // ② selectedYear === "2024" → X축: 월별(1월~12월), 해당 연도 첫 결제 월 기준 드릴다운
   const inflowTrendData = useMemo(() => {
     const validCount = inflowProfiles.filter((p) => isValidRoute(p.inflow_route)).length;
 
     if (selectedYear === "all") {
-      // ── 전체 기간: X축을 연도(2023~2026)로 그룹핑 ──
       const YEARS = ["2023", "2024", "2025", "2026"];
-
-      // profiles.name → 첫 결제 연도 (studentStats는 lesson_history 기반 첫 결제월 보유)
       const nameToFirstYear = new Map<string, string>();
       for (const [name, stats] of studentStats) {
         nameToFirstYear.set(name, stats.firstMonth.substring(0, 4));
       }
-
-      const countMap = new Map<string, Map<string, number>>(); // year → route → count
+      const countMap = new Map<string, Map<string, number>>();
       const allRoutes = new Set<string>();
-
       for (const p of inflowProfiles) {
         if (!isValidRoute(p.inflow_route)) continue;
         const route = p.inflow_route;
         const normalizedName = normalizeName(p.name);
         const firstYear = nameToFirstYear.get(normalizedName);
         if (!firstYear || !YEARS.includes(firstYear)) continue;
-
         allRoutes.add(route);
         if (!countMap.has(firstYear)) countMap.set(firstYear, new Map());
         const yrMap = countMap.get(firstYear)!;
         yrMap.set(route, (yrMap.get(route) ?? 0) + 1);
       }
-
-      // 경로를 누적 합산 기준 내림차순 정렬
       const routes = Array.from(allRoutes).sort((a, b) => {
         const aTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(a) ?? 0), 0);
         const bTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(b) ?? 0), 0);
         return bTotal - aTotal;
       });
-
-      // X축 라벨: 'YY년' 형식 (예: 23년, 24년)
       const data = YEARS.map((year) => {
         const point: Record<string, string | number> = { year: year.slice(2) + "년" };
         const yrMap = countMap.get(year) ?? new Map();
         for (const route of routes) point[route] = yrMap.get(route) ?? 0;
         return point;
       });
-
       return { data, routes, colors: INFLOW_COLORS, validCount };
     } else {
-      // ── 특정 연도 선택: X축을 월별(1월~12월)로 드릴다운 ──
-      // profiles.name → 첫 결제 월 ("YYYY-MM" 형식)
       const nameToFirstMonth = new Map<string, string>();
       for (const [name, stats] of studentStats) {
         nameToFirstMonth.set(name, stats.firstMonth);
       }
-
-      const countMap = new Map<string, Map<string, number>>(); // "YYYY-MM" → route → count
+      const countMap = new Map<string, Map<string, number>>();
       const allRoutes = new Set<string>();
-
       for (const p of inflowProfiles) {
         if (!isValidRoute(p.inflow_route)) continue;
         const route = p.inflow_route;
         const normalizedName = normalizeName(p.name);
         const firstMonth = nameToFirstMonth.get(normalizedName);
-        // 선택 연도에 첫 결제한 수강생만 집계 (드릴다운)
         if (!firstMonth || !firstMonth.startsWith(selectedYear)) continue;
-
         allRoutes.add(route);
         if (!countMap.has(firstMonth)) countMap.set(firstMonth, new Map());
         const mMap = countMap.get(firstMonth)!;
         mMap.set(route, (mMap.get(route) ?? 0) + 1);
       }
-
-      // 경로를 누적 합산 기준 내림차순 정렬
       const routes = Array.from(allRoutes).sort((a, b) => {
         const aTotal = [...countMap.values()].reduce((s, m) => s + (m.get(a) ?? 0), 0);
         const bTotal = [...countMap.values()].reduce((s, m) => s + (m.get(b) ?? 0), 0);
         return bTotal - aTotal;
       });
-
-      // 12개월 전체를 X축으로 생성 (데이터 없는 달도 0으로 포함)
-      // X축 라벨: 'M월' 형식 (예: 1월, 2월)
       const data = Array.from({ length: 12 }, (_, i) => {
-        const monthKey = selectedYear + "-" + String(i + 1).padStart(2, "0"); // "YYYY-MM"
-        const monthLabel = (i + 1) + "월"; // "M월"
+        const monthKey = selectedYear + "-" + String(i + 1).padStart(2, "0");
+        const monthLabel = (i + 1) + "월";
         const point: Record<string, string | number> = { year: monthLabel };
         const mMap = countMap.get(monthKey) ?? new Map();
         for (const route of routes) point[route] = mMap.get(route) ?? 0;
         return point;
       });
-
       return { data, routes, colors: INFLOW_COLORS, validCount };
     }
   }, [inflowProfiles, studentStats, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -370,12 +424,9 @@ export default function StatisticsPage() {
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
   const periodTotal    = periodTuition + periodExtTotal;
 
-  // [FIX] 월평균 계산 분모 정밀화 — 실제 운영 개월 수 하드코딩
-  // 2023: 6월 오픈 → 7개월 (6~12월), 2024: 12개월, 2025: 12개월, 2026: 현재 4월 → 4개월, 전체: 35개월
   const AVG_DENOM: Record<string, number> = { "2023": 7, "2024": 12, "2025": 12, "2026": 4, "all": 35 };
   const periodAvgDenom = AVG_DENOM[selectedYear] ?? periodChartData.length;
   const periodAvg      = periodAvgDenom > 0 ? Math.round(periodTotal / periodAvgDenom) : 0;
-  const avgLabel       = selectedYear === "all" ? "월 평균 매출" : "월 평균 매출";
   const avgSubLabel    = selectedYear === "all" ? "전체 35개월 평균" : selectedYear + "년 ÷ " + periodAvgDenom + "개월";
   const totalNewPeriod = periodStudentFlow.reduce((s, d) => s + d.new, 0);
   const totalActiveStudentsCurrent = activeLesson.length;
@@ -385,9 +436,13 @@ export default function StatisticsPage() {
   const periodRangeLabel = selectedYear === "all" ? "2023 ~ 2026년 전체" : selectedYear + "년 1월 ~ 12월";
   const chartSubtitle  = selectedYear === "all" ? "연도별 수강료 + 외부수입" : selectedYear + "년 월별 수강료 + 외부수입";
 
-  // [NEW] 수입 목표 달성률: 선택 기간의 총수입 / 목표금액
-  const TARGET      = selectedYear === "all" ? TARGET_ALL : TARGET_YEAR;
-  const achievement = Math.round((periodTotal / TARGET) * 100);
+  // 목표 달성률 계산 — goalAmount(사용자가 편집 가능한 값) 기준으로 실시간 계산됨
+  const achievement = goalAmount > 0 ? Math.round((periodTotal / goalAmount) * 100) : 0;
+
+  // categoryStats totalCount (비율 계산용)
+  const categoryTotal = selectedYear === "all"
+    ? totalActiveStudentsCurrent
+    : Array.from(categoryStats.values()).reduce((s, v) => s + v.count, 0);
 
   if (loading) {
     return (
@@ -399,6 +454,7 @@ export default function StatisticsPage() {
       </div>
     );
   }
+
   return (
     <div className="space-y-6 pb-12">
 
@@ -449,7 +505,7 @@ export default function StatisticsPage() {
           <p className="text-xs text-white/60 mt-1">전년 {fmtAmount(yoyPrevTotal)}원</p>
         </div>
 
-        {/* [BUG FIX] 활성 수강생 — 선택 기간 결제이력 있는 고유 학생 수 */}
+        {/* 활성 수강생 */}
         <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-5 shadow-lg text-white">
           <div className="flex items-start justify-between mb-3">
             <p className="text-xs font-medium text-white/70">활성 수강생</p>
@@ -459,23 +515,78 @@ export default function StatisticsPage() {
           <p className="text-xs text-white/60 mt-1">{selectedYear === "all" ? "전체 기간 결제 학생" : selectedYear + "년 결제 학생"}</p>
         </div>
 
-        {/* [NEW] 수입 목표 달성률 — 진행 바 카드 */}
+        {/* ── [STEP 1] 수입 목표 달성률 — 동적 목표 수정 기능 ──────────────
+         * goalAmount: localStorage에서 불러온 값 (없으면 기본값)
+         * 연필 아이콘 클릭 → 인라인 input 편집 모드
+         * 저장 시 localStorage에 revenueGoal_${selectedYear} 키로 보관
+         * achievement(%) = periodTotal / goalAmount * 100 → Progress Bar 즉시 반영
+         ──────────────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-start justify-between mb-3">
             <p className="text-xs font-semibold text-gray-500">수입 목표 달성률</p>
             <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center text-base">🎯</div>
           </div>
           <p className="text-2xl font-bold text-gray-900">{Math.min(achievement, 999)}%</p>
-          <p className="text-xs text-gray-400 mt-0.5 mb-3">{fmtAmount(periodTotal)} / 목표 {fmtAmount(TARGET)}</p>
-          {/* 진행 바: 100% 초과 시 파란색에서 초록색으로 변경 */}
+
+          {/* 목표 금액 — 클릭 편집 */}
+          <div className="mt-0.5 mb-3">
+            {isEditingGoal ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={editGoalInput}
+                  onChange={(e) => setEditGoalInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveGoal();
+                    if (e.key === "Escape") setIsEditingGoal(false);
+                  }}
+                  className="w-28 text-xs px-2 py-1 border border-indigo-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                  placeholder="목표금액(원)"
+                />
+                <button
+                  onClick={saveGoal}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >저장</button>
+                <button
+                  onClick={() => setIsEditingGoal(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >취소</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-gray-400">
+                  {fmtAmount(periodTotal)} / 목표 {fmtAmount(goalAmount)}
+                </p>
+                <button
+                  onClick={() => {
+                    setEditGoalInput(goalAmount.toLocaleString());
+                    setIsEditingGoal(true);
+                  }}
+                  className="text-gray-300 hover:text-indigo-500 transition-colors leading-none"
+                  title="목표 금액 수정"
+                >
+                  ✏️
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Progress Bar — goalAmount 변경 시 즉시 리렌더링 */}
           <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
             <div
-              className={`h-2.5 rounded-full transition-all duration-700 ${achievement >= 100 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" : "bg-gradient-to-r from-blue-400 to-indigo-500"}`}
+              className={`h-2.5 rounded-full transition-all duration-700 ${
+                achievement >= 100
+                  ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                  : "bg-gradient-to-r from-blue-400 to-indigo-500"
+              }`}
               style={{ width: Math.min(achievement, 100) + "%" }}
             />
           </div>
           <p className={`text-xs mt-2 font-medium ${achievement >= 100 ? "text-emerald-600" : "text-gray-400"}`}>
-            {achievement >= 100 ? "목표 달성!" : "잔여 " + fmtAmount(Math.max(TARGET - periodTotal, 0)) + "원"}
+            {achievement >= 100
+              ? "목표 달성!"
+              : "잔여 " + fmtAmount(Math.max(goalAmount - periodTotal, 0)) + "원"}
           </p>
         </div>
       </div>
@@ -485,14 +596,13 @@ export default function StatisticsPage() {
 
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium text-gray-500">{avgLabel}</p>
+            <p className="text-xs font-medium text-gray-500">월 평균 매출</p>
             <span className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-sm">📊</span>
           </div>
           <p className="text-xl font-bold text-gray-900">{fmtAmount(periodAvg)}원</p>
           <p className="text-xs text-gray-400 mt-1">{avgSubLabel}</p>
         </div>
 
-        {/* [BUG FIX] 평균 수강 유지 기간 — 선택 기간 결제 학생 기준 */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-medium text-gray-500">평균 수강 유지 기간</p>
@@ -529,6 +639,7 @@ export default function StatisticsPage() {
           </div>
         </div>
       </div>
+
       {/* ── 하이라이트 배너 ── */}
       {(bestPeriod || worstPeriod) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -555,7 +666,69 @@ export default function StatisticsPage() {
         </div>
       )}
 
-      {/* ── 매출 추이 AreaChart (2/3) + 수입 구성 도넛 (1/3) ── */}
+      {/* ════════════════════════════════════════════════════════════════════
+       * ① 카테고리별 수강료 트렌드 (LineChart) — [STEP 2: 상단 배치]
+       *    기존 카테고리 카드를 제거하고 Recharts LineChart로 전면 개편.
+       *    4개 카테고리 선을 겹쳐 그려 월별/연별 수익 비교가 한눈에 가능.
+       ════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">카테고리별 수강료 트렌드</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 카테고리 수강료 합계 추이
+            </p>
+          </div>
+          {/* 카테고리별 수강료 합계 요약 (차트 우측) */}
+          <div className="flex flex-wrap gap-2 shrink-0">
+            {CATEGORIES.map((cat) => {
+              const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
+              return (
+                <span
+                  key={cat}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                  style={{ background: CATEGORY_COLORS[cat] }}
+                >
+                  {CATEGORY_LABELS[cat]} · {st.count}명
+                </span>
+              );
+            })}
+          </div>
+        </div>
+        <CategoryTrendChart
+          data={categoryTrendData}
+          categories={CATEGORIES}
+          colors={CATEGORY_COLORS}
+          labels={CATEGORY_LABELS}
+        />
+        {/* 카테고리별 인원/비중 요약 바 */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-100">
+          {CATEGORIES.map((cat) => {
+            const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
+            const pct = categoryTotal > 0 ? Math.round((st.count / categoryTotal) * 100) : 0;
+            const color = CATEGORY_COLORS[cat];
+            return (
+              <div key={cat} className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-gray-600">{CATEGORY_LABELS[cat]}</span>
+                  <span className="text-xs font-bold" style={{ color }}>{st.count}명</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div className="h-1.5 rounded-full" style={{ width: pct + "%", background: color }} />
+                </div>
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span>{fmtAmount(st.monthlyTotal)}원</span>
+                  <span>{pct}%</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+       * ② 매출 추이 AreaChart (2/3) + 수입 구성 도넛 (1/3)
+       ════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
@@ -577,102 +750,31 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      {/* ── 신규/이탈 LineChart (1/2) + [NEW] 체험→등록 전환 퍼널 (1/2) ── */}
+      {/* ════════════════════════════════════════════════════════════════════
+       * ③ 외부수입 전용 분석 Row — [STEP 3: 매출 추이 바로 아래 배치]
+       *    좌: 월별 외부수입 트렌드 LineChart (체험비·강사수수료·기타)
+       *    우: 기존 외부수입 파이프라인 도넛 차트
+       ════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between gap-3 mb-5">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">신규 유입 vs 이탈 추이</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 학생 변동</p>
-            </div>
-            <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
-              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-blue-500 inline-block" />신규</span>
-              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
-            </div>
-          </div>
-          <StatsLine data={periodStudentFlow} />
-          <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
-        </div>
 
-        {/* 유입경로 트렌드 — selectedYear에 따라 연도별/월별 드릴다운 전환 */}
+        {/* 좌: 월별 외부수입 트렌드 (새로운 LineChart) */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-base font-bold text-gray-900 mb-1">
-            {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 유입경로 트렌드
-          </h2>
-          <p className="text-xs text-gray-400 mb-1">
-            경로 확인된 수강생 {inflowTrendData.validCount}명 기준 (NULL·없음 제외)
+          <h2 className="text-base font-bold text-gray-900 mb-1">월별 외부수입 트렌드</h2>
+          <p className="text-xs text-gray-400 mb-5">
+            {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 외부수입 유형 추이
+            <span className="ml-2 text-gray-300">· 체험비 / 강사수수료 / 기타</span>
           </p>
-          <p className="text-xs text-gray-300 mb-4">
-            X축: {selectedYear === "all" ? "첫 결제 연도" : selectedYear + "년 첫 결제 월"} 기준 / Y축: 유입 수강생 수
-          </p>
-          <InflowTrendChart
-            data={inflowTrendData.data}
-            routes={inflowTrendData.routes}
-            colors={inflowTrendData.colors}
+          <ExternalTrendChart
+            data={extTrendData}
+            types={EXT_TREND_TYPES}
+            colors={EXTERNAL_COLORS}
           />
-          {/* 경로별 범례 요약 */}
-          {inflowTrendData.routes.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {inflowTrendData.routes.map((route) => {
-                const total = inflowTrendData.data.reduce(
-                  (s, d) => s + (typeof d[route] === "number" ? (d[route] as number) : 0),
-                  0
-                );
-                return (
-                  <span
-                    key={route}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
-                    style={{ background: inflowTrendData.colors[route] ?? "#94a3b8" }}
-                  >
-                    {route} {total}명
-                  </span>
-                );
-              })}
-            </div>
-          )}
         </div>
-      </div>
-      {/* ── 수강생 카테고리 현황 ── */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-base font-bold text-gray-900 mb-1">수강생 카테고리 현황</h2>
-        <p className="text-xs text-gray-400 mb-5">
-          {selectedYear === "all" ? "현재 활성 수업 기준" : selectedYear + "년 결제 이력 기준"} 카테고리별 인원 및 월 수강료
-        </p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {(() => {
-            // 비율 분모: 전체 기간은 현재 활성 수업 총수, 특정 연도는 해당 연도 집계 합계
-            const categoryTotal = selectedYear === "all"
-              ? totalActiveStudentsCurrent
-              : Array.from(categoryStats.values()).reduce((s, v) => s + v.count, 0);
-            return CATEGORIES.map((cat) => {
-            const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
-            const pct = categoryTotal > 0 ? Math.round((st.count / categoryTotal) * 100) : 0;
-            const color = CATEGORY_COLORS[cat] ?? "#94a3b8";
-            return (
-              <div key={cat} className="rounded-2xl border border-gray-100 p-4 hover:border-indigo-200 transition-colors bg-gray-50/50">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gray-700">{CATEGORY_LABELS[cat] ?? cat}</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: color }}>{st.count}명</span>
-                </div>
-                <p className="text-xl font-bold text-gray-900 mb-1">{fmtAmount(st.monthlyTotal)}원</p>
-                <p className="text-xs text-gray-400 mb-3">월 수강료 합계</p>
-                <div className="w-full bg-gray-200 rounded-full h-1.5">
-                  <div className="h-1.5 rounded-full transition-all" style={{ width: pct + "%", background: color }} />
-                </div>
-                <p className="text-xs text-gray-400 mt-1.5">전체의 {pct}%</p>
-              </div>
-            );
-          });
-          })()}
-        </div>
-      </div>
 
-      {/* ── 외부수입 파이프라인 (1/2) + VIP TOP 10 (1/2) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+        {/* 우: 기존 외부수입 파이프라인 도넛 */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-base font-bold text-gray-900 mb-1">외부수입 파이프라인 분석</h2>
-          <p className="text-xs text-gray-400 mb-5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 카테고리별 외부수입 비중</p>
+          <p className="text-xs text-gray-400 mb-4">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 카테고리별 외부수입 비중</p>
           <StatsDonut data={extPipelineData} />
           <div className="space-y-3 mt-4">
             {extPipelineData.map((d) => {
@@ -700,47 +802,108 @@ export default function StatisticsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+       * ④ 신규 유입 vs 이탈 (1/2) + 유입경로 트렌드 (1/2)
+       ════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">신규 유입 vs 이탈 추이</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 학생 변동</p>
+            </div>
+            <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
+              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-blue-500 inline-block" />신규</span>
+              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
+            </div>
+          </div>
+          <StatsLine data={periodStudentFlow} />
+          <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
+        </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-gray-900">VIP 수강생 TOP 10</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 결제 총액 순위</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs w-10">순위</th>
-                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs">이름</th>
-                  <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs">결제 총액</th>
-                  <th className="py-2.5 px-2 text-gray-400 font-medium text-xs w-28 hidden sm:table-cell">비중</th>
-                </tr>
-              </thead>
-              <tbody>
-                {periodVip10.map((v, i) => {
-                  const maxT = periodVip10[0]?.total ?? 1;
-                  const pct  = Math.round((v.total / maxT) * 100);
-                  const medal = ["🥇","🥈","🥉"][i] ?? null;
-                  return (
-                    <tr key={v.name + i} className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors">
-                      <td className="py-3 px-2">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 text-xs font-medium">{i+1}</span>}</td>
-                      <td className="py-3 px-2 font-semibold text-gray-900">{v.name}</td>
-                      <td className="py-3 px-2 text-right font-bold text-gray-900">{v.total.toLocaleString()}원</td>
-                      <td className="py-3 px-2 hidden sm:table-cell">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: pct + "%" }} /></div>
-                          <span className="text-gray-400 text-xs w-7 text-right">{pct}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {periodVip10.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">데이터 없음</td></tr>}
-              </tbody>
-            </table>
-          </div>
+          <h2 className="text-base font-bold text-gray-900 mb-1">
+            {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 유입경로 트렌드
+          </h2>
+          <p className="text-xs text-gray-400 mb-1">
+            경로 확인된 수강생 {inflowTrendData.validCount}명 기준 (NULL·없음 제외)
+          </p>
+          <p className="text-xs text-gray-300 mb-4">
+            X축: {selectedYear === "all" ? "첫 결제 연도" : selectedYear + "년 첫 결제 월"} 기준 / Y축: 유입 수강생 수
+          </p>
+          <InflowTrendChart
+            data={inflowTrendData.data}
+            routes={inflowTrendData.routes}
+            colors={inflowTrendData.colors}
+          />
+          {inflowTrendData.routes.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {inflowTrendData.routes.map((route) => {
+                const total = inflowTrendData.data.reduce(
+                  (s, d) => s + (typeof d[route] === "number" ? (d[route] as number) : 0), 0
+                );
+                return (
+                  <span
+                    key={route}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
+                    style={{ background: inflowTrendData.colors[route] ?? "#94a3b8" }}
+                  >
+                    {route} {total}명
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+       * ⑤ VIP 수강생 TOP 10 (단독 full-width)
+       *    기존에는 외부수입 파이프라인과 1:1 쌍이었으나,
+       *    파이프라인이 ③으로 이동하면서 VIP를 전체 너비로 배치
+       ════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="mb-5">
+          <h2 className="text-base font-bold text-gray-900">VIP 수강생 TOP 10</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 결제 총액 순위</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs w-10">순위</th>
+                <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs">이름</th>
+                <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs">결제 총액</th>
+                <th className="py-2.5 px-2 text-gray-400 font-medium text-xs hidden sm:table-cell">비중</th>
+              </tr>
+            </thead>
+            <tbody>
+              {periodVip10.map((v, i) => {
+                const maxT = periodVip10[0]?.total ?? 1;
+                const pct  = Math.round((v.total / maxT) * 100);
+                const medal = ["🥇","🥈","🥉"][i] ?? null;
+                return (
+                  <tr key={v.name + i} className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors">
+                    <td className="py-3 px-2">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 text-xs font-medium">{i+1}</span>}</td>
+                    <td className="py-3 px-2 font-semibold text-gray-900">{v.name}</td>
+                    <td className="py-3 px-2 text-right font-bold text-gray-900">{v.total.toLocaleString()}원</td>
+                    <td className="py-3 px-2 hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: pct + "%" }} /></div>
+                        <span className="text-gray-400 text-xs w-7 text-right">{pct}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {periodVip10.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">데이터 없음</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 }
