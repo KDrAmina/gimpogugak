@@ -28,38 +28,111 @@ type GroupedStudent = {
   categories: string[];
   lessonIds: string[]; // 그룹 내 모든 lesson ID (결제일 일괄 수정용)
   selected: boolean;
-  isToday: boolean;          // 오늘(또는 금요일 선발송 대상) 여부
-  isFridayPreSend: boolean;  // 금요일 선발송 대상 (실제 결제일은 토·일)
-  sentToday: boolean;        // 오늘 발송 완료 여부
+  /**
+   * 발송 대상 여부 플래그
+   * - 월~목: 오늘 결제일이면 true
+   * - 금요일: 오늘(금)+토+일 결제일이면 true  (말일 보정 포함)
+   * - 토·일: 항상 false  → todayCount가 0으로 표시됨
+   */
+  isToday: boolean;
+  /** 금요일 선발송 대상 여부 (실제 결제일은 내일(토) 또는 모레(일)) */
+  isFridayPreSend: boolean;
+  /**
+   * 주말 당일 결제자 여부
+   * - 오늘이 토·일이고 payDay가 오늘과 일치 → 금요일에 선발송됐어야 하는 대상
+   * - isToday는 false지만 UI에서 별도 배지로 "금요일 발송 완료/미발송" 표시
+   */
+  isWeekendTarget: boolean;
+  sentToday: boolean;     // 발송 완료 여부 (토·일은 전 금요일 로그 기준)
   sentStatus?: string;    // 'success' | 'fail' | 'invalid_phone'
   sentAt?: string;        // ISO timestamp (발송 시각)
-  alimtalkEnabled: boolean; // 알림톡 수동 ON/OFF
+  alimtalkEnabled: boolean;
 };
 
-function getKSTToday(): { day: number; dateStr: string; dayOfWeek: number; satDay: number | null; sunDay: number | null } {
+// ─── 날짜 유틸 ────────────────────────────────────────────────────────────────
+
+function formatDateStr(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+/**
+ * KST 기준 오늘 날짜/요일 정보를 반환합니다.
+ *
+ * 반환값:
+ *   kstDate     : KST 현재 시각 (Date 객체)
+ *   todayDay    : 오늘 날짜 (1~31)
+ *   todayStr    : "YYYY-MM-DD"
+ *   dayOfWeek   : 0=일 1=월 2=화 3=수 4=목 5=금 6=토
+ *   isFriday    : 오늘이 금요일인지
+ *   isWeekend   : 오늘이 토·일요일인지
+ *   satDate     : 금요일일 때만 설정 — 내일(토) Date 객체
+ *   sunDate     : 금요일일 때만 설정 — 모레(일) Date 객체
+ *   prevFridayStr : 토·일요일일 때만 설정 — 직전 금요일 날짜 문자열
+ */
+function getKSTInfo() {
   const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const dayOfWeek = kst.getUTCDay(); // 0=일, 1=월, ..., 5=금, 6=토
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const dayOfWeek = kstDate.getUTCDay(); // 0=일 1=월 … 5=금 6=토
+  const isFriday = dayOfWeek === 5;
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-  let satDay: number | null = null;
-  let sunDay: number | null = null;
+  // 금요일: 토·일 날짜 계산
+  let satDate: Date | null = null;
+  let sunDate: Date | null = null;
+  if (isFriday) {
+    satDate = new Date(kstDate.getTime() + MS_PER_DAY);
+    sunDate = new Date(kstDate.getTime() + 2 * MS_PER_DAY);
+  }
 
-  if (dayOfWeek === 5) {
-    // 금요일: 토·일 결제일(Day)도 미리 계산
-    const satDate = new Date(kst.getTime() + 24 * 60 * 60 * 1000);
-    const sunDate = new Date(kst.getTime() + 48 * 60 * 60 * 1000);
-    satDay = satDate.getUTCDate();
-    sunDay = sunDate.getUTCDate();
+  // 토·일: 직전 금요일 날짜 계산
+  // 토요일(6)이면 1일 전, 일요일(0)이면 2일 전이 금요일
+  let prevFridayStr: string | null = null;
+  if (dayOfWeek === 6) {
+    prevFridayStr = formatDateStr(new Date(kstDate.getTime() - MS_PER_DAY));
+  } else if (dayOfWeek === 0) {
+    prevFridayStr = formatDateStr(new Date(kstDate.getTime() - 2 * MS_PER_DAY));
   }
 
   return {
-    day: kst.getUTCDate(),
-    dateStr: `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`,
+    kstDate,
+    todayDay: kstDate.getUTCDate(),
+    todayStr: formatDateStr(kstDate),
     dayOfWeek,
-    satDay,
-    sunDay,
+    isFriday,
+    isWeekend,
+    satDate,
+    sunDate,
+    prevFridayStr,
   };
 }
+
+/**
+ * payDay(결제일 숫자)가 targetDate와 일치하는지 확인합니다.
+ *
+ * 말일 보정:
+ *   payDay가 targetDate가 속한 달의 마지막 날을 초과하는 경우,
+ *   해당 달의 말일로 간주하여 일치 여부를 판정합니다.
+ *
+ *   예) payDay=31, 대상 날짜 = 4월 30일
+ *       → 4월의 마지막 날은 30일이므로 31 > 30 → 말일(30)로 보정 → 일치 ✓
+ *
+ *   예) payDay=31, 대상 날짜 = 3월 15일
+ *       → targetDay=15 ≠ 31, 15 ≠ lastDay(31) → 불일치 ✗
+ */
+function matchesPayDay(payDay: number, targetDate: Date): boolean {
+  const targetDay = targetDate.getUTCDate();
+  const targetYear = targetDate.getUTCFullYear();
+  const targetMonth = targetDate.getUTCMonth() + 1; // 1-based
+  const lastDayOfMonth = new Date(targetYear, targetMonth, 0).getDate();
+
+  if (payDay === targetDay) return true;
+  // 결제일이 해당 월의 마지막 날을 초과하면 말일로 보정
+  if (payDay > lastDayOfMonth && targetDay === lastDayOfMonth) return true;
+  return false;
+}
+
+// ─── 컴포넌트 ────────────────────────────────────────────────────────────────
 
 export default function AlimtalkPage() {
   const [loading, setLoading] = useState(true);
@@ -97,12 +170,10 @@ export default function AlimtalkPage() {
     }
 
     const rawRows = (data || []) as unknown as LessonRow[];
-    // 1단계: lesson.id 기준으로 완벽하게 중복 제거 (Cartesian Product 방지)
+    // lesson.id 기준 완벽 중복 제거 (Cartesian Product 방지)
     const uniqueLessonMap = new Map<string, LessonRow>();
     for (const row of rawRows) {
-      if (!uniqueLessonMap.has(row.id)) {
-        uniqueLessonMap.set(row.id, row);
-      }
+      if (!uniqueLessonMap.has(row.id)) uniqueLessonMap.set(row.id, row);
     }
     const rows = Array.from(uniqueLessonMap.values());
 
@@ -110,9 +181,10 @@ export default function AlimtalkPage() {
       (r) => r.profiles?.status === "active" && r.profiles?.phone
     );
 
-    const { day: todayDay, satDay, sunDay } = getKSTToday();
+    // ── 날짜·요일 정보 계산 ────────────────────────────────────────────
+    const { kstDate, todayDay, todayStr, isFriday, isWeekend, satDate, sunDate, prevFridayStr } = getKSTInfo();
 
-    // 2단계: 수강생별 그룹화 (이미 고유한 lesson만 존재하므로 중복 합산 불가)
+    // ── 수강생별 그룹화 ────────────────────────────────────────────────
     const groupMap = new Map<string, GroupedStudent>();
 
     for (const row of filtered) {
@@ -145,18 +217,22 @@ export default function AlimtalkPage() {
           selected: false,
           isToday: false,
           isFridayPreSend: false,
+          isWeekendTarget: false,
           sentToday: false,
           alimtalkEnabled: row.profiles.is_alimtalk_enabled !== false,
         });
       }
     }
 
-    // 오늘 발송 완료 로그 조회 (status·created_at 포함)
-    const { dateStr: todayDateStr } = getKSTToday();
+    // ── 발송 로그 조회 ─────────────────────────────────────────────────
+    // 토·일요일: 직전 금요일 로그를 조회 (금요일에 선발송된 기록 확인)
+    // 월~금: 오늘 날짜 로그 조회
+    const logQueryDate = isWeekend && prevFridayStr ? prevFridayStr : todayStr;
+
     const { data: sentLogs } = await supabase
       .from("notification_log")
       .select("phone, status, created_at")
-      .eq("sent_date", todayDateStr)
+      .eq("sent_date", logQueryDate)
       .eq("type", "auto_cron");
 
     type SentLog = { phone: string; status: string; created_at: string };
@@ -168,20 +244,48 @@ export default function AlimtalkPage() {
         sentMap.set(r.phone, r);
       }
     }
-    const sentPhones = new Set(sentMap.keys());
 
-    // 오늘 발송 대상 마킹 (금요일이면 토·일 결제일도 포함)
+    // ── isToday / isFridayPreSend / isWeekendTarget 마킹 ──────────────
+    /**
+     * 요일별 발송 대상 판정 로직:
+     *
+     * [토·일요일]
+     *   - isToday      = false  → 발송 예정 카운트 0명 표시
+     *   - isWeekendTarget = payDay가 오늘과 일치하면 true
+     *     (이 대상자는 금요일에 이미 선발송됐으므로 "금요일 발송 완료" 배지 표시)
+     *
+     * [금요일]
+     *   - isToday      = 오늘(금) OR 내일(토) OR 모레(일) 결제일이면 true  (말일 보정 포함)
+     *   - isFridayPreSend = 토·일 결제일이면 true (실제 결제일이 주말)
+     *
+     * [월~목요일]
+     *   - isToday      = 오늘 결제일이면 true  (말일 보정 포함)
+     */
     const sorted = Array.from(groupMap.values()).map((s) => {
       if (s.paymentDate) {
         const payDay = new Date(s.paymentDate + "T00:00:00").getDate();
-        const isWeekendPreSend =
-          (satDay !== null && payDay === satDay) ||
-          (sunDay !== null && payDay === sunDay);
-        s.isToday = payDay === todayDay || isWeekendPreSend;
-        // 금요일에 토·일 결제일 대상이면 선발송 플래그 설정
-        s.isFridayPreSend = isWeekendPreSend && payDay !== todayDay;
+
+        if (isWeekend) {
+          // 토·일: 발송 카운트에는 포함하지 않되, 당일 결제자 표시용 플래그 설정
+          s.isToday = false;
+          s.isWeekendTarget = matchesPayDay(payDay, kstDate);
+          s.isFridayPreSend = false;
+        } else if (isFriday) {
+          // 금요일: 오늘 + 토 + 일 결제자 모두 포함 (말일 보정 포함)
+          const matchesToday = matchesPayDay(payDay, kstDate);
+          const matchesSat = satDate ? matchesPayDay(payDay, satDate) : false;
+          const matchesSun = sunDate ? matchesPayDay(payDay, sunDate) : false;
+          s.isToday = matchesToday || matchesSat || matchesSun;
+          s.isFridayPreSend = !matchesToday && (matchesSat || matchesSun);
+        } else {
+          // 월~목: 오늘만 (말일 보정 포함)
+          s.isToday = matchesPayDay(payDay, kstDate);
+          s.isFridayPreSend = false;
+        }
       }
-      // 발송 완료 여부 + 상태 마킹
+
+      // ── 발송 완료 여부 마킹 ──────────────────────────────────────────
+      // 토·일요일은 직전 금요일의 로그를 기준으로 함
       const cleanPhone = s.phone.replace(/[^0-9]/g, "");
       const logEntry = sentMap.get(cleanPhone) ?? sentMap.get(s.phone);
       if (logEntry) {
@@ -192,9 +296,7 @@ export default function AlimtalkPage() {
       return s;
     });
 
-    // 1순위: 발송 제외(알림톡 OFF 또는 0원) → 최하단
-    // 2순위: 결제일(payment_day) 오름차순
-    // 3순위: 이름 가나다순
+    // 정렬: 1순위 발송 제외(OFF·0원) → 최하단, 2순위 결제일 오름차순, 3순위 이름
     sorted.sort((a, b) => {
       const aExcluded = !a.alimtalkEnabled || a.totalTuition <= 0;
       const bExcluded = !b.alimtalkEnabled || b.totalTuition <= 0;
@@ -207,6 +309,9 @@ export default function AlimtalkPage() {
 
       return a.baseName.localeCompare(b.baseName, "ko");
     });
+
+    // todayDay를 loadStudents 스코프에서 사용하지 않도록 경고 방지
+    void todayDay;
 
     setStudents(sorted);
   }, [supabase]);
@@ -261,25 +366,20 @@ export default function AlimtalkPage() {
 
     setSaving(true);
     try {
-      // 현재 연월 기준으로 payment_date 생성
       const now = new Date();
       const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
       const year = kst.getUTCFullYear();
       const month = kst.getUTCMonth() + 1;
-      // 해당 월의 마지막 일 체크
       const lastDay = new Date(year, month, 0).getDate();
       const finalDay = Math.min(dayNum, lastDay);
       const newDate = `${year}-${String(month).padStart(2, "0")}-${String(finalDay).padStart(2, "0")}`;
 
-      // 그룹 내 모든 lesson의 payment_date 일괄 업데이트
       const { error } = await supabase
         .from("lessons")
         .update({ payment_date: newDate })
         .in("id", student.lessonIds);
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       setEditingIndex(null);
       setEditDay("");
@@ -307,10 +407,7 @@ export default function AlimtalkPage() {
       .update({ is_alimtalk_enabled: newValue })
       .eq("id", student.userId);
 
-    if (error) {
-      alert("저장 실패: " + error.message);
-      return;
-    }
+    if (error) { alert("저장 실패: " + error.message); return; }
 
     setStudents((prev) =>
       prev.map((s, i) => (i === index ? { ...s, alimtalkEnabled: newValue } : s))
@@ -331,15 +428,11 @@ export default function AlimtalkPage() {
 
   async function handleSend() {
     const targets = students.filter((s) => s.selected);
-    if (targets.length === 0) {
-      alert("발송 대상을 선택해주세요.");
-      return;
-    }
+    if (targets.length === 0) { alert("발송 대상을 선택해주세요."); return; }
 
     const confirmMsg = scheduledDate
       ? `${targets.length}명에게 ${new Date(scheduledDate).toLocaleString("ko-KR")}에 예약 발송합니다.`
       : `${targets.length}명에게 즉시 발송합니다.`;
-
     if (!confirm(confirmMsg)) return;
 
     setSending(true);
@@ -414,10 +507,19 @@ export default function AlimtalkPage() {
     );
   }
 
+  // ── 렌더링용 계산 ──────────────────────────────────────────────────────────
+  /**
+   * 요일별 todayCount 계산:
+   *   - 토·일: isToday가 모두 false → 0명
+   *   - 금요일: isToday에 토·일 선발송 대상까지 포함 → 3일치 합산
+   *   - 월~목: isToday = 오늘 결제일만
+   */
   const todayCount = students.filter((s) => s.isToday && s.totalTuition > 0).length;
   const selectedCount = students.filter((s) => s.selected).length;
-  const { dateStr: todayDateStr, dayOfWeek: todayDayOfWeek } = getKSTToday();
-  const isFriday = todayDayOfWeek === 5;
+
+  const { todayStr: todayDateStr, isFriday, isWeekend, dayOfWeek: todayDayOfWeek } = getKSTInfo();
+  const isSaturday = todayDayOfWeek === 6;
+  const isSunday = todayDayOfWeek === 0;
 
   return (
     <div>
@@ -432,6 +534,11 @@ export default function AlimtalkPage() {
             {isFriday && (
               <span className="ml-1 font-semibold text-orange-600">
                 오늘은 금요일 — 주말(토/일) 결제 대상자에게도 선발송됩니다.
+              </span>
+            )}
+            {isWeekend && (
+              <span className="ml-1 font-semibold text-purple-600">
+                {isSaturday ? "오늘은 토요일" : "오늘은 일요일"} — 자동 발송 없음 (금요일 선발송 완료)
               </span>
             )}
           </p>
@@ -469,11 +576,19 @@ export default function AlimtalkPage() {
           <p className="text-xs text-gray-500 mb-1">오늘 날짜 (KST)</p>
           <p className="text-lg font-bold text-gray-900">{todayDateStr}</p>
         </div>
-        <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-4">
+        <div className={`bg-white rounded-xl border shadow-sm p-4 ${isWeekend ? "border-gray-200" : "border-blue-200"}`}>
           <p className="text-xs text-gray-500 mb-1">
-            {isFriday ? "오늘 자동 발송 예정 (금+토+일)" : "오늘 자동 발송 예정"}
+            {/* 요일에 따라 카드 레이블 동적 표시 */}
+            {isWeekend
+              ? "자동 발송 예정 (주말 없음)"
+              : isFriday
+              ? "오늘 자동 발송 예정 (금+토+일)"
+              : "오늘 자동 발송 예정"}
           </p>
-          <p className="text-lg font-bold text-blue-600">{todayCount}명</p>
+          <p className={`text-lg font-bold ${isWeekend ? "text-gray-400" : "text-blue-600"}`}>
+            {/* 토·일: isToday=false 이므로 todayCount는 자동으로 0 */}
+            {todayCount}명
+          </p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs text-gray-500 mb-1">전체 활성 수강생</p>
@@ -486,11 +601,21 @@ export default function AlimtalkPage() {
         <strong>자동 발송 기준:</strong> 각 수강생의 결제일(Day)이 오늘과 일치하면 자동 발송됩니다.
         아래 표에서 <strong>결제일을 클릭</strong>하여 발송 기준일을 변경할 수 있습니다.
       </div>
-      {/* 금요일 선발송 안내 배너 (금요일에만 표시) */}
+
+      {/* 금요일 선발송 안내 (금요일에만 표시) */}
       {isFriday && (
         <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
           <strong>금요일 선발송:</strong> 금요일에는 주말(토/일) 결제 대상자에게 문자가 선발송됩니다.
           토·일요일은 스팸 방지를 위해 자동 발송이 실행되지 않습니다.
+        </div>
+      )}
+
+      {/* 주말 안내 (토·일에만 표시) */}
+      {isWeekend && (
+        <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-800">
+          <strong>주말 발송 없음:</strong> 오늘({isSaturday ? "토요일" : "일요일"})은 자동 발송이 실행되지 않습니다.
+          오늘 결제일인 수강생은 <strong>지난 금요일에 선발송</strong>되었습니다.
+          아래 목록에서 금요일 발송 결과를 확인할 수 있습니다.
         </div>
       )}
 
@@ -533,7 +658,18 @@ export default function AlimtalkPage() {
                   <tr
                     key={`${s.baseName}-${s.phone}`}
                     className={`border-b border-gray-100 ${
-                      s.isToday ? "bg-blue-50" : s.selected ? "bg-yellow-50" : "hover:bg-gray-50"
+                      // 행 배경색:
+                      // - 오늘/금요일 발송 대상(isToday) → 파란 배경
+                      // - 토·일 당일 결제자(isWeekendTarget) → 보라 배경 (금요일 이미 발송)
+                      // - 선택됨 → 노란 배경
+                      // - 기본 → 호버 시 회색
+                      s.isToday
+                        ? "bg-blue-50"
+                        : s.isWeekendTarget
+                        ? "bg-purple-50"
+                        : s.selected
+                        ? "bg-yellow-50"
+                        : "hover:bg-gray-50"
                     }`}
                   >
                     {showManualSend && (
@@ -610,19 +746,31 @@ export default function AlimtalkPage() {
                         </button>
                       )}
                     </td>
+
+                    {/* ── 상태 배지 ────────────────────────────────────────────
+                     * 우선순위:
+                     * 1. 알림톡 OFF → 발송 제외(수동)
+                     * 2. 발송 완료(성공/실패 여부 포함)
+                     * 3. 0원 제외
+                     * 4. 금요일 선발송 대상 (토·일 결제자)
+                     * 5. 오늘 발송 대기
+                     * 6. 토·일 당일 결제자 (금요일에 이미 발송됨)
+                     * 7. 일반 대기 / 미설정
+                     ──────────────────────────────────────────────────── */}
                     <td className="px-4 py-3 text-center">
                       {!s.alimtalkEnabled ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(수동)
                         </span>
                       ) : s.sentToday ? (
+                        // 발송 완료 (토·일은 금요일 발송 기록 기준)
                         s.sentStatus === "fail" || s.sentStatus === "invalid_phone" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                            🔴 발송실패
+                            🔴 발송실패{isWeekend ? " (금)" : ""}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            🟢 발송완료{s.sentAt ? ` ${formatSentTime(s.sentAt)}` : ""}
+                            🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentAt ? ` ${formatSentTime(s.sentAt)}` : ""}
                           </span>
                         )
                       ) : s.isToday && s.totalTuition <= 0 ? (
@@ -630,13 +778,18 @@ export default function AlimtalkPage() {
                           발송 제외(0원)
                         </span>
                       ) : s.isToday && s.isFridayPreSend ? (
-                        // 금요일 선발송 대기 (실제 결제일은 토·일)
+                        // 금요일: 토·일 결제자 → 오늘 선발송 예정
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
-                          🟠 선발송 대기
+                          🟠 금요일 선발송 대상
                         </span>
                       ) : s.isToday ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
                           🟡 발송대기
+                        </span>
+                      ) : s.isWeekendTarget ? (
+                        // 토·일: 오늘 결제자인데 sentToday=false → 금요일 미발송(비정상)
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
+                          ⚠️ 금요일 미발송
                         </span>
                       ) : s.paymentDate ? (
                         <span className="text-xs text-gray-400">대기</span>
@@ -644,6 +797,7 @@ export default function AlimtalkPage() {
                         <span className="text-xs text-red-500">미설정</span>
                       )}
                     </td>
+
                     <td className="px-4 py-3 text-center">
                       <button
                         type="button"
