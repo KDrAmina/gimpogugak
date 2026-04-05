@@ -27,7 +27,8 @@
       "Bash(find /c/Users/JUN/gimpo-gugak -name *.types.ts -o -name database*)",
       "Bash(npx ts-node:*)",
       "Bash(npm ls:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(cron\")"
     ]
   }
 }

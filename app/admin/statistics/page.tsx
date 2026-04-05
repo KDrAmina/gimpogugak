@@ -72,6 +72,11 @@ const CATEGORIES = ["어린이개인", "어린이단체", "성인개인", "성�
 // 외부수입 트렌드에 표시할 유형 3가지
 const EXT_TREND_TYPES = ["체험비", "강사수수료", "기타"];
 
+// YoY 연도별 겹쳐보기에 사용할 연도/색상/레이블
+const YEARS_YOY = ["2023", "2024", "2025", "2026"];
+const YEAR_COLORS: Record<string, string> = { "2023": "#6366f1", "2024": "#10b981", "2025": "#f59e0b", "2026": "#ef4444" };
+const YEAR_LABELS: Record<string, string> = { "2023": "2023년", "2024": "2024년", "2025": "2025년", "2026": "2026년" };
+
 export default function StatisticsPage() {
   const supabase = createClient();
   const [selectedYear, setSelectedYear] = useState<string>("all");
@@ -80,6 +85,7 @@ export default function StatisticsPage() {
   const [allExternal, setAllExternal]   = useState<ExternalRow[]>([]);
   const [activeLesson, setActiveLesson] = useState<ActiveLesson[]>([]);
   const [inflowProfiles, setInflowProfiles] = useState<InflowProfile[]>([]);
+  const [yoyMode, setYoyMode]               = useState<"cumulative" | "overlay">("cumulative");
 
   // ── 수입 목표 달성률 편집 상태 ────────────────────────────────────────
   const [goalAmount, setGoalAmount]     = useState<number>(DEFAULT_GOAL_ALL);
@@ -101,6 +107,7 @@ export default function StatisticsPage() {
     }
     setGoalAmount(selectedYear === "all" ? DEFAULT_GOAL_ALL : DEFAULT_GOAL_YEAR);
     setIsEditingGoal(false);
+    if (selectedYear !== "all") setYoyMode("cumulative");
   }, [selectedYear]);
 
   /**
@@ -199,6 +206,75 @@ export default function StatisticsPage() {
       return point;
     });
   }, [periods, periodType, allExternal]);
+
+  // ── [YoY] 연도별 겹쳐보기 — 1월~12월 X축, 연도별 선 ─────────────────────
+  /** 총매출(수강료+외부수입)을 월×연도 행렬로 계산 */
+  const yoyRevenueData = useMemo((): Array<Record<string, string | number>> => {
+    if (selectedYear !== "all" || yoyMode !== "overlay") return [];
+    return Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, "0");
+      const point: Record<string, string | number> = { month: (i + 1) + "월" };
+      for (const yr of YEARS_YOY) {
+        const start = yr + "-" + m + "-01";
+        const nextM = i + 2;
+        const end = nextM > 12 ? String(parseInt(yr) + 1) + "-01-01" : yr + "-" + String(nextM).padStart(2, "0") + "-01";
+        const tuition = allHistory
+          .filter((r) => { const e = getEff(r); return !!e && (e + "-01") >= start && (e + "-01") < end; })
+          .reduce((s, r) => s + tuitionOf(r), 0);
+        const external = allExternal
+          .filter((r) => r.income_date >= start && r.income_date < end)
+          .reduce((s, r) => s + r.amount, 0);
+        point[yr] = tuition + external;
+      }
+      return point;
+    });
+  }, [selectedYear, yoyMode, allHistory, allExternal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 외부수입 합계를 월×연도 행렬로 계산 */
+  const yoyExtData = useMemo((): Array<Record<string, string | number>> => {
+    if (selectedYear !== "all" || yoyMode !== "overlay") return [];
+    return Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, "0");
+      const point: Record<string, string | number> = { month: (i + 1) + "월" };
+      for (const yr of YEARS_YOY) {
+        const start = yr + "-" + m + "-01";
+        const nextM = i + 2;
+        const end = nextM > 12 ? String(parseInt(yr) + 1) + "-01-01" : yr + "-" + String(nextM).padStart(2, "0") + "-01";
+        point[yr] = allExternal
+          .filter((r) => r.income_date >= start && r.income_date < end)
+          .reduce((s, r) => s + r.amount, 0);
+      }
+      return point;
+    });
+  }, [selectedYear, yoyMode, allExternal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 신규 유입 수를 월×연도 행렬로 계산 (InflowTrendChart 형식: year 키 사용) */
+  const yoyFlowData = useMemo((): Array<Record<string, string | number>> => {
+    if (selectedYear !== "all" || yoyMode !== "overlay") return [];
+    // 각 학생의 첫 결제 월을 찾아 "YYYY-MM" → 신규 수 집계
+    const firstMonthMap = new Map<string, string>();
+    for (const row of allHistory) {
+      const e = getEff(row);
+      if (!e) continue;
+      const name = row.lessons?.profiles?.name;
+      if (!name) continue;
+      const nName = normalizeName(name);
+      const prev = firstMonthMap.get(nName);
+      if (!prev || e < prev) firstMonthMap.set(nName, e);
+    }
+    const newMap = new Map<string, number>(); // "YYYY-MM" → count
+    for (const [, firstMonth] of firstMonthMap) {
+      newMap.set(firstMonth, (newMap.get(firstMonth) ?? 0) + 1);
+    }
+    return Array.from({ length: 12 }, (_, i) => {
+      const m = String(i + 1).padStart(2, "0");
+      const point: Record<string, string | number> = { year: (i + 1) + "월" };
+      for (const yr of YEARS_YOY) {
+        point[yr] = newMap.get(yr + "-" + m) ?? 0;
+      }
+      return point;
+    });
+  }, [selectedYear, yoyMode, allHistory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const studentStats = useMemo(() => {
     const map = new Map<string, { firstMonth: string; lastMonth: string; isActive: boolean; total: number; phone: string | null }>();
@@ -482,6 +558,27 @@ export default function StatisticsPage() {
         </div>
       </div>
 
+      {/* ── YoY 모드 토글 (전체 기간 선택 시에만 표시) ── */}
+      {selectedYear === "all" && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 font-medium">차트 보기:</span>
+          {(["cumulative", "overlay"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setYoyMode(mode)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                yoyMode === mode
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-white text-gray-500 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+              }`}
+            >
+              {mode === "cumulative" ? "누적 보기" : "연도별 겹쳐보기"}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── KPI Row 1: 4 gradient cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
@@ -734,14 +831,27 @@ export default function StatisticsPage() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
             <div>
               <h2 className="text-base font-bold text-gray-900">매출 추이</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{chartSubtitle}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {yoyMode === "overlay"
+                  ? "월별 연도간 총매출 비교 (YoY)"
+                  : chartSubtitle}
+              </p>
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs text-gray-400">기간 합산</p>
               <p className="text-lg font-bold text-indigo-600">{fmtAmount(periodTotal)}원</p>
             </div>
           </div>
-          <StatsArea data={periodChartData} />
+          {yoyMode === "overlay" ? (
+            <CategoryTrendChart
+              data={yoyRevenueData}
+              categories={YEARS_YOY}
+              colors={YEAR_COLORS}
+              labels={YEAR_LABELS}
+            />
+          ) : (
+            <StatsArea data={periodChartData} />
+          )}
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-base font-bold text-gray-900 mb-1">수입 구성 분석</h2>
@@ -755,20 +865,30 @@ export default function StatisticsPage() {
        *    좌: 월별 외부수입 트렌드 LineChart (체험비·강사수수료·기타)
        *    우: 기존 외부수입 파이프라인 도넛 차트
        ════════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* 좌: 월별 외부수입 트렌드 (새로운 LineChart) */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        {/* 좌: 월별 외부수입 트렌드 (col-span-2 → 매출 추이와 너비 일치) */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-base font-bold text-gray-900 mb-1">월별 외부수입 트렌드</h2>
           <p className="text-xs text-gray-400 mb-5">
-            {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 외부수입 유형 추이
-            <span className="ml-2 text-gray-300">· 체험비 / 강사수수료 / 기타</span>
+            {yoyMode === "overlay"
+              ? "월별 연도간 외부수입 비교 (YoY)"
+              : (selectedYear === "all" ? "연도별" : selectedYear + "년 월별") + " 외부수입 유형 추이"}
+            {yoyMode !== "overlay" && <span className="ml-2 text-gray-300">· 체험비 / 강사수수료 / 기타</span>}
           </p>
-          <ExternalTrendChart
-            data={extTrendData}
-            types={EXT_TREND_TYPES}
-            colors={EXTERNAL_COLORS}
-          />
+          {yoyMode === "overlay" ? (
+            <ExternalTrendChart
+              data={yoyExtData}
+              types={YEARS_YOY}
+              colors={YEAR_COLORS}
+            />
+          ) : (
+            <ExternalTrendChart
+              data={extTrendData}
+              types={EXT_TREND_TYPES}
+              colors={EXTERNAL_COLORS}
+            />
+          )}
         </div>
 
         {/* 우: 기존 외부수입 파이프라인 도넛 */}
@@ -812,15 +932,33 @@ export default function StatisticsPage() {
           <div className="flex items-start justify-between gap-3 mb-5">
             <div>
               <h2 className="text-base font-bold text-gray-900">신규 유입 vs 이탈 추이</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 학생 변동</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {yoyMode === "overlay"
+                  ? "월별 연도간 신규 유입 비교 (YoY)"
+                  : (selectedYear === "all" ? "연도별" : selectedYear + "년 월별") + " 학생 변동"}
+              </p>
             </div>
-            <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
-              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-blue-500 inline-block" />신규</span>
-              <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
-            </div>
+            {yoyMode !== "overlay" && (
+              <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
+                <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-blue-500 inline-block" />신규</span>
+                <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
+              </div>
+            )}
           </div>
-          <StatsLine data={periodStudentFlow} />
-          <p className="text-xs text-gray-300 mt-3">※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준</p>
+          {yoyMode === "overlay" ? (
+            <InflowTrendChart
+              data={yoyFlowData}
+              routes={YEARS_YOY}
+              colors={YEAR_COLORS}
+            />
+          ) : (
+            <StatsLine data={periodStudentFlow} />
+          )}
+          <p className="text-xs text-gray-300 mt-3">
+            {yoyMode === "overlay"
+              ? "※ 신규: 해당 월에 첫 결제한 학생 수 (연도별 비교)"
+              : "※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준"}
+          </p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
