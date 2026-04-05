@@ -387,11 +387,13 @@ export default function StatisticsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 10);
   }, [allHistory, selectedYear]);
 
-  /** 결제 횟수(납부 개월 수) 기준 장기 수강생 TOP 10 — normalizeName 적용 */
+  /** 납부 개월 수(unique YYYY-MM) 기준 장기 수강생 TOP 10 — normalizeName 적용
+   *  같은 달에 복수 과목을 납부해도 1개월로 카운팅 */
   const periodLongevityTop10 = useMemo(() => {
-    const map = new Map<string, { name: string; count: number; firstMonth: string }>();
+    // name → { months: Set<YYYY-MM>, firstMonth: string }
+    const map = new Map<string, { name: string; months: Set<string>; firstMonth: string }>();
     for (const row of allHistory) {
-      const eff = getEff(row);
+      const eff = getEff(row); // YYYY-MM
       if (!eff) continue;
       if (selectedYear !== "all" && !eff.startsWith(selectedYear)) continue;
       const prof = row.lessons?.profiles;
@@ -399,16 +401,16 @@ export default function StatisticsPage() {
       const name = normalizeName(prof.name);
       const prev = map.get(name);
       if (!prev) {
-        map.set(name, { name, count: 1, firstMonth: eff });
+        map.set(name, { name, months: new Set([eff]), firstMonth: eff });
       } else {
-        map.set(name, {
-          name,
-          count: prev.count + 1,
-          firstMonth: eff < prev.firstMonth ? eff : prev.firstMonth,
-        });
+        prev.months.add(eff);
+        if (eff < prev.firstMonth) prev.firstMonth = eff;
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 10);
+    return Array.from(map.values())
+      .map(({ name, months, firstMonth }) => ({ name, count: months.size, firstMonth }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
   }, [allHistory, selectedYear]);
 
   const incomeBreakdown = useMemo((): PieData[] => {
