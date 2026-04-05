@@ -387,6 +387,30 @@ export default function StatisticsPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 10);
   }, [allHistory, selectedYear]);
 
+  /** 결제 횟수(납부 개월 수) 기준 장기 수강생 TOP 10 — normalizeName 적용 */
+  const periodLongevityTop10 = useMemo(() => {
+    const map = new Map<string, { name: string; count: number; firstMonth: string }>();
+    for (const row of allHistory) {
+      const eff = getEff(row);
+      if (!eff) continue;
+      if (selectedYear !== "all" && !eff.startsWith(selectedYear)) continue;
+      const prof = row.lessons?.profiles;
+      if (!prof?.name) continue;
+      const name = normalizeName(prof.name);
+      const prev = map.get(name);
+      if (!prev) {
+        map.set(name, { name, count: 1, firstMonth: eff });
+      } else {
+        map.set(name, {
+          name,
+          count: prev.count + 1,
+          firstMonth: eff < prev.firstMonth ? eff : prev.firstMonth,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 10);
+  }, [allHistory, selectedYear]);
+
   const incomeBreakdown = useMemo((): PieData[] => {
     const tuit = periodChartData.reduce((s, d) => s + d.tuition, 0);
     const filteredExt = selectedYear === "all" ? allExternal : allExternal.filter(r => r.income_date.startsWith(selectedYear));
@@ -1049,48 +1073,89 @@ export default function StatisticsPage() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-       * ⑤ VIP 수강생 TOP 10 (단독 full-width)
-       *    기존에는 외부수입 파이프라인과 1:1 쌍이었으나,
-       *    파이프라인이 ③으로 이동하면서 VIP를 전체 너비로 배치
+       * ⑤ VIP 위젯 2단 분할
+       *    좌: 결제 총액 순위 TOP 10
+       *    우: 결제 횟수(납부 개월 수) 기준 장기 수강생 TOP 10 (신설)
        ════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="mb-5">
-          <h2 className="text-base font-bold text-gray-900">VIP 수강생 TOP 10</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 결제 총액 순위</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* 좌: 결제 총액 기준 VIP TOP 10 */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-gray-900">VIP 수강생 TOP 10</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 결제 총액 순위</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs w-10">순위</th>
+                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs">이름</th>
+                  <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs">결제 총액</th>
+                  <th className="py-2.5 px-2 text-gray-400 font-medium text-xs hidden sm:table-cell">비중</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodVip10.map((v, i) => {
+                  const maxT = periodVip10[0]?.total ?? 1;
+                  const pct  = Math.round((v.total / maxT) * 100);
+                  const medal = ["🥇","🥈","🥉"][i] ?? null;
+                  return (
+                    <tr key={v.name + i} className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors">
+                      <td className="py-3 px-2">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 text-xs font-medium">{i+1}</span>}</td>
+                      <td className="py-3 px-2 font-semibold text-gray-900">{v.name}</td>
+                      <td className="py-3 px-2 text-right font-bold text-gray-900">{v.total.toLocaleString()}원</td>
+                      <td className="py-3 px-2 hidden sm:table-cell">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: pct + "%" }} /></div>
+                          <span className="text-gray-400 text-xs w-7 text-right">{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {periodVip10.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">데이터 없음</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs w-10">순위</th>
-                <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs">이름</th>
-                <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs">결제 총액</th>
-                <th className="py-2.5 px-2 text-gray-400 font-medium text-xs hidden sm:table-cell">비중</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periodVip10.map((v, i) => {
-                const maxT = periodVip10[0]?.total ?? 1;
-                const pct  = Math.round((v.total / maxT) * 100);
-                const medal = ["🥇","🥈","🥉"][i] ?? null;
-                return (
-                  <tr key={v.name + i} className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors">
-                    <td className="py-3 px-2">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 text-xs font-medium">{i+1}</span>}</td>
-                    <td className="py-3 px-2 font-semibold text-gray-900">{v.name}</td>
-                    <td className="py-3 px-2 text-right font-bold text-gray-900">{v.total.toLocaleString()}원</td>
-                    <td className="py-3 px-2 hidden sm:table-cell">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: pct + "%" }} /></div>
-                        <span className="text-gray-400 text-xs w-7 text-right">{pct}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {periodVip10.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">데이터 없음</td></tr>}
-            </tbody>
-          </table>
+
+        {/* 우: 결제 횟수(납부 개월 수) 기준 장기 수강생 TOP 10 */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-gray-900">장기 수강생 TOP 10</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 총 납부 횟수 순위</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs w-10">순위</th>
+                  <th className="text-left py-2.5 px-2 text-gray-400 font-medium text-xs">이름</th>
+                  <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs">납부 횟수</th>
+                  <th className="text-right py-2.5 px-2 text-gray-400 font-medium text-xs hidden sm:table-cell">최초 등록</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodLongevityTop10.map((v, i) => {
+                  const medal = ["🥇","🥈","🥉"][i] ?? null;
+                  const [fy, fm] = v.firstMonth.split("-");
+                  const firstLabel = `${fy}년 ${parseInt(fm)}월`;
+                  return (
+                    <tr key={v.name + i} className="border-b border-gray-50 hover:bg-teal-50/30 transition-colors">
+                      <td className="py-3 px-2">{medal ? <span className="text-lg">{medal}</span> : <span className="text-gray-400 text-xs font-medium">{i+1}</span>}</td>
+                      <td className="py-3 px-2 font-semibold text-gray-900">{v.name}</td>
+                      <td className="py-3 px-2 text-right font-bold text-teal-600">{v.count}회</td>
+                      <td className="py-3 px-2 text-right text-xs text-gray-400 hidden sm:table-cell">{firstLabel}</td>
+                    </tr>
+                  );
+                })}
+                {periodLongevityTop10.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-400 text-sm">데이터 없음</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </div>
 
     </div>

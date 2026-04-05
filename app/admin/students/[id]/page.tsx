@@ -336,8 +336,11 @@ export default function StudentDetailPage() {
 
   const activeLesson = lessons.find(l => l.is_active);
   const paymentHistory = history.filter(h => h.status === "결제 완료");
-  const currentMonthStr = new Date().toISOString().substring(0, 7);
-  const isPaidThisMonth = activeLesson?.payment_date?.substring(0, 7) === currentMonthStr;
+  // KST 로컬 날짜 기준으로 현재 연월 계산 (UTC toISOString 사용 시 자정~9시 사이 월 오차 발생)
+  const _now = new Date();
+  const currentMonthStr = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}`;
+  // lesson_history 결제 완료 기록 기준으로 이번 달 납부 여부 확인 (lessons.payment_date는 갱신 안 될 수 있음)
+  const isPaidThisMonth = paymentHistory.some(h => h.completed_date?.substring(0, 7) === currentMonthStr);
   const totalPaidAmount = paymentHistory.reduce((sum, h) => sum + (h.tuition_amount || 0), 0);
 
   return (
