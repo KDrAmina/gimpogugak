@@ -138,3 +138,4 @@ Use `server.ts` for Server Component DB queries.
 - Version and changelog live in `lib/changelog.ts`.
 - All `changes` entries must be in **Korean**.
 - Increment version for each significant change.
+
