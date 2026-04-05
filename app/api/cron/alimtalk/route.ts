@@ -3,7 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 
 /**
  * Vercel Cron: 매일 KST 오전 10시(UTC 01:00) 실행
- * payment_date의 '일(Day)'이 오늘(KST)과 일치하는 활성 수강생에게 알림톡 자동 발송
+ *
+ * ── 요일별 발송 전략 ──────────────────────────────────────────────
+ * 월~목 : 오늘 결제일인 수강생만 발송
+ * 금요일 : 오늘(금) + 내일(토) + 모레(일) 결제일 수강생을 한 번에 선발송
+ * 토~일 : 즉시 종료 (금요일에 이미 발송 완료)
+ * ────────────────────────────────────────────────────────────────
  */
 
 export const dynamic = "force-dynamic";
@@ -12,7 +17,10 @@ export const maxDuration = 60;
 // Vercel Cron 인증 헤더 검증
 function verifyCronAuth(req: Request): boolean {
   const authHeader = req.headers.get("authorization");
-  return authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const cronSecret = process.env.CRON_SECRET;
+  // CRON_SECRET 미설정 시 Vercel 환경에서는 항상 거부 (의도치 않은 공개 접근 차단)
+  if (!cronSecret) return false;
+  return authHeader === `Bearer ${cronSecret}`;
 }
 
 type LessonRow = {
@@ -34,17 +42,21 @@ type GroupedTarget = {
   phone: string;
   totalTuition: number;
   paymentDate: string | null;
+  /** 알림톡 템플릿 #{결제일} 변수에 표시할 실제 날짜 문자열 (예: "4월 5일") */
+  actualPaymentDateStr: string;
+  /** notification_log에 기록할 sent_date (금요일 선발송은 오늘 날짜로 통일) */
+  logDate: string;
   categories: string[];
   lessonIds: string[];
 };
 
 export async function GET(req: Request) {
-  // Vercel Cron 인증 (프로덕션에서만)
+  // ── 1. Vercel 환경에서만 CRON_SECRET 인증 ──────────────────────────
   if (process.env.VERCEL && !verifyCronAuth(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 환경변수 런타임 로드 (함수 내부에서만 접근)
+  // ── 2. 환경변수 로드 ───────────────────────────────────────────────
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
   const apiKey = process.env.SOLAPI_API_KEY as string;
@@ -53,13 +65,14 @@ export async function GET(req: Request) {
   const templateId = process.env.SOLAPI_TEMPLATE_ID as string;
   const senderPhone = process.env.SOLAPI_SENDER_PHONE as string;
 
-  console.log("크론 알림톡 환경변수 로드 상태:", { apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId, templateId: !!templateId, senderPhone: !!senderPhone, supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey });
+  console.log("크론 알림톡 환경변수 로드 상태:", {
+    apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId,
+    templateId: !!templateId, senderPhone: !!senderPhone,
+    supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey,
+  });
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json(
-      { error: "Supabase 환경변수 누락" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Supabase 환경변수 누락" }, { status: 500 });
   }
 
   const missingSolapi: string[] = [];
@@ -80,16 +93,60 @@ export async function GET(req: Request) {
   // Service Role 키로 RLS 우회 (Cron은 사용자 세션 없음)
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // KST 기준 오늘 날짜의 '일(Day)' 계산
+  // ── 3. KST 기준 오늘 날짜·요일 계산 ──────────────────────────────
   const now = new Date();
   const kstOffset = 9 * 60 * 60 * 1000;
   const kstNow = new Date(now.getTime() + kstOffset);
+
   const todayDay = kstNow.getUTCDate();
   const todayStr = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, "0")}-${String(todayDay).padStart(2, "0")}`;
 
+  // 0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토
+  const dayOfWeek = kstNow.getUTCDay();
+
+  // ── 4. 토·일요일: 즉시 종료 (금요일 선발송으로 이미 처리됨) ────────
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    console.log(`오늘(${todayStr})은 주말 — 금요일 선발송으로 이미 처리되었으므로 발송 없음`);
+    return NextResponse.json({
+      message: `주말(${todayStr}) 발송 없음 — 금요일에 선발송 완료`,
+      sent: 0,
+      skipped: true,
+    });
+  }
+
+  // ── 5. 금요일: 이번 주 토·일요일 날짜(Day) 사전 계산 ────────────────
+  /**
+   * 금요일 선발송 로직:
+   * 오늘(금), 내일(토), 모레(일) 결제일인 수강생 모두 포함.
+   *
+   * 말일 보정:
+   *   예) 금=3월 28일 → 토=29, 일=30  (같은 달)
+   *   예) 금=3월 30일 → 토=31, 일=4월 1일  (일요일이 다음 달로 넘어감)
+   * → satDate·sunDate를 Date 객체로 직접 계산하므로 자동으로 월 경계 처리됨.
+   */
+  const isFriday = dayOfWeek === 5;
+
+  let satDay: number | null = null;
+  let sunDay: number | null = null;
+  let satDateStr: string | null = null;
+  let sunDateStr: string | null = null;
+
+  if (isFriday) {
+    const satDate = new Date(kstNow.getTime() + 24 * 60 * 60 * 1000);
+    const sunDate = new Date(kstNow.getTime() + 48 * 60 * 60 * 1000);
+
+    satDay = satDate.getUTCDate();
+    sunDay = sunDate.getUTCDate();
+
+    satDateStr = `${satDate.getUTCFullYear()}-${String(satDate.getUTCMonth() + 1).padStart(2, "0")}-${String(satDay).padStart(2, "0")}`;
+    sunDateStr = `${sunDate.getUTCFullYear()}-${String(sunDate.getUTCMonth() + 1).padStart(2, "0")}-${String(sunDay).padStart(2, "0")}`;
+
+    console.log(`금요일 선발송: 오늘(${todayStr}) + 토(${satDateStr}) + 일(${sunDateStr}) 대상 포함`);
+  }
+
   try {
-    // 활성 수강생 중 payment_date가 있는 레슨 조회
-    // ⚠️ 철통 방어: is_active=true만 조회 → 과거 이력(is_active=false)은 합산에서 원천 차단
+    // ── 6. 활성 수강생 조회 ───────────────────────────────────────────
+    // ⚠️ is_active=true 만 조회 → 과거 이력(is_active=false) 원천 차단
     const { data, error } = await supabase
       .from("lessons")
       .select(`
@@ -108,7 +165,8 @@ export async function GET(req: Request) {
     }
 
     const rawRows = (data || []) as unknown as LessonRow[];
-    // lesson.id 기준으로 완벽하게 중복 제거 (Cartesian Product 방지)
+
+    // lesson.id 기준 중복 제거 (Cartesian Product 방지)
     const uniqueLessonMap = new Map<string, LessonRow>();
     for (const row of rawRows) {
       if (!uniqueLessonMap.has(row.id)) {
@@ -117,27 +175,54 @@ export async function GET(req: Request) {
     }
     const rows = Array.from(uniqueLessonMap.values());
 
-    // payment_date의 '일'이 오늘과 일치하는 수강생 필터 (수동 제외 대상 원천 차단)
-    const todayTargets = rows.filter((r) => {
-      if (!r.payment_date || !r.profiles?.phone || r.profiles.status !== "active") {
-        return false;
-      }
-      if (r.profiles.is_alimtalk_enabled === false) {
-        return false;
-      }
+    // ── 7. 오늘(+금요일이면 토·일) 발송 대상 필터링 ───────────────────
+    /**
+     * 각 row에 actualDateStr(실제 결제 예정 날짜 문자열)을 붙여 반환.
+     * 이 값은 템플릿 #{결제일} 변수에 사용됩니다.
+     *
+     * 말일 보정 예시:
+     *   payment_date = "2026-01-31" → payDay = 31
+     *   금요일이 3월 29일이라면 satDay=30, sunDay=31
+     *   → payDay(31) === sunDay(31) 이므로 일요일(3월 31일) 대상으로 포함
+     *   → actualDateStr = "2026-03-31" (sunDateStr)
+     *
+     *   금요일이 3월 30일이라면 satDay=31, sunDay=1(4월 1일)
+     *   → payDay(31) === satDay(31) 이므로 토요일(3월 31일) 대상으로 포함
+     *   → payDay=1인 수강생은 sunDay(1)에 해당 → actualDateStr = sunDateStr(4월 1일)
+     */
+    type FilteredRow = LessonRow & { actualDateStr: string };
+    const todayTargets: FilteredRow[] = [];
+
+    for (const r of rows) {
+      if (!r.payment_date || !r.profiles?.phone || r.profiles.status !== "active") continue;
+      if (r.profiles.is_alimtalk_enabled === false) continue;
+
       const payDay = new Date(r.payment_date + "T00:00:00").getDate();
-      return payDay === todayDay;
-    });
+
+      if (payDay === todayDay) {
+        todayTargets.push({ ...r, actualDateStr: todayStr });
+      } else if (isFriday && satDay !== null && payDay === satDay) {
+        // 토요일 선발송 대상: 실제 결제일은 satDateStr
+        todayTargets.push({ ...r, actualDateStr: satDateStr! });
+      } else if (isFriday && sunDay !== null && payDay === sunDay) {
+        // 일요일 선발송 대상: 실제 결제일은 sunDateStr
+        todayTargets.push({ ...r, actualDateStr: sunDateStr! });
+      }
+    }
 
     if (todayTargets.length === 0) {
+      const coverageMsg = isFriday
+        ? `오늘(${todayStr})/토(${satDateStr})/일(${sunDateStr})`
+        : `오늘(${todayStr})`;
       return NextResponse.json({
-        message: `오늘(${todayStr}) 발송 대상 없음`,
+        message: `${coverageMsg} 발송 대상 없음`,
         sent: 0,
         todayDay,
       });
     }
 
-    // 중복 발송 방지: 오늘 이미 발송된 수강생 확인
+    // ── 8. 중복 발송 방지: 오늘 이미 발송된 수강생 확인 ─────────────────
+    // 금요일 선발송도 sent_date = 오늘(금요일)로 통일 기록하므로 오늘 날짜만 조회
     const { data: sentToday } = await supabase
       .from("notification_log")
       .select("phone")
@@ -148,7 +233,7 @@ export async function GET(req: Request) {
       (sentToday || []).map((r: { phone: string }) => r.phone)
     );
 
-    // 동일인물 그룹화 (이름 숫자 제거 + 연락처)
+    // ── 9. 동일인물 그룹화 (이름 숫자 제거 + 연락처) ────────────────────
     const groupMap = new Map<string, GroupedTarget>();
 
     for (const row of todayTargets) {
@@ -159,6 +244,10 @@ export async function GET(req: Request) {
 
       if (alreadySentPhones.has(phone)) continue;
 
+      // 실제 결제 예정 날짜 문자열 ("M월 D일" 형식)
+      const actualDate = new Date(row.actualDateStr + "T00:00:00");
+      const actualPaymentDateStr = `${actualDate.getUTCMonth() + 1}월 ${actualDate.getUTCDate()}일`;
+
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
         existing.totalTuition += row.tuition_amount || 0;
@@ -166,19 +255,27 @@ export async function GET(req: Request) {
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }
+        // 복수 수업 시 가장 이른 actualDateStr 우선 (금요일에 금+토+일 혼합 그룹의 경우)
+        if (row.actualDateStr < existing.logDate) {
+          existing.logDate = row.actualDateStr;
+          existing.actualPaymentDateStr = actualPaymentDateStr;
+        }
       } else {
         groupMap.set(key, {
           baseName,
           phone,
           totalTuition: row.tuition_amount || 0,
           paymentDate: row.payment_date,
+          actualPaymentDateStr,
+          // 금요일 선발송도 오늘 날짜로 기록 → UI의 발송완료 배지가 오늘 조회에서 정상 표시됨
+          logDate: todayStr,
           categories: row.category ? [row.category] : [],
           lessonIds: [row.id],
         });
       }
     }
 
-    // 수강료 0원 이하인 대상 제외
+    // 수강료 0원 이하 제외
     const targets = Array.from(groupMap.values()).filter(
       (t) => t.totalTuition > 0
     );
@@ -191,26 +288,20 @@ export async function GET(req: Request) {
       });
     }
 
-    // Solapi SDK 동적 import
+    // ── 10. Solapi SDK로 알림톡 발송 ─────────────────────────────────
     const { SolapiMessageService } = await import("solapi");
     const messageService = new SolapiMessageService(apiKey, apiSecret);
 
     let success = 0;
     let fail = 0;
-    const logs: { phone: string; name: string; status: string }[] = [];
+    const logs: { phone: string; name: string; status: string; logDate: string }[] = [];
 
     for (const target of targets) {
       const phone = target.phone.replace(/[^0-9]/g, "");
       if (phone.length < 10) {
         fail++;
-        logs.push({ phone, name: target.baseName, status: "invalid_phone" });
+        logs.push({ phone, name: target.baseName, status: "invalid_phone", logDate: target.logDate });
         continue;
-      }
-
-      let paymentDateStr = "-";
-      if (target.paymentDate) {
-        const d = new Date(target.paymentDate + "T00:00:00");
-        paymentDateStr = `${d.getMonth() + 1}월 ${d.getDate()}일`;
       }
 
       try {
@@ -223,26 +314,29 @@ export async function GET(req: Request) {
             variables: {
               "#{이름}": target.baseName,
               "#{수강료}": target.totalTuition.toLocaleString("ko-KR"),
-              "#{결제일}": paymentDateStr,
+              // 금요일 선발송 시 실제 결제 예정일(토/일)을 표시
+              "#{결제일}": target.actualPaymentDateStr,
             },
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         success++;
-        logs.push({ phone, name: target.baseName, status: "success" });
+        logs.push({ phone, name: target.baseName, status: "success", logDate: target.logDate });
       } catch (err) {
         console.error(`알림톡 발송 실패 (${target.baseName}):`, err);
         fail++;
-        logs.push({ phone, name: target.baseName, status: "fail" });
+        logs.push({ phone, name: target.baseName, status: "fail", logDate: target.logDate });
       }
     }
 
-    // notification_log에 발송 기록 저장
+    // ── 11. notification_log 기록 ─────────────────────────────────────
+    // 금요일 선발송도 sent_date = 오늘(금요일) 날짜로 통일 기록
+    // → UI 페이지의 발송완료 배지가 오늘 날짜 조회에서 정상 표시됨
     const logInserts = logs.map((l) => ({
       phone: l.phone,
       name: l.name,
       status: l.status,
-      sent_date: todayStr,
+      sent_date: todayStr, // 항상 오늘(발송 실행 날짜) 기록
       type: "auto_cron",
       created_at: new Date().toISOString(),
     }));
@@ -257,9 +351,14 @@ export async function GET(req: Request) {
       }
     }
 
+    const isFridayPreSend = isFriday && (satDay !== null || sunDay !== null);
     return NextResponse.json({
-      message: `자동 발송 완료 (${todayStr})`,
+      message: isFridayPreSend
+        ? `금요일 선발송 완료 (${todayStr} — 토:${satDateStr}, 일:${sunDateStr} 포함)`
+        : `자동 발송 완료 (${todayStr})`,
       todayDay,
+      dayOfWeek,
+      isFridayPreSend,
       success,
       fail,
       total: targets.length,

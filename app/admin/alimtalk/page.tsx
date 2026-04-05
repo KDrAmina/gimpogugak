@@ -28,19 +28,36 @@ type GroupedStudent = {
   categories: string[];
   lessonIds: string[]; // 그룹 내 모든 lesson ID (결제일 일괄 수정용)
   selected: boolean;
-  isToday: boolean;       // 오늘 자동 발송 대상 여부
-  sentToday: boolean;     // 오늘 발송 완료 여부
+  isToday: boolean;          // 오늘(또는 금요일 선발송 대상) 여부
+  isFridayPreSend: boolean;  // 금요일 선발송 대상 (실제 결제일은 토·일)
+  sentToday: boolean;        // 오늘 발송 완료 여부
   sentStatus?: string;    // 'success' | 'fail' | 'invalid_phone'
   sentAt?: string;        // ISO timestamp (발송 시각)
   alimtalkEnabled: boolean; // 알림톡 수동 ON/OFF
 };
 
-function getKSTToday(): { day: number; dateStr: string } {
+function getKSTToday(): { day: number; dateStr: string; dayOfWeek: number; satDay: number | null; sunDay: number | null } {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const dayOfWeek = kst.getUTCDay(); // 0=일, 1=월, ..., 5=금, 6=토
+
+  let satDay: number | null = null;
+  let sunDay: number | null = null;
+
+  if (dayOfWeek === 5) {
+    // 금요일: 토·일 결제일(Day)도 미리 계산
+    const satDate = new Date(kst.getTime() + 24 * 60 * 60 * 1000);
+    const sunDate = new Date(kst.getTime() + 48 * 60 * 60 * 1000);
+    satDay = satDate.getUTCDate();
+    sunDay = sunDate.getUTCDate();
+  }
+
   return {
     day: kst.getUTCDate(),
     dateStr: `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`,
+    dayOfWeek,
+    satDay,
+    sunDay,
   };
 }
 
@@ -93,7 +110,7 @@ export default function AlimtalkPage() {
       (r) => r.profiles?.status === "active" && r.profiles?.phone
     );
 
-    const { day: todayDay } = getKSTToday();
+    const { day: todayDay, satDay, sunDay } = getKSTToday();
 
     // 2단계: 수강생별 그룹화 (이미 고유한 lesson만 존재하므로 중복 합산 불가)
     const groupMap = new Map<string, GroupedStudent>();
@@ -127,6 +144,7 @@ export default function AlimtalkPage() {
           lessonIds: [row.id],
           selected: false,
           isToday: false,
+          isFridayPreSend: false,
           sentToday: false,
           alimtalkEnabled: row.profiles.is_alimtalk_enabled !== false,
         });
@@ -152,11 +170,16 @@ export default function AlimtalkPage() {
     }
     const sentPhones = new Set(sentMap.keys());
 
-    // 오늘 발송 대상 마킹
+    // 오늘 발송 대상 마킹 (금요일이면 토·일 결제일도 포함)
     const sorted = Array.from(groupMap.values()).map((s) => {
       if (s.paymentDate) {
         const payDay = new Date(s.paymentDate + "T00:00:00").getDate();
-        s.isToday = payDay === todayDay;
+        const isWeekendPreSend =
+          (satDay !== null && payDay === satDay) ||
+          (sunDay !== null && payDay === sunDay);
+        s.isToday = payDay === todayDay || isWeekendPreSend;
+        // 금요일에 토·일 결제일 대상이면 선발송 플래그 설정
+        s.isFridayPreSend = isWeekendPreSend && payDay !== todayDay;
       }
       // 발송 완료 여부 + 상태 마킹
       const cleanPhone = s.phone.replace(/[^0-9]/g, "");
@@ -393,7 +416,8 @@ export default function AlimtalkPage() {
 
   const todayCount = students.filter((s) => s.isToday && s.totalTuition > 0).length;
   const selectedCount = students.filter((s) => s.selected).length;
-  const { dateStr: todayDateStr } = getKSTToday();
+  const { dateStr: todayDateStr, dayOfWeek: todayDayOfWeek } = getKSTToday();
+  const isFriday = todayDayOfWeek === 5;
 
   return (
     <div>
@@ -405,6 +429,11 @@ export default function AlimtalkPage() {
           </h1>
           <p className="text-sm text-gray-600">
             매일 KST 오전 10시, 결제일이 해당하는 수강생에게 알림톡이 자동 발송됩니다.
+            {isFriday && (
+              <span className="ml-1 font-semibold text-orange-600">
+                오늘은 금요일 — 주말(토/일) 결제 대상자에게도 선발송됩니다.
+              </span>
+            )}
           </p>
         </div>
         {/* 크론 테스트 발송 버튼 */}
@@ -441,7 +470,9 @@ export default function AlimtalkPage() {
           <p className="text-lg font-bold text-gray-900">{todayDateStr}</p>
         </div>
         <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-4">
-          <p className="text-xs text-gray-500 mb-1">오늘 자동 발송 예정</p>
+          <p className="text-xs text-gray-500 mb-1">
+            {isFriday ? "오늘 자동 발송 예정 (금+토+일)" : "오늘 자동 발송 예정"}
+          </p>
           <p className="text-lg font-bold text-blue-600">{todayCount}명</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -455,6 +486,13 @@ export default function AlimtalkPage() {
         <strong>자동 발송 기준:</strong> 각 수강생의 결제일(Day)이 오늘과 일치하면 자동 발송됩니다.
         아래 표에서 <strong>결제일을 클릭</strong>하여 발송 기준일을 변경할 수 있습니다.
       </div>
+      {/* 금요일 선발송 안내 배너 (금요일에만 표시) */}
+      {isFriday && (
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+          <strong>금요일 선발송:</strong> 금요일에는 주말(토/일) 결제 대상자에게 문자가 선발송됩니다.
+          토·일요일은 스팸 방지를 위해 자동 발송이 실행되지 않습니다.
+        </div>
+      )}
 
       {/* 수강생 스케줄 테이블 */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
@@ -590,6 +628,11 @@ export default function AlimtalkPage() {
                       ) : s.isToday && s.totalTuition <= 0 ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(0원)
+                        </span>
+                      ) : s.isToday && s.isFridayPreSend ? (
+                        // 금요일 선발송 대기 (실제 결제일은 토·일)
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
+                          🟠 선발송 대기
                         </span>
                       ) : s.isToday ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
