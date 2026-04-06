@@ -43,9 +43,11 @@ type GroupedStudent = {
    * - isToday는 false지만 UI에서 별도 배지로 "금요일 발송 완료/미발송" 표시
    */
   isWeekendTarget: boolean;
-  sentToday: boolean;     // 발송 완료 여부 (토·일은 전 금요일 로그 기준)
-  sentStatus?: string;    // 'success' | 'fail' | 'invalid_phone'
+  sentToday: boolean;     // 발송 완료 여부
+  sentStatus?: string;    // 'success' | 'manual_success' | 'fail' | 'manual_fail' | 'invalid_phone'
   sentAt?: string;        // ISO timestamp (발송 시각)
+  sentType?: string;      // 'auto_cron' | 'manual'
+  sentDate?: string;      // "YYYY-MM-DD" (발송일)
   alimtalkEnabled: boolean;
 };
 
@@ -225,18 +227,18 @@ export default function AlimtalkPage() {
     }
 
     // ── 발송 로그 조회 ─────────────────────────────────────────────────
-    // 토·일요일: 직전 금요일 로그를 조회 (금요일에 선발송된 기록 확인)
-    // 월~금: 오늘 날짜 로그 조회
-    const logQueryDate = isWeekend && prevFridayStr ? prevFridayStr : todayStr;
+    // 이번 달 전체 로그 조회 (auto_cron + manual 모두 포함)
+    // → 결제일이 지난 대상도 이번 달 수동 발송 시 상태 표시 가능
+    const monthStart = `${kstDate.getUTCFullYear()}-${String(kstDate.getUTCMonth() + 1).padStart(2, "0")}-01`;
 
     const { data: sentLogs } = await supabase
       .from("notification_log")
-      .select("phone, status, created_at")
-      .eq("sent_date", logQueryDate)
-      .eq("type", "auto_cron");
+      .select("phone, status, created_at, type, sent_date")
+      .gte("sent_date", monthStart)
+      .order("created_at", { ascending: false });
 
-    type SentLog = { phone: string; status: string; created_at: string };
-    // 전화번호 → 최신 로그 맵 (중복 발송 시 마지막 기록 우선)
+    type SentLog = { phone: string; status: string; created_at: string; type: string; sent_date: string };
+    // 전화번호 → 최신 로그 맵 (created_at 기준 가장 최근 기록 우선)
     const sentMap = new Map<string, SentLog>();
     for (const r of (sentLogs || []) as SentLog[]) {
       const existing = sentMap.get(r.phone);
@@ -292,6 +294,8 @@ export default function AlimtalkPage() {
         s.sentToday = true;
         s.sentStatus = logEntry.status;
         s.sentAt = logEntry.created_at;
+        s.sentType = logEntry.type;
+        s.sentDate = logEntry.sent_date;
       }
       return s;
     });
@@ -480,6 +484,13 @@ export default function AlimtalkPage() {
       const m = String(kst.getUTCMinutes()).padStart(2, "0");
       return `${h}:${m}`;
     } catch { return ""; }
+  }
+
+  // "YYYY-MM-DD" → "MM/DD" 형식 (수동발송 배지 날짜 표시용)
+  function formatSentDate(dateStr: string): string {
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    return `${parts[1]}/${parts[2]}`;
   }
 
   /* ─── 크론 테스트 발송 ─── */
@@ -763,12 +774,18 @@ export default function AlimtalkPage() {
                           발송 제외(수동)
                         </span>
                       ) : s.sentToday ? (
-                        // 발송 완료 (토·일은 금요일 발송 기록 기준)
-                        s.sentStatus === "fail" || s.sentStatus === "invalid_phone" ? (
+                        // 발송 완료 — 수동/자동 구분 표시
+                        s.sentStatus === "fail" || s.sentStatus === "invalid_phone" || s.sentStatus === "manual_fail" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                            🔴 발송실패{isWeekend ? " (금)" : ""}
+                            🔴 발송실패{s.sentType === "manual" ? " (수동)" : isWeekend ? " (금)" : ""}
+                          </span>
+                        ) : s.sentType === "manual" ? (
+                          // 수동 발송 완료 — 발송일 표시
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                            🟢 수동발송완료{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
                           </span>
                         ) : (
+                          // 자동 크론 발송 완료 — 발송 시각 표시
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                             🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentAt ? ` ${formatSentTime(s.sentAt)}` : ""}
                           </span>

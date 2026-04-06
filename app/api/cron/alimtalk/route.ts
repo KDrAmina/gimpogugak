@@ -282,7 +282,7 @@ export async function GET(req: Request) {
 
     if (targets.length === 0) {
       return NextResponse.json({
-        message: `오늘(${todayStr}) 발송 대상은 있으나 모두 발송 완료`,
+        message: `오전 10시에 이미 자동 발송이 완료되어 중복 발송을 방지했습니다.`,
         sent: 0,
         todayDay,
       });

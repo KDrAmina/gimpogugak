@@ -55,6 +55,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // KST 오늘 날짜 (notification_log sent_date 기록용)
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayStr = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, "0")}-${String(kstNow.getUTCDate()).padStart(2, "0")}`;
+
   try {
     const body = await req.json();
     const { targets, scheduledDate } = body as {
@@ -72,11 +76,13 @@ export async function POST(req: NextRequest) {
 
     let success = 0;
     let fail = 0;
+    const logs: { phone: string; name: string; status: string }[] = [];
 
     for (const target of targets) {
       const phone = target.phone.replace(/[^0-9]/g, "");
       if (phone.length < 10) {
         fail++;
+        logs.push({ phone, name: target.name, status: "manual_fail" });
         continue;
       }
 
@@ -108,7 +114,6 @@ export async function POST(req: NextRequest) {
 
       // 예약 발송: KST → ISO 변환
       if (scheduledDate) {
-        // scheduledDate는 "YYYY-MM-DDTHH:mm" 형식 (사용자 로컬, KST 기준)
         const kstDate = new Date(scheduledDate);
         messageParams.scheduledDate = kstDate.toISOString();
       }
@@ -117,10 +122,28 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await messageService.sendOne(messageParams as any);
         success++;
+        logs.push({ phone, name: target.name, status: "manual_success" });
       } catch (err) {
         console.error(`알림톡 발송 실패 (${target.name}):`, err);
         fail++;
+        logs.push({ phone, name: target.name, status: "manual_fail" });
       }
+    }
+
+    // 수동 발송 기록을 notification_log에 INSERT (예약 발송은 즉시 기록)
+    if (logs.length > 0 && !scheduledDate) {
+      const logInserts = logs.map((l) => ({
+        phone: l.phone,
+        name: l.name,
+        status: l.status,
+        sent_date: todayStr,
+        type: "manual",
+        created_at: new Date().toISOString(),
+      }));
+      const { error: logError } = await supabase
+        .from("notification_log")
+        .insert(logInserts);
+      if (logError) console.error("수동 발송 로그 저장 실패:", logError);
     }
 
     return NextResponse.json({ success, fail });
