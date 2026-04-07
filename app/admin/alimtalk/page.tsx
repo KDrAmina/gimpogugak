@@ -144,7 +144,16 @@ export default function AlimtalkPage() {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [testSending, setTestSending] = useState(false);
-  const [testResult, setTestResult] = useState<{ message?: string; success?: number; fail?: number; error?: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    message?: string;
+    success?: number;
+    fail?: number;
+    /** 0원 제외 건수 — 크론잡이 반환하는 skippedZero 값 */
+    skippedZero?: number;
+    /** 주말 등 발송 자체가 없는 경우 */
+    skipped?: boolean;
+    error?: string;
+  } | null>(null);
   const [result, setResult] = useState<{ success: number; fail: number } | null>(null);
   const [scheduledDate, setScheduledDate] = useState("");
   const [showManualSend, setShowManualSend] = useState(false);
@@ -227,8 +236,21 @@ export default function AlimtalkPage() {
     }
 
     // ── 발송 로그 조회 ─────────────────────────────────────────────────
-    // 이번 달 전체 로그 조회 (auto_cron + manual 모두 포함)
-    // → 결제일이 지난 대상도 이번 달 수동 발송 시 상태 표시 가능
+    /**
+     * [이번 달 전체 발송 이력을 조회하는 이유]
+     *
+     * 오늘 결제일인 수강생뿐 아니라, 이번 달 중 과거에 수동으로 미리
+     * 발송한 수강생의 이력도 UI에 반드시 고정 표시해야 합니다.
+     *
+     * 예) 5일 결제자를 3일에 수동 발송 → 오늘이 4일이어도 발송완료 배지 표시
+     *
+     * 조회 조건: sent_date >= 이번 달 1일 (auto_cron + manual 모두 포함)
+     * 인덱싱 키: phone (notification_log에는 숫자만으로 정규화된 전화번호 저장)
+     * 우선순위: created_at 내림차순 → 같은 수강생에게 여러 번 발송 시 최신 이력 우선
+     *
+     * ⚠️ 주의: sentToday 변수명은 레거시이며, 실제 의미는
+     *          "이번 달 발송 이력 존재 여부"입니다. (오늘만이 아님)
+     */
     const monthStart = `${kstDate.getUTCFullYear()}-${String(kstDate.getUTCMonth() + 1).padStart(2, "0")}-01`;
 
     const { data: sentLogs } = await supabase
@@ -238,7 +260,21 @@ export default function AlimtalkPage() {
       .order("created_at", { ascending: false });
 
     type SentLog = { phone: string; status: string; created_at: string; type: string; sent_date: string };
-    // 전화번호 → 최신 로그 맵 (created_at 기준 가장 최근 기록 우선)
+
+    /**
+     * sentMap: 전화번호(숫자 정규화) → 이번 달 최신 발송 로그
+     *
+     * - 동일 수강생에게 이번 달 여러 번 발송한 경우 created_at 최신 기록만 유지
+     * - 수동 발송(manual) / 자동 크론(auto_cron) 모두 포함
+     * - skipped_zero_tuition 상태도 포함되어, 0원 제외 사실도 화면에 반영 가능
+     *
+     * [화면에 배지가 고정되는 원리]
+     * 1. loadStudents() 호출 시 이번달 1일 이후 notification_log를 전부 조회
+     * 2. phone 기준으로 sentMap을 구성 (가장 최신 이력 우선)
+     * 3. 각 수강생(s) 렌더링 시 s.phone(숫자 정규화) → sentMap 조회
+     * 4. 이력이 있으면 sentToday=true → 상태 배지(🟢 수동발송/발송완료) 고정 표시
+     * 5. 수동 발송 직후 loadStudents()를 재호출하므로 즉시 배지가 반영됨
+     */
     const sentMap = new Map<string, SentLog>();
     for (const r of (sentLogs || []) as SentLog[]) {
       const existing = sentMap.get(r.phone);
@@ -462,6 +498,8 @@ export default function AlimtalkPage() {
 
       setResult({ success: data.success, fail: data.fail });
       alert(`발송 완료: 성공 ${data.success}건, 실패 ${data.fail}건`);
+      // 수동 발송 직후 목록 새로고침 → 발송완료 배지가 즉시 표시됨
+      await loadStudents();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "발송 오류";
       alert(`발송 오류: ${msg}`);
@@ -572,9 +610,22 @@ export default function AlimtalkPage() {
             }`}>
               {testResult.error
                 ? `오류: ${testResult.error}`
-                : testResult.message
-                  ? testResult.message
-                  : `성공 ${testResult.success}건 / 실패 ${testResult.fail}건`
+                : testResult.skipped
+                  ? (testResult.message || "주말 — 자동 발송 없음")
+                  : (() => {
+                      // DB 기록 기반으로 팩트를 명확히 표시
+                      // 크론잡 응답: { success, fail, skippedZero } 활용
+                      const s = testResult.success ?? 0;
+                      const f = testResult.fail ?? 0;
+                      const z = testResult.skippedZero ?? 0;
+                      if (s === 0 && f === 0 && z === 0) {
+                        return testResult.message || "발송 대상 없음";
+                      }
+                      const parts: string[] = [`성공: ${s}건`];
+                      if (f > 0) parts.push(`실패: ${f}건`);
+                      if (z > 0) parts.push(`0원 제외: ${z}건`);
+                      return `오전 10시 자동 발송 완료 (${parts.join(", ")})`;
+                    })()
               }
             </div>
           )}
@@ -780,14 +831,16 @@ export default function AlimtalkPage() {
                             🔴 발송실패{s.sentType === "manual" ? " (수동)" : isWeekend ? " (금)" : ""}
                           </span>
                         ) : s.sentType === "manual" ? (
-                          // 수동 발송 완료 — 발송일 표시
+                          // 수동 발송 완료 — 발송일(MM/DD) 고정 표시
+                          // sentDate는 이번달 notification_log에서 조회한 sent_date 값
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                            🟢 수동발송완료{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
+                            🟢 수동발송{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
                           </span>
                         ) : (
-                          // 자동 크론 발송 완료 — 발송 시각 표시
+                          // 자동 크론 발송 완료 — 발송일(MM/DD) 표시
+                          // sentDate는 이번달 notification_log에서 조회한 sent_date 값
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentAt ? ` ${formatSentTime(s.sentAt)}` : ""}
+                            🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
                           </span>
                         )
                       ) : s.isToday && s.totalTuition <= 0 ? (

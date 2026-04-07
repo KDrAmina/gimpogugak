@@ -275,15 +275,36 @@ export async function GET(req: Request) {
       }
     }
 
-    // 수강료 0원 이하 제외
-    const targets = Array.from(groupMap.values()).filter(
-      (t) => t.totalTuition > 0
-    );
+    // ── 수강료 0원 이하 → 발송 제외 + DB 기록 ──────────────────────────
+    // 0원 대상자를 로그에 남겨 관리자가 "발송 없음"의 원인을 파악할 수 있게 함.
+    // 테스트 발송 결과 알림창에서 "0원 제외: Y건"으로 표시됨.
+    const allTargets = Array.from(groupMap.values());
+    const zeroTuitionTargets = allTargets.filter((t) => t.totalTuition <= 0);
+    const targets = allTargets.filter((t) => t.totalTuition > 0);
+
+    // 0원 스킵 대상도 notification_log에 기록 (사유 추적용)
+    if (zeroTuitionTargets.length > 0) {
+      const zeroInserts = zeroTuitionTargets.map((t) => ({
+        phone: t.phone,
+        name: t.baseName,
+        status: "skipped_zero_tuition",
+        sent_date: todayStr,
+        type: "auto_cron",
+        created_at: new Date().toISOString(),
+      }));
+      const { error: zeroLogError } = await supabase
+        .from("notification_log")
+        .insert(zeroInserts);
+      if (zeroLogError) {
+        console.error("0원 스킵 로그 저장 실패:", zeroLogError);
+      }
+    }
 
     if (targets.length === 0) {
       return NextResponse.json({
-        message: `오전 10시에 이미 자동 발송이 완료되어 중복 발송을 방지했습니다.`,
+        message: `오전 10시 자동 발송 완료 — 발송 대상 없음`,
         sent: 0,
+        skippedZero: zeroTuitionTargets.length,
         todayDay,
       });
     }
@@ -355,13 +376,15 @@ export async function GET(req: Request) {
     return NextResponse.json({
       message: isFridayPreSend
         ? `금요일 선발송 완료 (${todayStr} — 토:${satDateStr}, 일:${sunDateStr} 포함)`
-        : `자동 발송 완료 (${todayStr})`,
+        : `오전 10시 자동 발송 완료 (${todayStr})`,
       todayDay,
       dayOfWeek,
       isFridayPreSend,
       success,
       fail,
       total: targets.length,
+      // 0원 제외 건수 — 관리자 UI 테스트 발송 결과 알림창에 표시됨
+      skippedZero: zeroTuitionTargets.length,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
