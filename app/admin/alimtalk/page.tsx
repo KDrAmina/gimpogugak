@@ -49,6 +49,8 @@ type GroupedStudent = {
   sentType?: string;      // 'auto_cron' | 'manual'
   sentDate?: string;      // "YYYY-MM-DD" (발송일)
   alimtalkEnabled: boolean;
+  /** 이번 달 lesson_history에 결제 완료 기록이 있는지 여부 — 스마트 스킵 UI 표시용 */
+  hasPaidThisMonth: boolean;
 };
 
 // ─── 날짜 유틸 ────────────────────────────────────────────────────────────────
@@ -231,6 +233,7 @@ export default function AlimtalkPage() {
           isWeekendTarget: false,
           sentToday: false,
           alimtalkEnabled: row.profiles.is_alimtalk_enabled !== false,
+          hasPaidThisMonth: false,
         });
       }
     }
@@ -283,6 +286,25 @@ export default function AlimtalkPage() {
       }
     }
 
+    // ── 이번 달 납부 완료 여부 조회 (스마트 스킵 UI 동기화) ────────────────
+    // lesson_history에서 이번 달 결제 완료 기록이 있는 lesson_id 집합을 구성.
+    // UI에서 선결제자를 "이번달 납부완료 (발송제외)" 배지로 표시하기 위해 사용.
+    const allLessonIdsForPaidCheck = Array.from(groupMap.values()).flatMap((s) => s.lessonIds);
+    const paidThisMonthLessonIds = new Set<string>();
+
+    if (allLessonIdsForPaidCheck.length > 0) {
+      const { data: paidRecords } = await supabase
+        .from("lesson_history")
+        .select("lesson_id")
+        .in("lesson_id", allLessonIdsForPaidCheck)
+        .eq("status", "결제 완료")
+        .gte("completed_date", monthStart);
+
+      for (const r of (paidRecords || []) as { lesson_id: string }[]) {
+        paidThisMonthLessonIds.add(r.lesson_id);
+      }
+    }
+
     // ── isToday / isFridayPreSend / isWeekendTarget 마킹 ──────────────
     /**
      * 요일별 발송 대상 판정 로직:
@@ -321,6 +343,9 @@ export default function AlimtalkPage() {
           s.isFridayPreSend = false;
         }
       }
+
+      // ── 이번 달 납부 완료 여부 마킹 ─────────────────────────────────
+      s.hasPaidThisMonth = s.lessonIds.some((id) => paidThisMonthLessonIds.has(id));
 
       // ── 발송 완료 여부 마킹 ──────────────────────────────────────────
       // 토·일요일은 직전 금요일의 로그를 기준으로 함
@@ -565,7 +590,7 @@ export default function AlimtalkPage() {
    *   - 금요일: isToday에 토·일 선발송 대상까지 포함 → 3일치 합산
    *   - 월~목: isToday = 오늘 결제일만
    */
-  const todayCount = students.filter((s) => s.isToday && s.totalTuition > 0).length;
+  const todayCount = students.filter((s) => s.isToday && s.totalTuition > 0 && !s.hasPaidThisMonth).length;
   const selectedCount = students.filter((s) => s.selected).length;
 
   const { todayStr: todayDateStr, isFriday, isWeekend, dayOfWeek: todayDayOfWeek } = getKSTInfo();
@@ -573,7 +598,7 @@ export default function AlimtalkPage() {
   // 오늘 발송 대상(수강료 > 0, 알림톡 ON) 수강생 중 전원 발송 완료 여부
   // → true이면 테스트 발송 버튼을 비활성화하여 실수 중복 발송 방지
   const todayEligible = students.filter(
-    (s) => s.isToday && s.totalTuition > 0 && s.alimtalkEnabled
+    (s) => s.isToday && s.totalTuition > 0 && s.alimtalkEnabled && !s.hasPaidThisMonth
   );
   const allTodayTargetsSent =
     todayEligible.length > 0 &&
@@ -644,12 +669,14 @@ export default function AlimtalkPage() {
                       const s = testResult.success ?? 0;
                       const f = testResult.fail ?? 0;
                       const z = testResult.skippedZero ?? 0;
-                      if (s === 0 && f === 0 && z === 0) {
+                      const p = (testResult as Record<string, unknown>).skippedAlreadyPaid as number ?? 0;
+                      if (s === 0 && f === 0 && z === 0 && p === 0) {
                         return testResult.message || "발송 대상 없음";
                       }
                       const parts: string[] = [`성공: ${s}건`];
                       if (f > 0) parts.push(`실패: ${f}건`);
                       if (z > 0) parts.push(`0원 제외: ${z}건`);
+                      if (p > 0) parts.push(`납부완료 제외: ${p}건`);
                       return `오전 10시 자동 발송 완료 (${parts.join(", ")})`;
                     })()
               }
@@ -839,11 +866,12 @@ export default function AlimtalkPage() {
                      * 우선순위:
                      * 1. 알림톡 OFF → 발송 제외(수동)
                      * 2. 발송 완료(성공/실패 여부 포함)
-                     * 3. 0원 제외
-                     * 4. 금요일 선발송 대상 (토·일 결제자)
-                     * 5. 오늘 발송 대기
-                     * 6. 토·일 당일 결제자 (금요일에 이미 발송됨)
-                     * 7. 일반 대기 / 미설정
+                     * 3. 0원 제외 (결제일 여부 무관하게 항상 표시)
+                     * 4. 이번 달 납부 완료 → 발송 제외(선결제)
+                     * 5. 금요일 선발송 대상 (토·일 결제자)
+                     * 6. 오늘 발송 대기
+                     * 7. 토·일 당일 결제자 (금요일에 이미 발송됨)
+                     * 8. 일반 대기 / 미설정
                      ──────────────────────────────────────────────────── */}
                     <td className="px-4 py-3 text-center">
                       {!s.alimtalkEnabled ? (
@@ -869,9 +897,15 @@ export default function AlimtalkPage() {
                             🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
                           </span>
                         )
-                      ) : s.isToday && s.totalTuition <= 0 ? (
+                      ) : s.totalTuition <= 0 ? (
+                        // 0원 — 결제일 여부와 관계없이 항상 발송 제외 표시
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(0원)
+                        </span>
+                      ) : s.hasPaidThisMonth ? (
+                        // 이번 달 이미 납부 완료 → 크론·수동 모두 발송 제외됨
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                          🔵 이번달 납부완료 (발송제외)
                         </span>
                       ) : s.isToday && s.isFridayPreSend ? (
                         // 금요일: 토·일 결제자 → 오늘 선발송 예정
@@ -897,10 +931,20 @@ export default function AlimtalkPage() {
                     <td className="px-4 py-3 text-center">
                       <button
                         type="button"
-                        onClick={() => toggleAlimtalk(i)}
-                        title={s.alimtalkEnabled ? "클릭하면 발송 제외" : "클릭하면 발송 재개"}
+                        onClick={() => !s.hasPaidThisMonth && toggleAlimtalk(i)}
+                        title={
+                          s.hasPaidThisMonth
+                            ? "이번 달 이미 납부 완료 — 발송이 자동 제외됩니다"
+                            : s.alimtalkEnabled
+                            ? "클릭하면 발송 제외"
+                            : "클릭하면 발송 재개"
+                        }
                         className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                          s.alimtalkEnabled ? "bg-blue-500" : "bg-gray-300"
+                          s.hasPaidThisMonth
+                            ? "bg-gray-200 opacity-40 cursor-not-allowed"
+                            : s.alimtalkEnabled
+                            ? "bg-blue-500"
+                            : "bg-gray-300"
                         }`}
                       >
                         <span
