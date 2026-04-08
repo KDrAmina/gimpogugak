@@ -265,24 +265,32 @@ export default function AlimtalkPage() {
     type SentLog = { phone: string; status: string; created_at: string; type: string; sent_date: string };
 
     /**
-     * sentMap: 전화번호(숫자 정규화) → 이번 달 최신 발송 로그
+     * sentMap: 전화번호(숫자 정규화 키) → 이번 달 최신 실제 발송 로그
      *
-     * - 동일 수강생에게 이번 달 여러 번 발송한 경우 created_at 최신 기록만 유지
-     * - 수동 발송(manual) / 자동 크론(auto_cron) 모두 포함
-     * - skipped_zero_tuition 상태도 포함되어, 0원 제외 사실도 화면에 반영 가능
+     * ── 핵심 규칙 ──────────────────────────────────────────────────────────
+     * 1. 스킵 상태(skipped_already_paid, skipped_zero_tuition)는 sentMap에서 완전 제외.
+     *    → 스킵 로그가 최신이어도 sentToday=false, "대기" 배지가 잘못 표시되는 버그 방지.
+     * 2. 전화번호 키를 항상 숫자(digits-only)로 정규화하여 저장.
+     *    → 조회 시 cleanPhone(숫자 정규화)과 100% 일치 보장.
+     *    → profiles에 대시 포함 "010-XXXX-XXXX" 형식도 정확히 매칭됨.
+     * 3. 동일 수강생에게 이번 달 여러 번 발송한 경우 created_at 최신 기록만 유지.
      *
-     * [화면에 배지가 고정되는 원리]
-     * 1. loadStudents() 호출 시 이번달 1일 이후 notification_log를 전부 조회
-     * 2. phone 기준으로 sentMap을 구성 (가장 최신 이력 우선)
-     * 3. 각 수강생(s) 렌더링 시 s.phone(숫자 정규화) → sentMap 조회
-     * 4. 이력이 있으면 sentToday=true → 상태 배지(🟢 수동발송/발송완료) 고정 표시
-     * 5. 수동 발송 직후 loadStudents()를 재호출하므로 즉시 배지가 반영됨
+     * ── 발송 배지가 화면에 고정되는 원리 ────────────────────────────────────
+     * 1. loadStudents() 호출 시 이번달 1일 이후 notification_log 전체 조회
+     * 2. 스킵 제외 + 전화번호 정규화 후 sentMap 구성
+     * 3. 각 수강생 cleanPhone → sentMap 조회 → sentToday/sentStatus/sentType 마킹
+     * 4. 수동/자동 발송 직후 loadStudents()를 재호출하므로 배지가 즉시 반영됨
      */
+    const SKIP_STATUSES = new Set(["skipped_already_paid", "skipped_zero_tuition"]);
     const sentMap = new Map<string, SentLog>();
     for (const r of (sentLogs || []) as SentLog[]) {
-      const existing = sentMap.get(r.phone);
+      // 스킵 상태는 sentMap에서 제외 — UI의 sentToday 마킹에 사용하지 않음
+      if (SKIP_STATUSES.has(r.status)) continue;
+      // 전화번호를 숫자로 정규화하여 키로 사용 → cleanPhone 조회와 100% 일치
+      const key = r.phone.replace(/[^0-9]/g, "");
+      const existing = sentMap.get(key);
       if (!existing || r.created_at > existing.created_at) {
-        sentMap.set(r.phone, r);
+        sentMap.set(key, r);
       }
     }
 
@@ -348,9 +356,9 @@ export default function AlimtalkPage() {
       s.hasPaidThisMonth = s.lessonIds.some((id) => paidThisMonthLessonIds.has(id));
 
       // ── 발송 완료 여부 마킹 ──────────────────────────────────────────
-      // 토·일요일은 직전 금요일의 로그를 기준으로 함
+      // sentMap은 이미 숫자 정규화된 키 → cleanPhone으로만 조회 (fallback 불필요)
       const cleanPhone = s.phone.replace(/[^0-9]/g, "");
-      const logEntry = sentMap.get(cleanPhone) ?? sentMap.get(s.phone);
+      const logEntry = sentMap.get(cleanPhone);
       if (logEntry) {
         s.sentToday = true;
         s.sentStatus = logEntry.status;
@@ -863,50 +871,59 @@ export default function AlimtalkPage() {
                     </td>
 
                     {/* ── 상태 배지 ────────────────────────────────────────────
-                     * 우선순위:
-                     * 1. 알림톡 OFF → 발송 제외(수동)
-                     * 2. 발송 완료(성공/실패 여부 포함)
-                     * 3. 0원 제외 (결제일 여부 무관하게 항상 표시)
-                     * 4. 이번 달 납부 완료 → 발송 제외(선결제)
-                     * 5. 금요일 선발송 대상 (토·일 결제자)
-                     * 6. 오늘 발송 대기
-                     * 7. 토·일 당일 결제자 (금요일에 이미 발송됨)
-                     * 8. 일반 대기 / 미설정
+                     * 우선순위 (엄격 순서):
+                     * 1. 알림톡 OFF          → 발송 제외(수동)   [영구 설정]
+                     * 2. 수강료 0원          → 발송 제외(0원)    [항상 제외]
+                     * 3. 이번 달 납부 완료   → 이번달 납부완료   [최우선 정보]
+                     * 4. 발송 성공/실패 이력 → 수동발송/발송완료/발송실패
+                     * 5. 금요일 선발송 대상  → 선발송 대상
+                     * 6. 오늘 발송 대기      → 발송대기
+                     * 7. 토·일 결제자        → 금요일 미발송
+                     * 8. 결제일 있음         → 대기
+                     * 9. 결제일 없음         → 미설정
+                     *
+                     * ⚠️ hasPaidThisMonth는 sentToday보다 반드시 위에 위치해야 함.
+                     *    sentToday는 실제 발송(success/fail) 이력만 포함
+                     *    (skipped_already_paid·skipped_zero_tuition은 sentMap에서 제외됨)
                      ──────────────────────────────────────────────────── */}
                     <td className="px-4 py-3 text-center">
                       {!s.alimtalkEnabled ? (
+                        // 1. 영구 발송 제외
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(수동)
                         </span>
-                      ) : s.sentToday ? (
-                        // 발송 완료 — 수동/자동 구분 표시
-                        s.sentStatus === "fail" || s.sentStatus === "invalid_phone" || s.sentStatus === "manual_fail" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                            🔴 발송실패{s.sentType === "manual" ? " (수동)" : isWeekend ? " (금)" : ""}
-                          </span>
-                        ) : s.sentType === "manual" ? (
-                          // 수동 발송 완료 — 발송일(MM/DD) 고정 표시
-                          // sentDate는 이번달 notification_log에서 조회한 sent_date 값
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                            🟢 수동발송{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
-                          </span>
-                        ) : (
-                          // 자동 크론 발송 완료 — 발송일(MM/DD) 표시
-                          // sentDate는 이번달 notification_log에서 조회한 sent_date 값
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
-                          </span>
-                        )
                       ) : s.totalTuition <= 0 ? (
-                        // 0원 — 결제일 여부와 관계없이 항상 발송 제외 표시
+                        // 2. 0원 — 결제일 여부 무관하게 항상 표시
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(0원)
                         </span>
                       ) : s.hasPaidThisMonth ? (
-                        // 이번 달 이미 납부 완료 → 크론·수동 모두 발송 제외됨
+                        // 3. 이번 달 납부 완료 (최우선 — 발송 여부보다 중요)
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           🔵 이번달 납부완료 (발송제외)
                         </span>
+                      ) : s.sentToday ? (
+                        // 4. 실제 발송 이력 있음 (skipped 상태는 sentMap에서 제외됨)
+                        s.sentStatus === "fail" || s.sentStatus === "invalid_phone" || s.sentStatus === "manual_fail" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                            🔴 발송실패{s.sentType === "manual" ? " (수동)" : isWeekend ? " (금)" : ""}
+                          </span>
+                        ) : s.sentStatus === "manual_success" ? (
+                          // 수동 발송 성공 — 발송일(MM/DD) 고정 표시
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                            🟢 수동발송{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
+                          </span>
+                        ) : s.sentStatus === "success" ? (
+                          // 자동 크론 발송 성공 — 발송일(MM/DD) 표시
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                            🟢 {isWeekend ? "금요일 발송완료" : "발송완료"}{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
+                          </span>
+                        ) : (
+                          // 알 수 없는 상태 — 발송일만 표시
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                            🟢 발송완료{s.sentDate ? ` (${formatSentDate(s.sentDate)})` : ""}
+                          </span>
+                        )
                       ) : s.isToday && s.isFridayPreSend ? (
                         // 금요일: 토·일 결제자 → 오늘 선발송 예정
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">

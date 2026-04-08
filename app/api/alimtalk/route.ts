@@ -200,20 +200,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 수동 발송 기록을 notification_log에 INSERT (예약 발송은 즉시 기록)
+    // ── notification_log INSERT ───────────────────────────────────────────
+    // 즉시 발송(비예약)에 한해 모든 결과(성공·실패·스킵)를 기록.
+    // - manual_success / manual_fail : UI sentToday 마킹에 사용됨
+    // - skipped_already_paid         : 감사 로그 용도만, UI sentMap에서는 제외됨
+    // - 예약 발송: 발송 시점에 기록할 수 없으므로 INSERT 생략 (의도된 동작)
     if (logs.length > 0 && !scheduledDate) {
       const logInserts = logs.map((l) => ({
-        phone: l.phone,
+        phone: l.phone,      // 숫자 정규화된 전화번호 (010XXXXXXXX)
         name: l.name,
         status: l.status,
-        sent_date: todayStr,
+        sent_date: todayStr, // KST 기준 오늘 날짜 (YYYY-MM-DD)
         type: "manual",
         created_at: new Date().toISOString(),
       }));
       const { error: logError } = await supabase
         .from("notification_log")
         .insert(logInserts);
-      if (logError) console.error("수동 발송 로그 저장 실패:", logError);
+      if (logError) {
+        // 로그 저장 실패는 발송 결과에 영향 없음 — 콘솔에만 기록
+        console.error("수동 발송 로그 저장 실패:", logError.message, logError);
+      }
     }
 
     return NextResponse.json({ success, fail, skippedDuplicate, skippedAlreadyPaid });

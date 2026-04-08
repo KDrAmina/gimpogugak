@@ -13,6 +13,17 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.5.4",
+    date: "2026-04-09",
+    changes: [
+      "[버그수정] sentMap 스킵 상태 오염 제거: skipped_already_paid·skipped_zero_tuition 로그를 sentMap에서 완전 제외 — 스킵 로그가 최신이어도 sentToday=false로 처리되어 '대기' 오표시 버그 차단",
+      "[버그수정] sentMap 전화번호 키 정규화: r.phone을 digits-only로 정규화 후 키 저장 — 프로필 전화번호 포맷(대시 포함 등)과 무관하게 조회 100% 일치 보장",
+      "[알림톡] 배지 우선순위 완전 재정렬: hasPaidThisMonth(납부완료)를 sentToday보다 상위로 승격 — 납부 후에도 '대기'가 표시되던 문제 근본 해결",
+      "[알림톡] sentToday 배지 명시적 분기: status='manual_success'·'success'를 각각 명시적으로 체크 — 미지정 상태가 발송완료 배지를 잘못 표시하는 경우 방지",
+      "[알림톡] 수동 발송 API 로그 INSERT 검증: 즉시 발송 시 phone(숫자정규화)·status·sent_date·type='manual' 누락 없이 기록됨 확인, 오류 로그 상세화",
+    ],
+  },
+  {
     version: "5.5.3",
     date: "2026-04-08",
     changes: [
