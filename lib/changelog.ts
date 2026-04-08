@@ -13,6 +13,18 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.5.2",
+    date: "2026-04-08",
+    changes: [
+      "[버그수정] 결제일(payDay) 강제 고정: 수강료 납부(lesson_history 등록, 선납, 캘린더 납부)시 lessons.payment_date 자동 업데이트 완전 차단 — 알림톡 발송 기준일이 납부일로 변경되는 버그 수정",
+      "[버그수정] 결제 내역 삭제 시 payment_date 롤백 로직 제거 — payment_date는 오직 관리자 수동 수정 시에만 변경",
+      "[알림톡] 스마트 스킵 추가: 이번 달 lesson_history에 결제 완료 기록이 있는 수강생은 크론 및 수동 발송 대상에서 자동 제외, DB 로그에 status='skipped_already_paid' 기록",
+      "[알림톡] 수동 발송 시 lessonIds 전달 — 이번 달 납부 여부 서버 측 검증 가능",
+      "[알림톡] 토글(is_alimtalk_enabled) 영구 보존 확인: 월별 리셋 로직 없음, 관리자 수동 OFF는 크론에서 영구 제외",
+      "[내 수업] 이번 달 납부 여부 판단 기준 변경: lessons.payment_date → lesson_history 결제 완료 기록 (payment_date 고정화에 따른 연동 수정)",
+    ],
+  },
+  {
     version: "5.5.1",
     date: "2026-04-07",
     changes: [

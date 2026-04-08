@@ -8,6 +8,7 @@ type Target = {
   phone: string;
   tuition: number;
   paymentDate: string | null;
+  lessonIds?: string[]; // 이번 달 납부 여부 확인용 (스마트 스킵)
 };
 
 export async function POST(req: NextRequest) {
@@ -83,6 +84,33 @@ export async function POST(req: NextRequest) {
       (sentTodayLogs || []).map((r: { phone: string }) => r.phone)
     );
 
+    // ── 이번 달 납부 완료 수강생 스마트 스킵 ──────────────────────────────
+    // lesson_history에서 이번 달 결제 완료 기록이 있으면 발송 제외
+    const kstNowObj = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const currentMonthStart = `${kstNowObj.getUTCFullYear()}-${String(kstNowObj.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    const allLessonIds = targets.flatMap((t) => t.lessonIds || []);
+    const alreadyPaidPhones = new Set<string>();
+
+    if (allLessonIds.length > 0) {
+      const { data: paidThisMonth } = await supabase
+        .from("lesson_history")
+        .select("lesson_id")
+        .in("lesson_id", allLessonIds)
+        .eq("status", "결제 완료")
+        .gte("completed_date", currentMonthStart);
+
+      const paidLessonIds = new Set(
+        (paidThisMonth || []).map((r: { lesson_id: string }) => r.lesson_id)
+      );
+
+      for (const t of targets) {
+        const phone = t.phone.replace(/[^0-9]/g, "");
+        if ((t.lessonIds || []).some((id) => paidLessonIds.has(id))) {
+          alreadyPaidPhones.add(phone);
+        }
+      }
+    }
+
     // Solapi SDK 동적 import
     const { SolapiMessageService } = await import("solapi");
     const messageService = new SolapiMessageService(apiKey, apiSecret);
@@ -90,6 +118,7 @@ export async function POST(req: NextRequest) {
     let success = 0;
     let fail = 0;
     let skippedDuplicate = 0;
+    let skippedAlreadyPaid = 0;
     const logs: { phone: string; name: string; status: string }[] = [];
 
     for (const target of targets) {
@@ -97,6 +126,13 @@ export async function POST(req: NextRequest) {
       if (phone.length < 10) {
         fail++;
         logs.push({ phone, name: target.name, status: "manual_fail" });
+        continue;
+      }
+
+      // ── 이번 달 납부 완료 수강생 스킵 ─────────────────────────────────
+      if (alreadyPaidPhones.has(phone)) {
+        skippedAlreadyPaid++;
+        logs.push({ phone, name: target.name, status: "skipped_already_paid" });
         continue;
       }
 
@@ -180,7 +216,7 @@ export async function POST(req: NextRequest) {
       if (logError) console.error("수동 발송 로그 저장 실패:", logError);
     }
 
-    return NextResponse.json({ success, fail, skippedDuplicate });
+    return NextResponse.json({ success, fail, skippedDuplicate, skippedAlreadyPaid });
   } catch (err: any) {
     console.error("알림톡 API 오류:", err);
     return NextResponse.json(

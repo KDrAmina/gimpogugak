@@ -277,12 +277,56 @@ export async function GET(req: Request) {
       }
     }
 
+    // ── 이번 달 이미 납부한 수강생 스마트 스킵 ────────────────────────────
+    // lesson_history에서 이번 달(YYYY-MM) 결제 완료 기록이 있으면 발송 제외.
+    // 결제일이 맞더라도 이미 선결제한 수강생에게 중복 알림 발송을 방지함.
+    const allTargets = Array.from(groupMap.values());
+    const currentMonthStart = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    const allLessonIds = allTargets.flatMap((t) => t.lessonIds);
+    const alreadyPaidPhones = new Set<string>();
+
+    if (allLessonIds.length > 0) {
+      const { data: paidThisMonth } = await supabase
+        .from("lesson_history")
+        .select("lesson_id")
+        .in("lesson_id", allLessonIds)
+        .eq("status", "결제 완료")
+        .gte("completed_date", currentMonthStart);
+
+      const paidLessonIds = new Set(
+        (paidThisMonth || []).map((r: { lesson_id: string }) => r.lesson_id)
+      );
+
+      for (const target of allTargets) {
+        if (target.lessonIds.some((id) => paidLessonIds.has(id))) {
+          alreadyPaidPhones.add(target.phone);
+        }
+      }
+    }
+
+    // 이미 납부한 수강생 스킵 로그 기록
+    const alreadyPaidTargets = allTargets.filter((t) => alreadyPaidPhones.has(t.phone));
+    if (alreadyPaidTargets.length > 0) {
+      const skipInserts = alreadyPaidTargets.map((t) => ({
+        phone: t.phone,
+        name: t.baseName,
+        status: "skipped_already_paid",
+        sent_date: todayStr,
+        type: "auto_cron",
+        created_at: new Date().toISOString(),
+      }));
+      const { error: skipLogError } = await supabase.from("notification_log").insert(skipInserts);
+      if (skipLogError) console.error("납부 완료 스킵 로그 저장 실패:", skipLogError);
+    }
+
+    // 납부 완료 수강생 제외 후 이후 필터링 진행
+    const activeTargets = allTargets.filter((t) => !alreadyPaidPhones.has(t.phone));
+
     // ── 수강료 0원 이하 → 발송 제외 + DB 기록 ──────────────────────────
     // 0원 대상자를 로그에 남겨 관리자가 "발송 없음"의 원인을 파악할 수 있게 함.
     // 테스트 발송 결과 알림창에서 "0원 제외: Y건"으로 표시됨.
-    const allTargets = Array.from(groupMap.values());
-    const zeroTuitionTargets = allTargets.filter((t) => t.totalTuition <= 0);
-    const targets = allTargets.filter((t) => t.totalTuition > 0);
+    const zeroTuitionTargets = activeTargets.filter((t) => t.totalTuition <= 0);
+    const targets = activeTargets.filter((t) => t.totalTuition > 0);
 
     // 0원 스킵 대상도 notification_log에 기록 (사유 추적용)
     if (zeroTuitionTargets.length > 0) {
@@ -307,6 +351,7 @@ export async function GET(req: Request) {
         message: `오전 10시 자동 발송 완료 — 발송 대상 없음`,
         sent: 0,
         skippedZero: zeroTuitionTargets.length,
+        skippedAlreadyPaid: alreadyPaidTargets.length,
         todayDay,
       });
     }
@@ -403,6 +448,8 @@ export async function GET(req: Request) {
       total: targets.length,
       // 0원 제외 건수 — 관리자 UI 테스트 발송 결과 알림창에 표시됨
       skippedZero: zeroTuitionTargets.length,
+      // 이번 달 납부 완료 수강생 제외 건수
+      skippedAlreadyPaid: alreadyPaidTargets.length,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";

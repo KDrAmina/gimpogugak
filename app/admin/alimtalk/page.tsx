@@ -488,6 +488,7 @@ export default function AlimtalkPage() {
             phone: t.phone,
             tuition: t.totalTuition,
             paymentDate: t.paymentDate,
+            lessonIds: t.lessonIds,
           })),
           scheduledDate: scheduledDate || null,
         }),
@@ -497,7 +498,8 @@ export default function AlimtalkPage() {
       if (!res.ok) throw new Error(data.error || "발송 실패");
 
       setResult({ success: data.success, fail: data.fail });
-      alert(`발송 완료: 성공 ${data.success}건, 실패 ${data.fail}건`);
+      const skipMsg = data.skippedAlreadyPaid > 0 ? `, 이미 납부 제외 ${data.skippedAlreadyPaid}건` : "";
+      alert(`발송 완료: 성공 ${data.success}건, 실패 ${data.fail}건${skipMsg}`);
       // 수동 발송 직후 목록 새로고침 → 발송완료 배지가 즉시 표시됨
       await loadStudents();
     } catch (err: unknown) {

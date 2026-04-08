@@ -176,7 +176,14 @@ export default function MyLessonsPage() {
   // For group: determine if current month is paid
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const isGroupPaidThisMonth = lessonData.payment_date != null && lessonData.payment_date.substring(0, 7) === currentMonthStr;
+  // lesson_history 결제 완료 기록 기준으로 판단 (payment_date는 알림톡 발송 기준일로 고정, 납부 시 갱신 안 됨)
+  const isGroupPaidThisMonth = history.some(
+    (h) => h.status === '결제 완료' && h.completed_date.substring(0, 7) === currentMonthStr
+  );
+  // 가장 최근 결제 완료 기록 (lesson_history 기준)
+  const latestGroupPayment = history
+    .filter((h) => h.status === '결제 완료')
+    .sort((a, b) => b.completed_date.localeCompare(a.completed_date))[0];
   // Extract regular payment day from payment_date (e.g. "2026-02-15" → 15)
   const paymentDay = lessonData.payment_date ? parseInt(lessonData.payment_date.split('-')[2], 10) : null;
 
@@ -422,9 +429,9 @@ export default function MyLessonsPage() {
               </p>
             </div>
 
-            {lessonData.payment_date && (
+            {latestGroupPayment && (
               <p className="text-xs text-gray-400 mt-3 text-right">
-                최근 납부 확인일: {new Date(lessonData.payment_date).toLocaleDateString("ko-KR")}
+                최근 납부 확인일: {new Date(latestGroupPayment.completed_date + "T00:00:00").toLocaleDateString("ko-KR")}
               </p>
             )}
           </div>

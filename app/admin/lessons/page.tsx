@@ -368,22 +368,10 @@ export default function AdminLessonsPage() {
 
       const syncedSession = count ?? 0;
 
-      // 남은 결제 이력 중 최신 날짜로 payment_date 롤백
-      const { data: remainingPayments } = await supabase
-        .from("lesson_history")
-        .select("completed_date")
-        .eq("lesson_id", lessonId)
-        .eq("status", "결제 완료")
-        .order("completed_date", { ascending: false })
-        .limit(1);
-
-      const latestPaymentDate = remainingPayments && remainingPayments.length > 0
-        ? remainingPayments[0].completed_date
-        : null;
-
+      // ⚠️ payment_date는 알림톡 발송 기준일(고정) — 삭제 시에도 롤백 금지
       const { error } = await supabase
         .from("lessons")
-        .update({ current_session: syncedSession, payment_date: latestPaymentDate })
+        .update({ current_session: syncedSession })
         .eq("id", lessonId);
 
       if (error) throw error;
@@ -592,25 +580,7 @@ export default function AdminLessonsPage() {
 
       if (error) throw error;
 
-      // 삭제 후 남은 결제 이력 중 가장 최신 날짜로 payment_date 롤백
-      if (lessonId) {
-        const { data: remaining } = await supabase
-          .from("lesson_history")
-          .select("completed_date")
-          .eq("lesson_id", lessonId)
-          .eq("status", "결제 완료")
-          .order("completed_date", { ascending: false })
-          .limit(1);
-
-        const latestDate = remaining && remaining.length > 0
-          ? remaining[0].completed_date
-          : null;
-
-        await supabase
-          .from("lessons")
-          .update({ payment_date: latestDate })
-          .eq("id", lessonId);
-      }
+      // ⚠️ payment_date는 알림톡 발송 기준일(고정) — 결제 내역 삭제 시에도 롤백 금지
 
       // Remove from local state
       setPaymentHistoryDates((prev) => prev.filter((r) => r.id !== historyId));
@@ -811,15 +781,8 @@ export default function AdminLessonsPage() {
 
       if (historyError) throw historyError;
 
-      // 2. lessons.payment_date 업데이트
-      const { error } = await supabase
-        .from("lessons")
-        .update({ payment_date: today })
-        .eq("id", lessonId);
-
-      if (error) throw error;
-
-      // 3. 모든 관련 상태 새로고침 (캘린더 + 납부 상태 뱃지)
+      // 2. 모든 관련 상태 새로고침 (캘린더 + 납부 상태 뱃지)
+      // ⚠️ payment_date는 결제일(알림톡 발송 기준일) 고정값 — 납부 시 자동 업데이트 금지
       await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       alert("✅ 이번 달 입금이 확인되었습니다.");
     } catch (error) {
@@ -918,13 +881,7 @@ export default function AdminLessonsPage() {
 
       if (insertError) throw insertError;
 
-      // Update payment_date on the lesson to the last future month
-      const lastFutureDate = inserts[inserts.length - 1].completed_date;
-      await supabase
-        .from("lessons")
-        .update({ payment_date: lastFutureDate })
-        .eq("id", lesson.id);
-
+      // ⚠️ payment_date는 알림톡 발송 기준일(고정) — 선납 등록 시에도 자동 업데이트 금지
       await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       alert(`✅ ${lesson.student_name}님 ${months}개월 선납이 등록되었습니다.\n(${startMonthLabel} ~ ${endMonthLabel})`);
     } catch (error: any) {
@@ -1008,13 +965,7 @@ export default function AdminLessonsPage() {
         throw historyError;
       }
 
-      const { error: updateError } = await supabase
-        .from("lessons")
-        .update({ payment_date: selectedDateForAdd })
-        .eq("id", lessonId);
-
-      if (updateError) throw updateError;
-
+      // ⚠️ payment_date는 알림톡 발송 기준일(고정) — 납부 등록 시 자동 업데이트 금지
       await Promise.all([loadLessons(), loadLessonHistory(), loadPaymentStatusMap()]);
       closeAddLessonByDateModal();
       alert(`✅ ${studentName}님의 납부가 ${selectedDateForAdd}로 등록되었습니다.`);
