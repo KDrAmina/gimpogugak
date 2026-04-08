@@ -222,12 +222,14 @@ export async function GET(req: Request) {
     }
 
     // ── 8. 중복 발송 방지: 오늘 이미 발송된 수강생 확인 ─────────────────
-    // 금요일 선발송도 sent_date = 오늘(금요일)로 통일 기록하므로 오늘 날짜만 조회
+    // ⚠️ type 필터 제거 — auto_cron·manual 구분 없이 성공 이력이 있으면 모두 차단
+    // (수동 발송 후 크론이 재발송하거나 크론 후 수동이 재발송하는 버그 원천 차단)
+    // KST todayStr로 비교하므로 UTC/KST 시차에 의한 날짜 오인식 없음
     const { data: sentToday } = await supabase
       .from("notification_log")
       .select("phone")
       .eq("sent_date", todayStr)
-      .eq("type", "auto_cron");
+      .in("status", ["success", "manual_success"]);
 
     const alreadySentPhones = new Set(
       (sentToday || []).map((r: { phone: string }) => r.phone)
@@ -322,6 +324,22 @@ export async function GET(req: Request) {
       if (phone.length < 10) {
         fail++;
         logs.push({ phone, name: target.baseName, status: "invalid_phone", logDate: target.logDate });
+        continue;
+      }
+
+      // ── 이중 방어막: 발송 직전 DB 재확인 ────────────────────────────────
+      // 배치 체크(8단계) 이후 동시 실행 또는 수동 발송이 끼어든 경우까지 차단.
+      // 수동 테스트 발송도 이 경로를 통과하므로 Bypass 불가.
+      const { data: doubleCheck } = await supabase
+        .from("notification_log")
+        .select("id")
+        .eq("phone", phone)
+        .eq("sent_date", todayStr)
+        .in("status", ["success", "manual_success"])
+        .limit(1);
+
+      if (doubleCheck && doubleCheck.length > 0) {
+        // 이미 발송 완료 — 카운트 증가 없이 조용히 스킵 (로그 기록도 생략)
         continue;
       }
 

@@ -567,6 +567,21 @@ export default function AlimtalkPage() {
   const selectedCount = students.filter((s) => s.selected).length;
 
   const { todayStr: todayDateStr, isFriday, isWeekend, dayOfWeek: todayDayOfWeek } = getKSTInfo();
+
+  // 오늘 발송 대상(수강료 > 0, 알림톡 ON) 수강생 중 전원 발송 완료 여부
+  // → true이면 테스트 발송 버튼을 비활성화하여 실수 중복 발송 방지
+  const todayEligible = students.filter(
+    (s) => s.isToday && s.totalTuition > 0 && s.alimtalkEnabled
+  );
+  const allTodayTargetsSent =
+    todayEligible.length > 0 &&
+    todayEligible.every(
+      (s) =>
+        s.sentToday &&
+        s.sentStatus !== "fail" &&
+        s.sentStatus !== "manual_fail" &&
+        s.sentStatus !== "invalid_phone"
+    );
   const isSaturday = todayDayOfWeek === 6;
   const isSunday = todayDayOfWeek === 0;
 
@@ -597,10 +612,19 @@ export default function AlimtalkPage() {
           <button
             type="button"
             onClick={handleTestCron}
-            disabled={testSending}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow transition-colors"
+            disabled={testSending || allTodayTargetsSent}
+            title={allTodayTargetsSent ? "오늘 발송 대상자 전원에게 이미 발송 완료되었습니다." : undefined}
+            className={`px-4 py-2 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow transition-colors ${
+              allTodayTargetsSent
+                ? "bg-gray-400 disabled:bg-gray-400"
+                : "bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300"
+            }`}
           >
-            {testSending ? "발송 중..." : "테스트 발송 (크론 수동 실행)"}
+            {testSending
+              ? "발송 중..."
+              : allTodayTargetsSent
+              ? "오늘 발송 완료됨"
+              : "테스트 발송 (크론 수동 실행)"}
           </button>
           {testResult && (
             <div className={`text-xs px-3 py-1.5 rounded-lg border ${

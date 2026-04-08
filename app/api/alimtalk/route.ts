@@ -70,12 +70,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "발송 대상이 없습니다." }, { status: 400 });
     }
 
+    // ── 중복 발송 방지 (STEP 1): 오늘 이미 성공한 번호 일괄 조회 ─────────
+    // KST todayStr 기준 — UTC/KST 시차로 인한 날짜 오인식 없음
+    // type 필터 없음 → auto_cron·manual 모두 차단
+    const { data: sentTodayLogs } = await supabase
+      .from("notification_log")
+      .select("phone")
+      .eq("sent_date", todayStr)
+      .in("status", ["success", "manual_success"]);
+
+    const alreadySentSet = new Set<string>(
+      (sentTodayLogs || []).map((r: { phone: string }) => r.phone)
+    );
+
     // Solapi SDK 동적 import
     const { SolapiMessageService } = await import("solapi");
     const messageService = new SolapiMessageService(apiKey, apiSecret);
 
     let success = 0;
     let fail = 0;
+    let skippedDuplicate = 0;
     const logs: { phone: string; name: string; status: string }[] = [];
 
     for (const target of targets) {
@@ -83,6 +97,26 @@ export async function POST(req: NextRequest) {
       if (phone.length < 10) {
         fail++;
         logs.push({ phone, name: target.name, status: "manual_fail" });
+        continue;
+      }
+
+      // ── 이중 방어막 (STEP 2): 발송 직전 중복 재확인 ─────────────────────
+      // 1차: 배치 Set 체크 (빠른 경로)
+      if (alreadySentSet.has(phone) || alreadySentSet.has(target.phone)) {
+        skippedDuplicate++;
+        continue;
+      }
+      // 2차: DB 재확인 (레이스 컨디션 · 크론 동시 실행 차단)
+      const { data: finalCheck } = await supabase
+        .from("notification_log")
+        .select("id")
+        .eq("phone", phone)
+        .eq("sent_date", todayStr)
+        .in("status", ["success", "manual_success"])
+        .limit(1);
+
+      if (finalCheck && finalCheck.length > 0) {
+        skippedDuplicate++;
         continue;
       }
 
@@ -146,7 +180,7 @@ export async function POST(req: NextRequest) {
       if (logError) console.error("수동 발송 로그 저장 실패:", logError);
     }
 
-    return NextResponse.json({ success, fail });
+    return NextResponse.json({ success, fail, skippedDuplicate });
   } catch (err: any) {
     console.error("알림톡 API 오류:", err);
     return NextResponse.json(
