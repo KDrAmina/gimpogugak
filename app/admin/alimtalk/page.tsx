@@ -742,6 +742,75 @@ export default function AlimtalkPage() {
         </div>
       )}
 
+      {/* 수동 발송 섹션 (접이식) — 테이블 바로 위 배치 */}
+      <div className="mb-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowManualSend(!showManualSend)}
+          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-700">
+            수동 발송 (즉시/예약)
+          </span>
+          <svg
+            className={`w-4 h-4 text-gray-500 transition-transform ${showManualSend ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showManualSend && (
+          <div className="px-4 pb-4 border-t border-gray-200 pt-3">
+            <p className="text-xs text-gray-500 mb-3">
+              위 표에서 체크박스로 대상을 선택한 후 발송하세요. 동일인물은 수강료가 합산됩니다.
+            </p>
+
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                예약 발송 일시 (선택)
+              </label>
+              <input
+                type="datetime-local"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {scheduledDate
+                  ? `${new Date(scheduledDate).toLocaleString("ko-KR")} 예약 발송`
+                  : "미선택 시 즉시 발송"}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {selectedCount}명 선택 / 총 {students.length}명
+              </span>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending || selectedCount === 0}
+                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow transition-colors text-sm"
+              >
+                {sending
+                  ? "발송 중..."
+                  : `알림톡 ${scheduledDate ? "예약" : "즉시"} 발송 (${selectedCount}명)`}
+              </button>
+            </div>
+
+            {result && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                발송 결과: 성공 <strong>{result.success}</strong>건, 실패{" "}
+                <strong>{result.fail}</strong>건
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* 수강생 스케줄 테이블 */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="overflow-x-auto">
@@ -872,44 +941,58 @@ export default function AlimtalkPage() {
 
                     {/* ── 상태 배지 ────────────────────────────────────────────
                      * 우선순위 (엄격 순서):
-                     * 1. 알림톡 OFF                        → 발송 제외(수동)
-                     * 2. 수강료 0원                        → 발송 제외(0원)
-                     * 3A. 납부 O + 발송 이력 O (조건 A)    → 이번달 납부완료 (발송 MM/DD)
-                     *     ▸ 문자를 받은 뒤 납부한 경우.
-                     *       예) 조현자가 4/5 알림톡을 받고 당일 납부
-                     *       → "🔵 이번달 납부완료 (발송 04/05)" 표시
-                     * 3B. 납부 O + 발송 이력 X (조건 B)    → 이번달 납부완료 (발송제외)
-                     *     ▸ 문자 발송 전에 선결제한 경우.
-                     *       예) 조현자가 문자 오기 전 4/3에 직접 납부
-                     *       → "🔵 이번달 납부완료 (발송제외)" 표시
-                     * 4. 납부 X + 발송 이력 O (조건 C)     → 수동발송/발송완료/발송실패
-                     * 5. 납부 X + 발송 이력 X (조건 D)     → 선발송 대상/발송대기/대기/미설정
                      *
-                     * ⚠️ 이전 버그: hasPaidThisMonth만 체크하고 sentToday를 무시했기 때문에
-                     *    "문자 수신 후 납부"한 경우도 "발송제외"로 덮어씌워졌음.
-                     *    → 수정: hasPaidThisMonth + sentToday 를 동시에 체크하도록 분기.
+                     * ── [이번 달 납부 O] 최우선 그룹 ──────────────────────────
+                     * 조건 A-1. 납부 O + 토글 OFF
+                     *   → 🔵 이번달 납부완료 (수동제외)
+                     *   ▸ 알림톡을 꺼둔 수강생이 이번 달 납부한 경우.
+                     *     예) 조현자가 토글 OFF 상태로 직접 결제
+                     *     → 장부상 납부 완료를 한눈에 파악 가능
+                     *
+                     * 조건 A-2. 납부 O + 발송 이력 O
+                     *   → 🔵 이번달 납부완료 (발송 MM/DD)
+                     *   ▸ 알림톡을 받은 뒤 납부한 경우.
+                     *     예) 조현자가 4/5 알림톡을 받고 당일 납부
+                     *
+                     * 조건 A-3. 납부 O + 발송 이력 X
+                     *   → 🔵 이번달 납부완료 (발송제외)
+                     *   ▸ 알림톡 발송 전 선결제한 경우.
+                     *     예) 조현자가 문자 오기 전 4/3에 직접 납부
+                     *
+                     * ── [이번 달 납부 X] 일반 그룹 ──────────────────────────
+                     * 조건 B-1. 납부 X + 0원 결제자  → 발송 제외(0원)
+                     * 조건 B-2. 납부 X + 토글 OFF    → 발송 제외(수동)
+                     * 조건 B-3. 납부 X + 발송 이력 O → 발송완료/수동발송/발송실패
+                     * 조건 B-4. 납부 X + 그 외       → 금요일선발송/발송대기/대기/미설정
+                     *
+                     * ⚠️ hasPaidThisMonth 블록을 !alimtalkEnabled 보다 반드시 위에 두어야
+                     *    토글 OFF 수강생의 납부 완료 상태가 정확히 표시됨.
                      ──────────────────────────────────────────────────── */}
                     <td className="px-4 py-3 text-center">
-                      {!s.alimtalkEnabled ? (
-                        // 1. 영구 발송 제외
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
-                          발송 제외(수동)
-                        </span>
-                      ) : s.totalTuition <= 0 ? (
-                        // 2. 0원 — 결제일 여부 무관하게 항상 표시
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
-                          발송 제외(0원)
+                      {s.hasPaidThisMonth && !s.alimtalkEnabled ? (
+                        // 조건 A-1: 납부 O + 토글 OFF → 수동 제외이지만 납부 완료 확인 가능
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                          🔵 이번달 납부완료 (수동제외)
                         </span>
                       ) : s.hasPaidThisMonth && s.sentToday ? (
-                        // 3A. 조건 A: 납부 O + 발송 이력 O → 문자를 받고 결제한 케이스
-                        // 발송일(sentDate)을 MM/DD 형식으로 표시하여 언제 발송됐는지 확인 가능
+                        // 조건 A-2: 납부 O + 발송 이력 O → 문자를 받고 결제한 케이스
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           🔵 이번달 납부완료{s.sentDate ? ` (발송 ${formatSentDate(s.sentDate)})` : " (발송완료)"}
                         </span>
                       ) : s.hasPaidThisMonth ? (
-                        // 3B. 조건 B: 납부 O + 발송 이력 X → 문자 발송 전 선결제한 케이스
+                        // 조건 A-3: 납부 O + 발송 이력 X → 문자 발송 전 선결제한 케이스
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           🔵 이번달 납부완료 (발송제외)
+                        </span>
+                      ) : s.totalTuition <= 0 ? (
+                        // 조건 B-1: 납부 X + 0원 — 결제일 여부 무관하게 항상 표시
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
+                          발송 제외(0원)
+                        </span>
+                      ) : !s.alimtalkEnabled ? (
+                        // 조건 B-2: 납부 X + 토글 OFF → 영구 발송 제외
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
+                          발송 제외(수동)
                         </span>
                       ) : s.sentToday ? (
                         // 4. 실제 발송 이력 있음 (skipped 상태는 sentMap에서 제외됨)
@@ -988,74 +1071,6 @@ export default function AlimtalkPage() {
         </div>
       </div>
 
-      {/* 수동 발송 섹션 (접이식) */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowManualSend(!showManualSend)}
-          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
-        >
-          <span className="text-sm font-medium text-gray-700">
-            수동 발송 (즉시/예약)
-          </span>
-          <svg
-            className={`w-4 h-4 text-gray-500 transition-transform ${showManualSend ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {showManualSend && (
-          <div className="px-4 pb-4 border-t border-gray-200 pt-3">
-            <p className="text-xs text-gray-500 mb-3">
-              위 표에서 체크박스로 대상을 선택한 후 발송하세요. 동일인물은 수강료가 합산됩니다.
-            </p>
-
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                예약 발송 일시 (선택)
-              </label>
-              <input
-                type="datetime-local"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                {scheduledDate
-                  ? `${new Date(scheduledDate).toLocaleString("ko-KR")} 예약 발송`
-                  : "미선택 시 즉시 발송"}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {selectedCount}명 선택 / 총 {students.length}명
-              </span>
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={sending || selectedCount === 0}
-                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow transition-colors text-sm"
-              >
-                {sending
-                  ? "발송 중..."
-                  : `알림톡 ${scheduledDate ? "예약" : "즉시"} 발송 (${selectedCount}명)`}
-              </button>
-            </div>
-
-            {result && (
-              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-                발송 결과: 성공 <strong>{result.success}</strong>건, 실패{" "}
-                <strong>{result.fail}</strong>건
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
