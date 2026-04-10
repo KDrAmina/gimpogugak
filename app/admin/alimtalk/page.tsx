@@ -872,19 +872,22 @@ export default function AlimtalkPage() {
 
                     {/* ── 상태 배지 ────────────────────────────────────────────
                      * 우선순위 (엄격 순서):
-                     * 1. 알림톡 OFF          → 발송 제외(수동)   [영구 설정]
-                     * 2. 수강료 0원          → 발송 제외(0원)    [항상 제외]
-                     * 3. 이번 달 납부 완료   → 이번달 납부완료   [최우선 정보]
-                     * 4. 발송 성공/실패 이력 → 수동발송/발송완료/발송실패
-                     * 5. 금요일 선발송 대상  → 선발송 대상
-                     * 6. 오늘 발송 대기      → 발송대기
-                     * 7. 토·일 결제자        → 금요일 미발송
-                     * 8. 결제일 있음         → 대기
-                     * 9. 결제일 없음         → 미설정
+                     * 1. 알림톡 OFF                        → 발송 제외(수동)
+                     * 2. 수강료 0원                        → 발송 제외(0원)
+                     * 3A. 납부 O + 발송 이력 O (조건 A)    → 이번달 납부완료 (발송 MM/DD)
+                     *     ▸ 문자를 받은 뒤 납부한 경우.
+                     *       예) 조현자가 4/5 알림톡을 받고 당일 납부
+                     *       → "🔵 이번달 납부완료 (발송 04/05)" 표시
+                     * 3B. 납부 O + 발송 이력 X (조건 B)    → 이번달 납부완료 (발송제외)
+                     *     ▸ 문자 발송 전에 선결제한 경우.
+                     *       예) 조현자가 문자 오기 전 4/3에 직접 납부
+                     *       → "🔵 이번달 납부완료 (발송제외)" 표시
+                     * 4. 납부 X + 발송 이력 O (조건 C)     → 수동발송/발송완료/발송실패
+                     * 5. 납부 X + 발송 이력 X (조건 D)     → 선발송 대상/발송대기/대기/미설정
                      *
-                     * ⚠️ hasPaidThisMonth는 sentToday보다 반드시 위에 위치해야 함.
-                     *    sentToday는 실제 발송(success/fail) 이력만 포함
-                     *    (skipped_already_paid·skipped_zero_tuition은 sentMap에서 제외됨)
+                     * ⚠️ 이전 버그: hasPaidThisMonth만 체크하고 sentToday를 무시했기 때문에
+                     *    "문자 수신 후 납부"한 경우도 "발송제외"로 덮어씌워졌음.
+                     *    → 수정: hasPaidThisMonth + sentToday 를 동시에 체크하도록 분기.
                      ──────────────────────────────────────────────────── */}
                     <td className="px-4 py-3 text-center">
                       {!s.alimtalkEnabled ? (
@@ -897,8 +900,14 @@ export default function AlimtalkPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
                           발송 제외(0원)
                         </span>
+                      ) : s.hasPaidThisMonth && s.sentToday ? (
+                        // 3A. 조건 A: 납부 O + 발송 이력 O → 문자를 받고 결제한 케이스
+                        // 발송일(sentDate)을 MM/DD 형식으로 표시하여 언제 발송됐는지 확인 가능
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                          🔵 이번달 납부완료{s.sentDate ? ` (발송 ${formatSentDate(s.sentDate)})` : " (발송완료)"}
+                        </span>
                       ) : s.hasPaidThisMonth ? (
-                        // 3. 이번 달 납부 완료 (최우선 — 발송 여부보다 중요)
+                        // 3B. 조건 B: 납부 O + 발송 이력 X → 문자 발송 전 선결제한 케이스
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           🔵 이번달 납부완료 (발송제외)
                         </span>
