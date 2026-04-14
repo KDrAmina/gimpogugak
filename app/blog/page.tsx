@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import BlogListClient from "@/components/BlogListClient";
@@ -32,7 +33,9 @@ export default async function BlogListPage() {
        왕초보 민요부터 전공자 발성까지! <br />실제 수업 현장과 꿀팁을 지금 바로 확인해 보세요.
       </p>
 
-      <BlogListClient posts={posts ?? []} />
+      <Suspense fallback={<div className="py-12 text-center text-gray-400 text-sm">불러오는 중...</div>}>
+        <BlogListClient posts={posts ?? []} />
+      </Suspense>
 
       <p className="mt-12 text-sm text-gray-500">
         <Link href="/classes" className="text-blue-600 hover:underline">

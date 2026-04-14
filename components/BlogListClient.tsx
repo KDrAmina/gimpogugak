@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useInView } from "react-intersection-observer";
+import { useSearchParams, useRouter } from "next/navigation";
 import { formatDateKST } from "@/lib/date-utils";
 import { getBlogPostPath } from "@/lib/blog-utils";
 
@@ -51,22 +51,106 @@ function markPostAsRead(postId: string) {
   }
 }
 
+// ── 페이지네이션 UI ────────────────────────────────────────────────────────
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  // 최대 5개 슬라이딩 윈도우
+  let startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, startPage + 4);
+  if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+  const pages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+  const btnBase =
+    "min-w-[36px] h-9 px-2.5 text-sm rounded-md border transition-colors";
+  const btnNormal =
+    "border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed";
+  const btnActive = "border-blue-600 bg-blue-600 text-white font-medium";
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-8 mb-2">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className={`${btnBase} ${btnNormal}`}
+        aria-label="이전 페이지"
+      >
+        ‹
+      </button>
+
+      {startPage > 1 && (
+        <>
+          <button onClick={() => onPageChange(1)} className={`${btnBase} ${btnNormal}`}>
+            1
+          </button>
+          {startPage > 2 && (
+            <span className="px-1 text-gray-400 text-sm select-none">…</span>
+          )}
+        </>
+      )}
+
+      {pages.map((p) => (
+        <button
+          key={p}
+          onClick={() => onPageChange(p)}
+          className={`${btnBase} ${p === currentPage ? btnActive : btnNormal}`}
+          aria-current={p === currentPage ? "page" : undefined}
+        >
+          {p}
+        </button>
+      ))}
+
+      {endPage < totalPages && (
+        <>
+          {endPage < totalPages - 1 && (
+            <span className="px-1 text-gray-400 text-sm select-none">…</span>
+          )}
+          <button
+            onClick={() => onPageChange(totalPages)}
+            className={`${btnBase} ${btnNormal}`}
+          >
+            {totalPages}
+          </button>
+        </>
+      )}
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className={`${btnBase} ${btnNormal}`}
+        aria-label="다음 페이지"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
+// ── 메인 컴포넌트 ─────────────────────────────────────────────────────────
 export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
   const [activeTab, setActiveTab] = useState<TabKey>("전체");
   const [query, setQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  // Load read IDs from localStorage on mount
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // URL ?page=N에서 현재 페이지 읽기 (기본값 1)
+  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+
   useEffect(() => {
     setReadIds(getReadPostIds());
   }, []);
 
-  const { ref: sentinelRef, inView } = useInView({
-    threshold: 0,
-    rootMargin: "200px",
-  });
-
+  // ── 필터링 ────────────────────────────────────────────────────────────────
   const tabFiltered = useMemo(() => {
     const filtered = posts.filter((post) => {
       if (post.is_notice) return true; // 공지는 모든 탭에서 항상 표시
@@ -74,7 +158,6 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
       if (activeTab === "음악교실") return post.category === "음악교실";
       return post.category === "국악원소식" || post.category === "소식";
     });
-    // 공지를 최상단으로 (DB 정렬 보조)
     return filtered.sort((a, b) => {
       if (a.is_notice && !b.is_notice) return -1;
       if (!a.is_notice && b.is_notice) return 1;
@@ -88,24 +171,42 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
     return tabFiltered.filter((post) => post.title.toLowerCase().includes(q));
   }, [tabFiltered, query]);
 
-  const visiblePosts = filteredPosts.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredPosts.length;
+  // ── 페이지네이션 계산 ──────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const visiblePosts = filteredPosts.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
 
-  // Load more when sentinel is in view
-  useEffect(() => {
-    if (inView && hasMore) {
-      setVisibleCount((prev) => prev + PAGE_SIZE);
-    }
-  }, [inView, hasMore]);
+  // 전체 필터 결과 기준으로 공지 수 캐싱
+  const globalNoticeCount = useMemo(
+    () => filteredPosts.filter((p) => p.is_notice).length,
+    [filteredPosts]
+  );
+  const totalNonNotice = filteredPosts.length - globalNoticeCount;
+
+  // ── 핸들러 ────────────────────────────────────────────────────────────────
+  function goToPage(page: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    // push → 뒤로가기 시 이전 페이지로 돌아올 수 있음
+    router.push(`?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const handleTabChange = (tab: TabKey) => {
     setActiveTab(tab);
-    setVisibleCount(PAGE_SIZE);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
-    setVisibleCount(PAGE_SIZE);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
+    router.replace(`?${params.toString()}`);
   };
 
   const handlePostClick = useCallback((postId: string) => {
@@ -165,12 +266,11 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
         <ul>
           {visiblePosts.map((post, idx) => {
             const isNotice = !!post.is_notice;
-            // 공지는 번호 대신 배지 표시; 일반 글은 공지 수를 제외한 번호
-            const noticeCount = visiblePosts.filter((p) => p.is_notice).length;
+            // 전체 필터 기준 절대 인덱스로 번호 계산 (페이지 이동해도 연속 번호 유지)
+            const absoluteIdx = (safePage - 1) * PAGE_SIZE + idx;
             const num = isNotice
               ? null
-              : filteredPosts.filter((p) => !p.is_notice).length -
-                (idx - noticeCount);
+              : totalNonNotice - (absoluteIdx - globalNoticeCount);
             const href =
               post.external_url ||
               `/blog/${getBlogPostPath(post.slug ?? null, post.id)}`;
@@ -251,39 +351,17 @@ export default function BlogListClient({ posts }: { posts: BlogPost[] }) {
         </ul>
       )}
 
-      {/* Infinite Scroll Sentinel */}
-      {hasMore && (
-        <div ref={sentinelRef} className="flex justify-center py-6">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <svg
-              className="animate-spin h-4 w-4 text-blue-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            불러오는 중...
-          </div>
-        </div>
-      )}
+      {/* Pagination */}
+      <Pagination
+        currentPage={safePage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+      />
 
-      {/* End of list indicator */}
-      {!hasMore && filteredPosts.length > PAGE_SIZE && (
-        <p className="text-center text-sm text-gray-400 py-6">
-          모든 글을 불러왔습니다.
+      {/* 게시물 수 안내 */}
+      {filteredPosts.length > 0 && (
+        <p className="text-center text-xs text-gray-400 mt-3">
+          전체 {filteredPosts.length}개 · {safePage} / {totalPages} 페이지
         </p>
       )}
     </>
