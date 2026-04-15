@@ -75,7 +75,7 @@ export default function ProfilePage() {
         </div>
       </div>
       <p className="mt-6 mb-8 text-gray-600 leading-loose">
-        10년 이상 현장에서 우리 소리를 가르쳐온 교육자이자, 끊임없이 무대에 오르는 소리꾼입니다.
+        오랜기간 현장에서 우리 소리를 가르쳐온 교육자이자, 끊임없이 무대에 오르는 소리꾼입니다.
         <br />
         전통을 올바르게 계승하며, 누구나 쉽게 국악을 즐길 수 있도록 지도합니다.
       </p>

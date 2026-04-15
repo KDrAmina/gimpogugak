@@ -28,7 +28,8 @@
       "Bash(npx ts-node:*)",
       "Bash(npm ls:*)",
       "Bash(npx supabase:*)",
-      "Bash(cron\")"
+      "Bash(cron\")",
+      "Bash(find:*)"
     ]
   }
 }

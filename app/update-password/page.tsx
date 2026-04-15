@@ -10,6 +10,7 @@ export default function UpdatePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [hasUser, setHasUser] = useState(false);
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function UpdatePasswordPage() {
       return;
     }
 
-    if (password.length < 4) {
+    if (password.length < 6) {
       setMessage("비밀번호는 6자리 이상이어야 합니다.");
       setLoading(false);
       return;
@@ -60,19 +61,33 @@ export default function UpdatePasswordPage() {
       return;
     }
 
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-
-      if (error) throw error;
-
-      alert("비밀번호가 변경되었습니다.");
-      router.push("/");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "비밀번호 변경 중 오류가 발생했습니다.";
-      setMessage(msg);
-    } finally {
+    // 제출 직전 세션 재확인 (새로고침 등으로 세션이 날아간 경우 방어)
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      setMessage("세션이 만료되었습니다. 비밀번호 찾기를 다시 요청해주세요.");
       setLoading(false);
+      return;
     }
+
+    const { data, error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+      setMessage("비밀번호 변경 실패: " + error.message);
+      setLoading(false);
+      return;
+    }
+
+    if (!data?.user) {
+      setMessage("비밀번호 변경 실패: 서버 응답이 올바르지 않습니다. 다시 시도해주세요.");
+      setLoading(false);
+      return;
+    }
+
+    // 완전한 성공 확인 후 안내 및 이동
+    setIsSuccess(true);
+    setMessage("비밀번호가 성공적으로 변경되었습니다. 로그인 페이지로 이동합니다.");
+    setLoading(false);
+    setTimeout(() => router.push("/login"), 1500);
   }
 
   function handlePasswordChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -129,7 +144,7 @@ export default function UpdatePasswordPage() {
           </div>
 
           {message && (
-            <div className="mb-4 p-3 rounded-lg text-sm bg-red-50 text-red-800">
+            <div className={`mb-4 p-3 rounded-lg text-sm ${isSuccess ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
               {message}
             </div>
           )}
@@ -144,7 +159,7 @@ export default function UpdatePasswordPage() {
                 value={password}
                 onChange={handlePasswordChange}
                 required
-                minLength={4}
+                minLength={6}
                 maxLength={15}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="6자리 이상"
@@ -160,7 +175,7 @@ export default function UpdatePasswordPage() {
                 value={confirmPassword}
                 onChange={handleConfirmChange}
                 required
-                minLength={4}
+                minLength={6}
                 maxLength={15}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="비밀번호를 다시 입력하세요"

@@ -89,12 +89,12 @@ export default function MyInfoPage() {
   }
 
   async function handleUpdateEmail() {
-    if (!newEmail || !newEmail.includes("@")) {
+    if (!newEmail.trim() || !newEmail.includes("@")) {
       alert("올바른 이메일 주소를 입력해주세요.");
       return;
     }
 
-    if (!confirm("이메일을 변경하시겠습니까?")) {
+    if (!confirm("이메일을 변경하시겠습니까?\n\n확인 메일이 발송되는 경우 링크를 클릭해야 변경이 완료됩니다.")) {
       return;
     }
 
@@ -104,32 +104,35 @@ export default function MyInfoPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("로그인 상태를 확인할 수 없습니다.");
 
-      console.log("🔄 Updating email...");
+      // Step 1: auth.users 먼저 업데이트 (본사 명부 우선)
+      const { data: authData, error: authError } = await supabase.auth.updateUser({
+        email: newEmail.trim(),
+      });
 
-      // Update in profiles table
+      if (authError) {
+        throw new Error(`인증 이메일 변경 실패: ${authError.message}`);
+      }
+
+      if (!authData?.user) {
+        throw new Error("인증 이메일 변경 실패: 서버 응답이 올바르지 않습니다. 다시 시도해주세요.");
+      }
+
+      // Step 2: auth 성공이 확인된 후에만 profiles 업데이트
       const { error: profileError } = await supabase
         .from("profiles")
         .update({ email: newEmail.trim() })
         .eq("id", user.id);
 
-      if (profileError) throw profileError;
-
-      // Update in Supabase Auth
-      const { error: authError } = await supabase.auth.updateUser({
-        email: newEmail.trim(),
-      });
-
-      if (authError) {
-        console.warn("Auth email update failed:", authError);
-        alert("⚠️ 프로필 이메일은 변경되었지만, 인증 이메일 변경에 실패했습니다.\n\n다음 로그인 시 새 이메일로 로그인하세요.");
+      if (profileError) {
+        // auth는 성공했으나 profiles 저장 실패 → 부분 성공 안내
+        alert(`⚠️ 인증 이메일은 변경되었으나 프로필 저장에 실패했습니다.\n\n오류: ${profileError.message}\n\n관리자에게 문의해주세요.`);
       } else {
         alert("✅ 이메일이 변경되었습니다.");
       }
 
       await checkAccessAndLoadData();
     } catch (error: any) {
-      console.error("Email update error:", error);
-      alert(`이메일 변경 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
+      alert(`이메일 변경 실패\n\n${error.message || "알 수 없는 오류가 발생했습니다."}`);
     } finally {
       setUpdatingEmail(false);
     }
@@ -141,7 +144,7 @@ export default function MyInfoPage() {
       return;
     }
 
-    if (currentPassword.length < 4 || newPassword.length < 4 || confirmPassword.length < 4) {
+    if (currentPassword.length < 6 || newPassword.length < 6 || confirmPassword.length < 6) {
       alert("비밀번호는 6자리 이상이어야 합니다.");
       return;
     }
@@ -163,40 +166,38 @@ export default function MyInfoPage() {
     setChangingPassword(true);
 
     try {
-      console.log("🔄 Changing password...");
-
-      // Verify current password
-      if (!profile?.email) {
-        throw new Error("이메일 정보를 찾을 수 없습니다.");
-      }
+      // auth.users의 실제 이메일로 검증 (profile.email은 동기화가 어긋날 수 있으므로 사용 금지)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("로그인 상태를 확인할 수 없습니다.");
 
       const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: profile.email,
+        email: user.email,
         password: currentPassword,
       });
 
       if (verifyError) {
-        alert("현재 비밀번호가 올바르지 않습니다.");
-        setChangingPassword(false);
-        return;
+        throw new Error(`현재 비밀번호가 올바르지 않습니다.\n(서버 오류: ${verifyError.message})`);
       }
 
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
+      // 현재 비밀번호 검증 통과 → 새 비밀번호로 업데이트
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw new Error(`비밀번호 변경 실패: ${updateError.message}`);
+      }
 
-      console.log("✅ Password changed successfully");
+      if (!updateData?.user) {
+        throw new Error("비밀번호 변경 실패: 서버 응답이 올바르지 않습니다. 다시 시도해주세요.");
+      }
+
       alert("✅ 비밀번호가 변경되었습니다.");
-      
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      console.error("Password change error:", error);
-      alert(`비밀번호 변경 중 오류가 발생했습니다.\n\n${error.message || "알 수 없는 오류"}`);
+      alert(`비밀번호 변경 실패\n\n${error.message || "알 수 없는 오류가 발생했습니다."}`);
     } finally {
       setChangingPassword(false);
     }
@@ -325,7 +326,7 @@ export default function MyInfoPage() {
                 type="password"
                 value={currentPassword}
                 onChange={(e) => handlePinInput(e.target.value, setCurrentPassword)}
-                minLength={4}
+                minLength={6}
                 maxLength={15}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-base tracking-wide"
                 placeholder="••••"
@@ -340,7 +341,7 @@ export default function MyInfoPage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => handlePinInput(e.target.value, setNewPassword)}
-                minLength={4}
+                minLength={6}
                 maxLength={15}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-base tracking-wide"
                 placeholder="••••"
@@ -355,7 +356,7 @@ export default function MyInfoPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => handlePinInput(e.target.value, setConfirmPassword)}
-                minLength={4}
+                minLength={6}
                 maxLength={15}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-base tracking-wide"
                 placeholder="••••"
