@@ -88,6 +88,10 @@ export default function StatisticsPage() {
   const [yoyMode, setYoyMode]               = useState<"cumulative" | "overlay">("cumulative");
   const [selectedYoyCategory, setSelectedYoyCategory] = useState<string>("어린이개인");
 
+  // ── 범례 토글 상태 (유입경로 / 카테고리) ─────────────────────────────
+  const [inflowHiddenRoutes, setInflowHiddenRoutes] = useState<Set<string>>(new Set());
+  const [categoryHiddenKeys, setCategoryHiddenKeys] = useState<Set<string>>(new Set());
+
   // ── 수입 목표 달성률 편집 상태 ────────────────────────────────────────
   const [goalAmount, setGoalAmount]     = useState<number>(DEFAULT_GOAL_ALL);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
@@ -111,6 +115,12 @@ export default function StatisticsPage() {
     if (selectedYear !== "all") setYoyMode("cumulative");
   }, [selectedYear]);
 
+  // 기간·모드 변경 시 범례 토글 상태 초기화
+  useEffect(() => {
+    setInflowHiddenRoutes(new Set());
+    setCategoryHiddenKeys(new Set());
+  }, [selectedYear, yoyMode]);
+
   /**
    * 목표 금액 저장:
    * - input 값에서 쉼표 제거 후 정수로 파싱
@@ -124,6 +134,26 @@ export default function StatisticsPage() {
       setGoalAmount(parsed);
     }
     setIsEditingGoal(false);
+  }
+
+  function toggleInflowRoute(route: string) {
+    setInflowHiddenRoutes((prev) => {
+      const next = new Set(prev);
+      if (next.has(route)) { next.delete(route); return next; }
+      if (inflowTrendData.routes.length - next.size <= 1) return prev; // 마지막 1개 보호
+      next.add(route);
+      return next;
+    });
+  }
+
+  function toggleCategory(key: string) {
+    setCategoryHiddenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) { next.delete(key); return next; }
+      if (CATEGORIES.length - next.size <= 1) return prev; // 마지막 1개 보호
+      next.add(key);
+      return next;
+    });
   }
 
   async function fetchAll() {
@@ -549,6 +579,9 @@ export default function StatisticsPage() {
     }
   }, [inflowProfiles, studentStats, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 동일 X축 차트들의 툴팁 동기화 ID (연도/월/YoY 모드별 구분)
+  const chartSyncId = yoyMode === "overlay" ? "sync-yoy" : selectedYear === "all" ? "sync-year" : "sync-month";
+
   const periodTuition  = periodChartData.reduce((s, d) => s + d.tuition, 0);
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
   const periodTotal    = periodTuition + periodExtTotal;
@@ -854,14 +887,24 @@ export default function StatisticsPage() {
             <div className="flex flex-wrap gap-2 shrink-0">
               {CATEGORIES.map((cat) => {
                 const st = categoryStats.get(cat) ?? { count: 0, monthlyTotal: 0 };
+                const isHidden = categoryHiddenKeys.has(cat);
                 return (
-                  <span
+                  <button
                     key={cat}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
-                    style={{ background: CATEGORY_COLORS[cat] }}
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    title={isHidden ? `${CATEGORY_LABELS[cat]} 표시` : `${CATEGORY_LABELS[cat]} 숨기기`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border"
+                    style={{
+                      background: isHidden ? undefined : CATEGORY_COLORS[cat],
+                      color: isHidden ? CATEGORY_COLORS[cat] : "white",
+                      borderColor: CATEGORY_COLORS[cat],
+                      opacity: isHidden ? 0.45 : 1,
+                      textDecoration: isHidden ? "line-through" : "none",
+                    }}
                   >
                     {CATEGORY_LABELS[cat]} · {st.count}명
-                  </span>
+                  </button>
                 );
               })}
             </div>
@@ -872,6 +915,8 @@ export default function StatisticsPage() {
           categories={yoyMode === "overlay" ? YEARS_YOY : CATEGORIES}
           colors={yoyMode === "overlay" ? YEAR_COLORS : CATEGORY_COLORS}
           labels={yoyMode === "overlay" ? YEAR_LABELS : CATEGORY_LABELS}
+          syncId={chartSyncId}
+          hiddenKeys={yoyMode !== "overlay" ? categoryHiddenKeys : undefined}
         />
         {/* 카테고리별 인원/비중 요약 바 — YoY 겹쳐보기 모드에서는 숨김 */}
         {yoyMode !== "overlay" && (
@@ -925,9 +970,10 @@ export default function StatisticsPage() {
               categories={YEARS_YOY}
               colors={YEAR_COLORS}
               labels={YEAR_LABELS}
+              syncId={chartSyncId}
             />
           ) : (
-            <StatsArea data={periodChartData} syncId="revenueSync" />
+            <StatsArea data={periodChartData} syncId={chartSyncId} />
           )}
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -958,13 +1004,14 @@ export default function StatisticsPage() {
               data={yoyExtData}
               types={YEARS_YOY}
               colors={YEAR_COLORS}
+              syncId={chartSyncId}
             />
           ) : (
             <ExternalTrendChart
               data={extTrendData}
               types={EXT_TREND_TYPES}
               colors={EXTERNAL_COLORS}
-              syncId="revenueSync"
+              syncId={chartSyncId}
             />
           )}
         </div>
@@ -1028,9 +1075,10 @@ export default function StatisticsPage() {
               data={yoyFlowData}
               routes={YEARS_YOY}
               colors={YEAR_COLORS}
+              syncId={chartSyncId}
             />
           ) : (
-            <StatsLine data={periodStudentFlow} />
+            <StatsLine data={periodStudentFlow} syncId={chartSyncId} />
           )}
           <p className="text-xs text-gray-300 mt-3">
             {yoyMode === "overlay"
@@ -1053,6 +1101,8 @@ export default function StatisticsPage() {
             data={inflowTrendData.data}
             routes={inflowTrendData.routes}
             colors={inflowTrendData.colors}
+            syncId={chartSyncId}
+            hiddenRoutes={inflowHiddenRoutes}
           />
           {inflowTrendData.routes.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -1060,14 +1110,25 @@ export default function StatisticsPage() {
                 const total = inflowTrendData.data.reduce(
                   (s, d) => s + (typeof d[route] === "number" ? (d[route] as number) : 0), 0
                 );
+                const isHidden = inflowHiddenRoutes.has(route);
+                const color = inflowTrendData.colors[route] ?? "#94a3b8";
                 return (
-                  <span
+                  <button
                     key={route}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-white"
-                    style={{ background: inflowTrendData.colors[route] ?? "#94a3b8" }}
+                    type="button"
+                    onClick={() => toggleInflowRoute(route)}
+                    title={isHidden ? `${route} 표시` : `${route} 숨기기`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border"
+                    style={{
+                      background: isHidden ? undefined : color,
+                      color: isHidden ? color : "white",
+                      borderColor: color,
+                      opacity: isHidden ? 0.45 : 1,
+                      textDecoration: isHidden ? "line-through" : "none",
+                    }}
                   >
                     {route} {total}명
-                  </span>
+                  </button>
                 );
               })}
             </div>

@@ -46,10 +46,10 @@ function CustomTooltip({ active, payload, label }: TProps) {
   );
 }
 
-export default function StatsLine({ data }: { data: LineData[] }) {
+export default function StatsLine({ data, syncId }: { data: LineData[]; syncId?: string }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+      <LineChart data={data} syncId={syncId} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
         <XAxis
           dataKey="month"

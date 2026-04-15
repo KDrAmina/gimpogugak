@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
@@ -20,6 +19,10 @@ type Props = {
   colors: Record<string, string>;
   /** 카테고리 → 표시 레이블 (예: "어린이개인" → "어린이 개인") */
   labels: Record<string, string>;
+  /** 같은 X축 차트들과 툴팁을 동기화할 syncId */
+  syncId?: string;
+  /** 숨길 카테고리 키 Set (페이지에서 외부 제어) */
+  hiddenKeys?: Set<string>;
 };
 
 function fmtWan(v: unknown): string {
@@ -29,10 +32,10 @@ function fmtWan(v: unknown): string {
   return n.toLocaleString();
 }
 
-export default function CategoryTrendChart({ data, categories, colors, labels }: Props) {
+export default function CategoryTrendChart({ data, categories, colors, labels, syncId, hiddenKeys }: Props) {
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+      <LineChart data={data} syncId={syncId} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={fmtWan} tick={{ fontSize: 11 }} width={50} />
@@ -43,10 +46,6 @@ export default function CategoryTrendChart({ data, categories, colors, labels }:
             labels[String(name)] ?? String(name),
           ]}
           contentStyle={{ fontSize: 12 }}
-        />
-        <Legend
-          formatter={(value) => labels[value] ?? value}
-          wrapperStyle={{ fontSize: 12 }}
         />
         {categories.map((cat) => (
           <Line
@@ -59,6 +58,7 @@ export default function CategoryTrendChart({ data, categories, colors, labels }:
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}
             connectNulls
+            hide={hiddenKeys?.has(cat) ?? false}
           />
         ))}
       </LineChart>
