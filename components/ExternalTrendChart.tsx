@@ -18,6 +18,8 @@ type Props = {
   types: string[];
   /** 유형 → HEX 색상 */
   colors: Record<string, string>;
+  /** 매출 추이 차트와 툴팁을 동기화할 syncId */
+  syncId?: string;
 };
 
 function fmtWan(v: unknown): string {
@@ -27,10 +29,10 @@ function fmtWan(v: unknown): string {
   return n.toLocaleString();
 }
 
-export default function ExternalTrendChart({ data, types, colors }: Props) {
+export default function ExternalTrendChart({ data, types, colors, syncId }: Props) {
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+      <LineChart data={data} syncId={syncId} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={fmtWan} tick={{ fontSize: 11 }} width={50} />

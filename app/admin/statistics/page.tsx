@@ -927,7 +927,7 @@ export default function StatisticsPage() {
               labels={YEAR_LABELS}
             />
           ) : (
-            <StatsArea data={periodChartData} />
+            <StatsArea data={periodChartData} syncId="revenueSync" />
           )}
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -964,6 +964,7 @@ export default function StatisticsPage() {
               data={extTrendData}
               types={EXT_TREND_TYPES}
               colors={EXTERNAL_COLORS}
+              syncId="revenueSync"
             />
           )}
         </div>

@@ -38,14 +38,14 @@ function CustomTooltip({ active, payload, label }: TTooltipProps) {
   );
 }
 
-export default function StatsArea({ data }: { data: MonthlyChartData[] }) {
+export default function StatsArea({ data, syncId }: { data: MonthlyChartData[]; syncId?: string }) {
   const fmtY = (v: number) => {
     if (v === 0) return "0";
     return Math.round(v / 10000) + "만";
   };
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+      <AreaChart data={data} syncId={syncId} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
         <defs>
           <linearGradient id="gtTuition" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.2} />
