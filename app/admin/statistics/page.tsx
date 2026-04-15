@@ -18,6 +18,7 @@ const StatsLine           = nextDynamic(() => import("@/components/StatsLine"), 
 const InflowTrendChart    = nextDynamic(() => import("@/components/InflowTrendChart"),    { ssr: false, loading: () => <Loader h={260} /> });
 const CategoryTrendChart  = nextDynamic(() => import("@/components/CategoryTrendChart"),  { ssr: false, loading: () => <Loader h={260} /> });
 const ExternalTrendChart  = nextDynamic(() => import("@/components/ExternalTrendChart"),  { ssr: false, loading: () => <Loader h={240} /> });
+const ChurnPaymentChart   = nextDynamic(() => import("@/components/ChurnPaymentChart"),   { ssr: false, loading: () => <Loader h={260} /> });
 
 interface ProfileInner  { name: string; phone: string | null; }
 interface LessonInner   { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
@@ -356,6 +357,42 @@ export default function StatisticsPage() {
       }
     }
     return map;
+  }, [allHistory]);
+
+  // ── 이탈 수강생 누적 결제액 분석 ─────────────────────────────────────
+  /**
+   * is_active=false 인 수업(lessons)에 연결된 lesson_history 행만 추려서
+   * 수강생별 누적 결제액을 합산합니다.
+   * 이를 통해 "얼마나 결제한 시점에 주로 이탈하는지" 분포를 파악합니다.
+   */
+  const churnStats = useMemo(() => {
+    const map = new Map<string, number>(); // name → 누적 결제액
+    for (const row of allHistory) {
+      if (row.lessons?.is_active !== false) continue;
+      const name = normalizeName(row.lessons?.profiles?.name ?? "");
+      if (!name) continue;
+      map.set(name, (map.get(name) ?? 0) + tuitionOf(row));
+    }
+    const totals = Array.from(map.values());
+    const totalChurned = totals.length;
+    const avgPayment = totalChurned > 0 ? Math.round(totals.reduce((a, b) => a + b, 0) / totalChurned) : 0;
+
+    const bins = [0, 0, 0, 0, 0];
+    for (const t of totals) {
+      if      (t <  500_000) bins[0]++;
+      else if (t < 1_000_000) bins[1]++;
+      else if (t < 1_500_000) bins[2]++;
+      else if (t < 2_000_000) bins[3]++;
+      else                    bins[4]++;
+    }
+    const binData = [
+      { label: "50만 미만",   count: bins[0] },
+      { label: "50~100만",   count: bins[1] },
+      { label: "100~150만",  count: bins[2] },
+      { label: "150~200만",  count: bins[3] },
+      { label: "200만 이상",  count: bins[4] },
+    ];
+    return { totalChurned, avgPayment, binData };
   }, [allHistory]);
 
   const { activePeriodStudents, avgDuration } = useMemo(() => {
@@ -1220,6 +1257,60 @@ export default function StatisticsPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+       * ⑥ 이탈 수강생 누적 결제액 분석
+       *    - KPI 카드: 이탈 수강생 수 / 평균 누적 결제액
+       *    - 바 차트: 금액 구간별 이탈자 수 분포
+       ════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="mb-5">
+          <h2 className="text-base font-bold text-gray-900">이탈 수강생 누적 결제액 분석</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            is_active=false 수업 기준 · 총 얼마 결제 후 이탈했는지 분포 파악
+          </p>
+        </div>
+
+        {/* KPI 요약 카드 2개 */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-medium text-rose-700">이탈 수강생 수</p>
+              <span className="w-7 h-7 bg-rose-100 rounded-lg flex items-center justify-center text-sm">🚪</span>
+            </div>
+            <p className="text-2xl font-bold text-rose-800">
+              {churnStats.totalChurned}<span className="text-base font-normal ml-1">명</span>
+            </p>
+            <p className="text-xs text-rose-500 mt-1">결제 이력이 있는 이탈자</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-medium text-orange-700">평균 이탈 누적액</p>
+              <span className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center text-sm">💸</span>
+            </div>
+            <p className="text-2xl font-bold text-orange-800">
+              {churnStats.avgPayment > 0 ? churnStats.avgPayment.toLocaleString() : "—"}<span className="text-sm font-normal ml-0.5">원</span>
+            </p>
+            <p className="text-xs text-orange-500 mt-1">이탈 전 평균 누적 결제액</p>
+          </div>
+        </div>
+
+        {/* 구간별 바 차트 */}
+        <div>
+          <p className="text-xs font-medium text-gray-500 mb-3">구간별 이탈자 수 분포</p>
+          {churnStats.totalChurned > 0 ? (
+            <ChurnPaymentChart data={churnStats.binData} />
+          ) : (
+            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+              이탈 수강생 데이터가 없습니다.
+            </div>
+          )}
+          <p className="text-xs text-gray-300 mt-2 text-center">
+            X축: 누적 결제 금액 구간 / Y축: 이탈 수강생 수
+          </p>
+        </div>
       </div>
 
     </div>
