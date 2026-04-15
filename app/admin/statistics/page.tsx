@@ -359,41 +359,130 @@ export default function StatisticsPage() {
     return map;
   }, [allHistory]);
 
-  // ── 이탈 수강생 누적 결제액 분석 ─────────────────────────────────────
+  // ── 이탈 수강생 누적 결제액 분석 (연도 필터 반영) ───────────────────
   /**
-   * is_active=false 인 수업(lessons)에 연결된 lesson_history 행만 추려서
-   * 수강생별 누적 결제액을 합산합니다.
-   * 이를 통해 "얼마나 결제한 시점에 주로 이탈하는지" 분포를 파악합니다.
+   * selectedYear 에 따라 "해당 기간에 마지막 결제 후 이탈한 수강생"을 필터합니다.
+   *
+   * 연도 필터 기준:
+   *   - selectedYear = "all"  → 전체 기간의 이탈자
+   *   - selectedYear = "2025" → lastMonth 가 2025년인 이탈자
+   *
+   * isActive = false:
+   *   studentStats 의 isActive = (isAct || prev.isActive) 로 누산되므로,
+   *   모든 수업이 inactive 인 학생만 false 가 됨 → 완전 이탈자 판별에 적합.
+   *
+   * 파생 지표 (모두 selectedYear 반영):
+   *   retentionRate       - 신규 등록자 중 3개월↑ 또는 50만원↑ 유지 비율
+   *   avgMonthlyChurnRate - 기간 내 월별 이탈률 평균
+   *   avgChurnedDuration  - 이탈자의 평균 수강 개월 수
    */
   const churnStats = useMemo(() => {
-    const map = new Map<string, number>(); // name → 누적 결제액
+    // ① 수강생별 전체 통계 재계산 (studentStats 와 동일 구조, months Set 추가)
+    const byStudent = new Map<string, {
+      firstMonth: string; lastMonth: string; isActive: boolean;
+      total: number; months: Set<string>;
+    }>();
     for (const row of allHistory) {
-      if (row.lessons?.is_active !== false) continue;
       const name = normalizeName(row.lessons?.profiles?.name ?? "");
       if (!name) continue;
-      map.set(name, (map.get(name) ?? 0) + tuitionOf(row));
+      const eff = getEff(row);
+      if (!eff) continue;
+      const isAct = row.lessons?.is_active ?? false;
+      const amt   = tuitionOf(row);
+      const prev  = byStudent.get(name);
+      if (!prev) {
+        byStudent.set(name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: amt, months: new Set([eff]) });
+      } else {
+        prev.firstMonth = eff < prev.firstMonth ? eff : prev.firstMonth;
+        prev.lastMonth  = eff > prev.lastMonth  ? eff : prev.lastMonth;
+        prev.isActive   = isAct || prev.isActive;
+        prev.total     += amt;
+        prev.months.add(eff);
+      }
     }
-    const totals = Array.from(map.values());
-    const totalChurned = totals.length;
-    const avgPayment = totalChurned > 0 ? Math.round(totals.reduce((a, b) => a + b, 0) / totalChurned) : 0;
+    const allStudArr = Array.from(byStudent.values());
 
+    // ② 이탈자 필터 (연도 기준: lastMonth 가 selectedYear 에 속하는지)
+    const churned = allStudArr.filter(s => {
+      if (s.isActive) return false;
+      return selectedYear === "all" || s.lastMonth.startsWith(selectedYear);
+    });
+
+    // ③ 평균 이탈 누적액 (해당 이탈자들의 생애 전체 결제액 평균)
+    const avgPayment = churned.length > 0
+      ? Math.round(churned.reduce((a, s) => a + s.total, 0) / churned.length) : 0;
+
+    // ④ 누적 결제액 구간별 분포
     const bins = [0, 0, 0, 0, 0];
-    for (const t of totals) {
-      if      (t <  500_000) bins[0]++;
-      else if (t < 1_000_000) bins[1]++;
-      else if (t < 1_500_000) bins[2]++;
-      else if (t < 2_000_000) bins[3]++;
-      else                    bins[4]++;
+    for (const s of churned) {
+      if      (s.total <   500_000) bins[0]++;
+      else if (s.total < 1_000_000) bins[1]++;
+      else if (s.total < 1_500_000) bins[2]++;
+      else if (s.total < 2_000_000) bins[3]++;
+      else                          bins[4]++;
     }
-    const binData = [
-      { label: "50만 미만",   count: bins[0] },
-      { label: "50~100만",   count: bins[1] },
-      { label: "100~150만",  count: bins[2] },
-      { label: "150~200만",  count: bins[3] },
-      { label: "200만 이상",  count: bins[4] },
-    ];
-    return { totalChurned, avgPayment, binData };
-  }, [allHistory]);
+
+    // ⑤ 최근 3개월 유지율 (신규 등록 → 3개월↑ or 50만원↑)
+    //    신규 등록: firstMonth 가 selectedYear 에 속하는 수강생
+    const newStudents = allStudArr.filter(s =>
+      selectedYear === "all" || s.firstMonth.startsWith(selectedYear)
+    );
+    const retained = newStudents.filter(s => {
+      const [fy, fm] = s.firstMonth.split("-").map(Number);
+      const [ly, lm] = s.lastMonth.split("-").map(Number);
+      const dur = (ly - fy) * 12 + (lm - fm) + 1;
+      return dur >= 3 || s.total >= 500_000;
+    });
+    const retentionRate = newStudents.length > 0
+      ? Math.round((retained.length / newStudents.length) * 100) : 0;
+
+    // ⑥ 월간 평균 이탈률
+    //    각 달: 이탈자 수 / 해당 달에 결제 기록이 있던 수강생 수
+    //    기간: selectedYear 에 맞는 월 목록
+    const periodMonths: string[] = [];
+    if (selectedYear === "all") {
+      for (let y = 2023; y <= 2026; y++)
+        for (let m = 1; m <= 12; m++)
+          periodMonths.push(`${y}-${String(m).padStart(2, "0")}`);
+    } else {
+      for (let m = 1; m <= 12; m++)
+        periodMonths.push(`${selectedYear}-${String(m).padStart(2, "0")}`);
+    }
+    const monthlyRates: number[] = [];
+    for (const mo of periodMonths) {
+      const activeThisMo = allStudArr.filter(s => s.firstMonth <= mo && s.lastMonth >= mo).length;
+      if (activeThisMo === 0) continue;
+      const churnedThisMo = allStudArr.filter(s => !s.isActive && s.lastMonth === mo).length;
+      monthlyRates.push((churnedThisMo / activeThisMo) * 100);
+    }
+    const avgMonthlyChurnRate = monthlyRates.length > 0
+      ? monthlyRates.reduce((a, b) => a + b, 0) / monthlyRates.length : 0;
+
+    // ⑦ 이탈자 평균 수강 개월 수
+    const durations = churned.map(s => {
+      const [fy, fm] = s.firstMonth.split("-").map(Number);
+      const [ly, lm] = s.lastMonth.split("-").map(Number);
+      return (ly - fy) * 12 + (lm - fm) + 1;
+    }).filter(d => d >= 1 && d <= 60);
+    const avgChurnedDuration = durations.length > 0
+      ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+
+    return {
+      totalChurned: churned.length,
+      avgPayment,
+      binData: [
+        { label: "50만 미만",  count: bins[0] },
+        { label: "50~100만",  count: bins[1] },
+        { label: "100~150만", count: bins[2] },
+        { label: "150~200만", count: bins[3] },
+        { label: "200만 이상", count: bins[4] },
+      ],
+      retentionRate,
+      newStudentsCount: newStudents.length,
+      avgMonthlyChurnRate,
+      avgChurnedDuration,
+    };
+  }, [allHistory, selectedYear]);
 
   const { activePeriodStudents, avgDuration } = useMemo(() => {
     const names = new Set<string>();
@@ -1260,51 +1349,121 @@ export default function StatisticsPage() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-       * ⑥ 이탈 수강생 누적 결제액 분석
-       *    - KPI 카드: 이탈 수강생 수 / 평균 누적 결제액
-       *    - 바 차트: 금액 구간별 이탈자 수 분포
+       * ⑥ 이탈 수강생 누적 결제액 분석 (연도 필터 반영)
+       *    - KPI 4종: 평균 이탈 누적액 / 3개월 유지율 / 월간 이탈률 / 평균 수강 개월
+       *    - 바 차트: 금액 구간별 이탈자 수 분포 (selectedYear 연동)
        ════════════════════════════════════════════════════════════════════ */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="mb-5">
           <h2 className="text-base font-bold text-gray-900">이탈 수강생 누적 결제액 분석</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            is_active=false 수업 기준 · 총 얼마 결제 후 이탈했는지 분포 파악
+            {selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 이탈자 기준 ·
+            마지막 결제 후 이탈한 수강생의 생애 결제액 분포
           </p>
         </div>
 
-        {/* KPI 요약 카드 2개 */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-2xl p-5">
-            <div className="flex items-start justify-between mb-2">
-              <p className="text-xs font-medium text-rose-700">이탈 수강생 수</p>
-              <span className="w-7 h-7 bg-rose-100 rounded-lg flex items-center justify-center text-sm">🚪</span>
-            </div>
-            <p className="text-2xl font-bold text-rose-800">
-              {churnStats.totalChurned}<span className="text-base font-normal ml-1">명</span>
-            </p>
-            <p className="text-xs text-rose-500 mt-1">결제 이력이 있는 이탈자</p>
-          </div>
+        {/* KPI 카드 4종 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-          <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-5">
+          {/* 평균 이탈 누적액 */}
+          <div className="relative group bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-5">
             <div className="flex items-start justify-between mb-2">
-              <p className="text-xs font-medium text-orange-700">평균 이탈 누적액</p>
+              <p className="text-xs font-medium text-orange-700 flex items-center gap-1">
+                평균 이탈 누적액
+                <span className="text-orange-300 cursor-help text-xs leading-none">ⓘ</span>
+              </p>
               <span className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center text-sm">💸</span>
             </div>
             <p className="text-2xl font-bold text-orange-800">
-              {churnStats.avgPayment > 0 ? churnStats.avgPayment.toLocaleString() : "—"}<span className="text-sm font-normal ml-0.5">원</span>
+              {churnStats.avgPayment > 0 ? fmtAmount(churnStats.avgPayment) : "—"}
+              <span className="text-sm font-normal ml-0.5">원</span>
             </p>
-            <p className="text-xs text-orange-500 mt-1">이탈 전 평균 누적 결제액</p>
+            <p className="text-xs text-orange-500 mt-1">
+              {churnStats.totalChurned}명 기준
+            </p>
+            {/* 툴팁 */}
+            <div className="absolute bottom-full left-0 mb-2 w-56 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              선택 기간에 이탈한 수강생이 등록부터 마지막 결제까지 총 얼마를 납부했는지의 평균입니다.
+              이 금액 이하에서 이탈이 집중된다면 조기 이탈 방지 전략이 필요합니다.
+            </div>
           </div>
+
+          {/* 3개월 유지율 */}
+          <div className="relative group bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-medium text-emerald-700 flex items-center gap-1">
+                3개월 유지율
+                <span className="text-emerald-300 cursor-help text-xs leading-none">ⓘ</span>
+              </p>
+              <span className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center text-sm">🌱</span>
+            </div>
+            <p className="text-2xl font-bold text-emerald-800">
+              {churnStats.retentionRate}<span className="text-base font-normal ml-0.5">%</span>
+            </p>
+            <p className="text-xs text-emerald-500 mt-1">
+              신규 {churnStats.newStudentsCount}명 중 유지
+            </p>
+            {/* 툴팁 */}
+            <div className="absolute bottom-full left-0 mb-2 w-60 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              선택 기간 신규 등록자 중 3개월 이상 수강하거나 누적 50만원 이상 납부한 비율입니다.
+              높을수록 초기 이탈이 적고 충성 고객 전환이 잘 되고 있음을 의미합니다.
+            </div>
+          </div>
+
+          {/* 월간 평균 이탈률 */}
+          <div className="relative group bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-medium text-rose-700 flex items-center gap-1">
+                월간 평균 이탈률
+                <span className="text-rose-300 cursor-help text-xs leading-none">ⓘ</span>
+              </p>
+              <span className="w-7 h-7 bg-rose-100 rounded-lg flex items-center justify-center text-sm">📉</span>
+            </div>
+            <p className="text-2xl font-bold text-rose-800">
+              {churnStats.avgMonthlyChurnRate.toFixed(1)}<span className="text-base font-normal ml-0.5">%</span>
+            </p>
+            <p className="text-xs text-rose-500 mt-1">기간 내 월평균</p>
+            {/* 툴팁 */}
+            <div className="absolute bottom-full left-0 mb-2 w-60 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              매달 수강 중인 학생 대비 그 달에 마지막 결제 후 이탈한 학생의 비율 평균입니다.
+              5% 이하면 양호, 10% 이상이면 이탈 방지 대책이 시급합니다.
+            </div>
+          </div>
+
+          {/* 이탈자 평균 수강 개월 */}
+          <div className="relative group bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-2xl p-5">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-medium text-violet-700 flex items-center gap-1">
+                이탈 전 평균 수강
+                <span className="text-violet-300 cursor-help text-xs leading-none">ⓘ</span>
+              </p>
+              <span className="w-7 h-7 bg-violet-100 rounded-lg flex items-center justify-center text-sm">🗓️</span>
+            </div>
+            <p className="text-2xl font-bold text-violet-800">
+              {churnStats.avgChurnedDuration > 0 ? churnStats.avgChurnedDuration.toFixed(1) : "—"}
+              <span className="text-base font-normal ml-0.5">개월</span>
+            </p>
+            <p className="text-xs text-violet-500 mt-1">이탈자 {churnStats.totalChurned}명 기준</p>
+            {/* 툴팁 */}
+            <div className="absolute bottom-full left-0 mb-2 w-60 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              이탈한 수강생이 첫 결제부터 마지막 결제까지 평균 몇 개월 수강했는지 나타냅니다.
+              수치가 낮을수록 조기에 포기하는 패턴이 강하다는 신호입니다.
+            </div>
+          </div>
+
         </div>
 
         {/* 구간별 바 차트 */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-3">구간별 이탈자 수 분포</p>
+          <p className="text-xs font-medium text-gray-500 mb-1">누적 결제액 구간별 이탈자 수</p>
+          <p className="text-xs text-gray-300 mb-3">
+            {selectedYear === "all" ? "전체 기간" : selectedYear + "년"} 이탈자 {churnStats.totalChurned}명의 생애 누적 결제액 기준
+          </p>
           {churnStats.totalChurned > 0 ? (
             <ChurnPaymentChart data={churnStats.binData} />
           ) : (
             <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
-              이탈 수강생 데이터가 없습니다.
+              선택한 기간에 이탈 수강생 데이터가 없습니다.
             </div>
           )}
           <p className="text-xs text-gray-300 mt-2 text-center">
