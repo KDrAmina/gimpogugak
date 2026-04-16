@@ -13,6 +13,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.6.2",
+    date: "2026-04-16",
+    changes: [
+      "[버그수정] 크론 알림톡 payDay 추출 방식 개선: new Date().getDate() → YYYY-MM-DD 문자열에서 직접 파싱(extractPayDay) — 타임존 파싱 오류 원천 차단",
+      "[버그수정] 크론 알림톡 말일 보정 누락 수정: 단순 payDay===todayDay 비교 → matchesPayDay() 적용 — 결제일=31인 수강생이 30일인 달 말일에 발송 누락되던 버그 수정 (alimtalk UI와 동일 로직으로 통일)",
+      "[로그] 크론 각 단계별 상세 로그 추가: [CRON START/FILTER/MATCH/DEDUP/SKIP/SOLAPI/DONE/ERROR] 접두어로 Vercel 함수 로그에서 원인 즉시 파악 가능",
+      "[로그] DB 오류·Solapi 오류 발생 시 code/message/details 구조화 로그 출력 — 이전에는 오류 객체만 출력하여 원인 불명확",
+    ],
+  },
+  {
     version: "5.6.1",
     date: "2026-04-15",
     changes: [

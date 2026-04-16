@@ -94,19 +94,60 @@ export async function GET(req: Request) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // ── 3. KST 기준 오늘 날짜·요일 계산 ──────────────────────────────
+  /**
+   * Vercel 서버는 UTC 기준으로 동작합니다.
+   * KST(UTC+9)로 보정하기 위해 9시간(ms)을 더한 뒤 UTC 메서드로 읽습니다.
+   *
+   * ⚠️ .getDate() / .getFullYear() 등 "로컬 시간" 메서드는 절대 사용하지 않습니다.
+   *    Vercel 환경에서 로컬=UTC이지만, 명시적으로 getUTC* 를 써서 의도를 고정합니다.
+   */
   const now = new Date();
   const kstOffset = 9 * 60 * 60 * 1000;
   const kstNow = new Date(now.getTime() + kstOffset);
 
-  const todayDay = kstNow.getUTCDate();
-  const todayStr = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, "0")}-${String(todayDay).padStart(2, "0")}`;
+  const todayYear  = kstNow.getUTCFullYear();
+  const todayMonth = kstNow.getUTCMonth() + 1; // 1-based
+  const todayDay   = kstNow.getUTCDate();
+  const todayStr   = `${todayYear}-${String(todayMonth).padStart(2, "0")}-${String(todayDay).padStart(2, "0")}`;
 
   // 0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토
   const dayOfWeek = kstNow.getUTCDay();
 
+  console.log(`[CRON START] KST 기준 날짜: ${todayStr} (${["일","월","화","수","목","금","토"][dayOfWeek]}요일) | UTC: ${now.toISOString()}`);
+
+  // ── 말일 보정 포함 결제일 일치 함수 ──────────────────────────────
+  /**
+   * alimtalk/page.tsx 의 matchesPayDay 와 동일한 로직.
+   * payment_date 의 Day 값이 해당 달의 마지막 날을 초과하면 말일로 보정합니다.
+   *
+   * 예) payDay=31, 4월(30일) → 31 > 30 → 말일(30)로 간주 → 4월 30일에 발송 ✓
+   * 예) payDay=31, 4월 16일  → 31 ≠ 16 & 16 ≠ lastDay(30)          → 미발송 ✓
+   */
+  function matchesPayDay(payDay: number, targetYear: number, targetMonth: number, targetDay: number): boolean {
+    if (payDay === targetDay) return true;
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate(); // targetMonth is 1-based; day=0 → 전달 말일
+    if (payDay > lastDay && targetDay === lastDay) return true;
+    return false;
+  }
+
+  /**
+   * payment_date 문자열("YYYY-MM-DD")에서 Day 숫자를 안전하게 추출합니다.
+   * Date 객체 파싱을 사용하지 않으므로 타임존에 의한 날짜 오인식이 없습니다.
+   *
+   * 예) "2026-04-16" → 16
+   *     "2026-01-31" → 31
+   *     null / 빈 문자열 → 0 (필터링됨)
+   */
+  function extractPayDay(paymentDate: string | null): number {
+    if (!paymentDate) return 0;
+    const parts = paymentDate.split("-");
+    const day = parseInt(parts[2] ?? "0", 10);
+    return isNaN(day) ? 0 : day;
+  }
+
   // ── 4. 토·일요일: 즉시 종료 (금요일 선발송으로 이미 처리됨) ────────
   if (dayOfWeek === 0 || dayOfWeek === 6) {
-    console.log(`오늘(${todayStr})은 주말 — 금요일 선발송으로 이미 처리되었으므로 발송 없음`);
+    console.log(`[CRON SKIP] 주말(${todayStr}) — 금요일 선발송으로 이미 처리되었으므로 발송 없음`);
     return NextResponse.json({
       message: `주말(${todayStr}) 발송 없음 — 금요일에 선발송 완료`,
       sent: 0,
@@ -119,29 +160,35 @@ export async function GET(req: Request) {
    * 금요일 선발송 로직:
    * 오늘(금), 내일(토), 모레(일) 결제일인 수강생 모두 포함.
    *
-   * 말일 보정:
-   *   예) 금=3월 28일 → 토=29, 일=30  (같은 달)
-   *   예) 금=3월 30일 → 토=31, 일=4월 1일  (일요일이 다음 달로 넘어감)
-   * → satDate·sunDate를 Date 객체로 직접 계산하므로 자동으로 월 경계 처리됨.
+   * kstNow 에 24h / 48h 를 더한 뒤 getUTC* 로 읽으면 월 경계도 자동으로 처리됩니다.
    */
   const isFriday = dayOfWeek === 5;
 
+  let satYear: number | null = null;
+  let satMonth: number | null = null;
   let satDay: number | null = null;
+  let sunYear: number | null = null;
+  let sunMonth: number | null = null;
   let sunDay: number | null = null;
   let satDateStr: string | null = null;
   let sunDateStr: string | null = null;
 
   if (isFriday) {
-    const satDate = new Date(kstNow.getTime() + 24 * 60 * 60 * 1000);
-    const sunDate = new Date(kstNow.getTime() + 48 * 60 * 60 * 1000);
+    const MS_DAY = 24 * 60 * 60 * 1000;
+    const satDate = new Date(kstNow.getTime() + MS_DAY);
+    const sunDate = new Date(kstNow.getTime() + 2 * MS_DAY);
 
-    satDay = satDate.getUTCDate();
-    sunDay = sunDate.getUTCDate();
+    satYear  = satDate.getUTCFullYear();
+    satMonth = satDate.getUTCMonth() + 1;
+    satDay   = satDate.getUTCDate();
+    sunYear  = sunDate.getUTCFullYear();
+    sunMonth = sunDate.getUTCMonth() + 1;
+    sunDay   = sunDate.getUTCDate();
 
-    satDateStr = `${satDate.getUTCFullYear()}-${String(satDate.getUTCMonth() + 1).padStart(2, "0")}-${String(satDay).padStart(2, "0")}`;
-    sunDateStr = `${sunDate.getUTCFullYear()}-${String(sunDate.getUTCMonth() + 1).padStart(2, "0")}-${String(sunDay).padStart(2, "0")}`;
+    satDateStr = `${satYear}-${String(satMonth).padStart(2, "0")}-${String(satDay).padStart(2, "0")}`;
+    sunDateStr = `${sunYear}-${String(sunMonth).padStart(2, "0")}-${String(sunDay).padStart(2, "0")}`;
 
-    console.log(`금요일 선발송: 오늘(${todayStr}) + 토(${satDateStr}) + 일(${sunDateStr}) 대상 포함`);
+    console.log(`[CRON FRIDAY] 선발송 대상: 오늘(${todayStr}) + 토(${satDateStr}) + 일(${sunDateStr})`);
   }
 
   try {
@@ -160,11 +207,17 @@ export async function GET(req: Request) {
       .eq("is_active", true);
 
     if (error) {
-      console.error("DB 조회 오류:", error);
-      return NextResponse.json({ error: "DB 조회 실패" }, { status: 500 });
+      console.error("[CRON ERROR] DB 조회 오류:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return NextResponse.json({ error: "DB 조회 실패", detail: error.message }, { status: 500 });
     }
 
     const rawRows = (data || []) as unknown as LessonRow[];
+    console.log(`[CRON DB] 활성 lesson 조회 결과: ${rawRows.length}건`);
 
     // lesson.id 기준 중복 제거 (Cartesian Product 방지)
     const uniqueLessonMap = new Map<string, LessonRow>();
@@ -174,50 +227,97 @@ export async function GET(req: Request) {
       }
     }
     const rows = Array.from(uniqueLessonMap.values());
+    console.log(`[CRON DB] 중복 제거 후: ${rows.length}건`);
 
     // ── 7. 오늘(+금요일이면 토·일) 발송 대상 필터링 ───────────────────
     /**
-     * 각 row에 actualDateStr(실제 결제 예정 날짜 문자열)을 붙여 반환.
-     * 이 값은 템플릿 #{결제일} 변수에 사용됩니다.
+     * [핵심 변경 사항]
+     * 기존: `new Date(payment_date + "T00:00:00").getDate()`
+     *   → Date 객체 생성 후 로컬 시간 기준 .getDate() 호출
+     *   → Vercel(UTC) 환경에서는 결과가 맞지만, 타임존 의존적이라 위험
      *
-     * 말일 보정 예시:
-     *   payment_date = "2026-01-31" → payDay = 31
-     *   금요일이 3월 29일이라면 satDay=30, sunDay=31
-     *   → payDay(31) === sunDay(31) 이므로 일요일(3월 31일) 대상으로 포함
-     *   → actualDateStr = "2026-03-31" (sunDateStr)
+     * 개선: `extractPayDay(payment_date)` — YYYY-MM-DD 에서 DD를 직접 파싱
+     *   → Date 객체 파싱 없음 → 타임존 완전 독립
      *
-     *   금요일이 3월 30일이라면 satDay=31, sunDay=1(4월 1일)
-     *   → payDay(31) === satDay(31) 이므로 토요일(3월 31일) 대상으로 포함
-     *   → payDay=1인 수강생은 sunDay(1)에 해당 → actualDateStr = sunDateStr(4월 1일)
+     * [말일 보정]
+     * 기존: `payDay === todayDay` 단순 비교 → 말일 수강생 영구 미발송 버그
+     *   예) payment_date="2026-02-28", 3월 28일 → payDay=28, todayDay=28 → 발송 ✓
+     *   예) payment_date="2026-01-31", 4월 30일 → payDay=31, todayDay=30 → 미발송 ✗ (버그!)
+     *
+     * 개선: `matchesPayDay()` — alimtalk/page.tsx 와 동일한 말일 보정 로직 적용
+     *   예) payment_date="2026-01-31", 4월 30일 → payDay=31>30=lastDay → 발송 ✓
      */
     type FilteredRow = LessonRow & { actualDateStr: string };
     const todayTargets: FilteredRow[] = [];
+    let skippedNoPhone = 0, skippedInactive = 0, skippedDisabled = 0, skippedNoPayDay = 0, skippedNoMatch = 0;
 
     for (const r of rows) {
-      if (!r.payment_date || !r.profiles?.phone || r.profiles.status !== "active") continue;
-      if (r.profiles.is_alimtalk_enabled === false) continue;
+      const name = r.profiles?.name ?? "(이름없음)";
 
-      const payDay = new Date(r.payment_date + "T00:00:00").getDate();
+      if (!r.payment_date) {
+        skippedNoPayDay++;
+        console.log(`[CRON FILTER] 결제일 없음 → 스킵: ${name}`);
+        continue;
+      }
+      if (!r.profiles?.phone) {
+        skippedNoPhone++;
+        console.log(`[CRON FILTER] 전화번호 없음 → 스킵: ${name}`);
+        continue;
+      }
+      if (r.profiles.status !== "active") {
+        skippedInactive++;
+        console.log(`[CRON FILTER] 비활성 프로필(${r.profiles.status}) → 스킵: ${name}`);
+        continue;
+      }
+      if (r.profiles.is_alimtalk_enabled === false) {
+        skippedDisabled++;
+        console.log(`[CRON FILTER] 알림톡 OFF → 스킵: ${name}`);
+        continue;
+      }
 
-      if (payDay === todayDay) {
+      // ── 안전한 payDay 추출 (Date 파싱 없이 문자열에서 직접 추출) ──────
+      const payDay = extractPayDay(r.payment_date);
+      if (payDay === 0) {
+        skippedNoPayDay++;
+        console.log(`[CRON FILTER] payment_date 파싱 실패(${r.payment_date}) → 스킵: ${name}`);
+        continue;
+      }
+
+      // ── 말일 보정 포함 결제일 일치 검사 ─────────────────────────────
+      const matchesToday = matchesPayDay(payDay, todayYear, todayMonth, todayDay);
+      const matchesSat = isFriday && satYear !== null && satMonth !== null && satDay !== null
+        ? matchesPayDay(payDay, satYear, satMonth, satDay)
+        : false;
+      const matchesSun = isFriday && sunYear !== null && sunMonth !== null && sunDay !== null
+        ? matchesPayDay(payDay, sunYear, sunMonth, sunDay)
+        : false;
+
+      if (matchesToday) {
+        console.log(`[CRON MATCH] 오늘(${todayStr}) 결제일 일치 → 대상: ${name} | payDay=${payDay}`);
         todayTargets.push({ ...r, actualDateStr: todayStr });
-      } else if (isFriday && satDay !== null && payDay === satDay) {
-        // 토요일 선발송 대상: 실제 결제일은 satDateStr
+      } else if (matchesSat) {
+        console.log(`[CRON MATCH] 토요일(${satDateStr}) 선발송 대상 → 포함: ${name} | payDay=${payDay}`);
         todayTargets.push({ ...r, actualDateStr: satDateStr! });
-      } else if (isFriday && sunDay !== null && payDay === sunDay) {
-        // 일요일 선발송 대상: 실제 결제일은 sunDateStr
+      } else if (matchesSun) {
+        console.log(`[CRON MATCH] 일요일(${sunDateStr}) 선발송 대상 → 포함: ${name} | payDay=${payDay}`);
         todayTargets.push({ ...r, actualDateStr: sunDateStr! });
+      } else {
+        skippedNoMatch++;
       }
     }
+
+    console.log(`[CRON FILTER 요약] 전체=${rows.length} | 대상=${todayTargets.length} | 결제일없음=${skippedNoPayDay} | 전화없음=${skippedNoPhone} | 비활성=${skippedInactive} | 알림톡OFF=${skippedDisabled} | 날짜불일치=${skippedNoMatch}`);
 
     if (todayTargets.length === 0) {
       const coverageMsg = isFriday
         ? `오늘(${todayStr})/토(${satDateStr})/일(${sunDateStr})`
         : `오늘(${todayStr})`;
+      console.log(`[CRON DONE] 발송 대상 없음 — todayDay=${todayDay}`);
       return NextResponse.json({
         message: `${coverageMsg} 발송 대상 없음`,
         sent: 0,
         todayDay,
+        filterSummary: { total: rows.length, skippedNoPayDay, skippedNoPhone, skippedInactive, skippedDisabled, skippedNoMatch },
       });
     }
 
@@ -225,15 +325,23 @@ export async function GET(req: Request) {
     // ⚠️ type 필터 제거 — auto_cron·manual 구분 없이 성공 이력이 있으면 모두 차단
     // (수동 발송 후 크론이 재발송하거나 크론 후 수동이 재발송하는 버그 원천 차단)
     // KST todayStr로 비교하므로 UTC/KST 시차에 의한 날짜 오인식 없음
-    const { data: sentToday } = await supabase
+    const { data: sentToday, error: sentTodayError } = await supabase
       .from("notification_log")
       .select("phone")
       .eq("sent_date", todayStr)
       .in("status", ["success", "manual_success"]);
 
+    if (sentTodayError) {
+      console.error("[CRON ERROR] 발송 이력 조회 실패:", {
+        code: sentTodayError.code,
+        message: sentTodayError.message,
+      });
+    }
+
     const alreadySentPhones = new Set(
       (sentToday || []).map((r: { phone: string }) => r.phone)
     );
+    console.log(`[CRON DEDUP] 오늘(${todayStr}) 이미 발송 완료: ${alreadySentPhones.size}명`);
 
     // ── 9. 동일인물 그룹화 (이름 숫자 제거 + 연락처) ────────────────────
     const groupMap = new Map<string, GroupedTarget>();
@@ -244,11 +352,15 @@ export async function GET(req: Request) {
       const phone = row.profiles.phone || "";
       const key = `${baseName}__${phone}`;
 
-      if (alreadySentPhones.has(phone)) continue;
+      if (alreadySentPhones.has(phone)) {
+        console.log(`[CRON DEDUP] 이미 발송 완료 → 스킵: ${baseName}`);
+        continue;
+      }
 
       // 실제 결제 예정 날짜 문자열 ("M월 D일" 형식)
-      const actualDate = new Date(row.actualDateStr + "T00:00:00");
-      const actualPaymentDateStr = `${actualDate.getUTCMonth() + 1}월 ${actualDate.getUTCDate()}일`;
+      // actualDateStr은 "YYYY-MM-DD" → 문자열에서 직접 파싱 (Date 객체 불필요)
+      const [_actY, actM, actD] = row.actualDateStr.split("-").map(Number);
+      const actualPaymentDateStr = `${actM}월 ${actD}일`;
 
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!;
@@ -286,12 +398,19 @@ export async function GET(req: Request) {
     const alreadyPaidPhones = new Set<string>();
 
     if (allLessonIds.length > 0) {
-      const { data: paidThisMonth } = await supabase
+      const { data: paidThisMonth, error: paidCheckError } = await supabase
         .from("lesson_history")
         .select("lesson_id")
         .in("lesson_id", allLessonIds)
         .eq("status", "결제 완료")
         .gte("completed_date", currentMonthStart);
+
+      if (paidCheckError) {
+        console.error("[CRON ERROR] 이번달 납부 확인 조회 실패:", {
+          code: paidCheckError.code,
+          message: paidCheckError.message,
+        });
+      }
 
       const paidLessonIds = new Set(
         (paidThisMonth || []).map((r: { lesson_id: string }) => r.lesson_id)
@@ -300,6 +419,7 @@ export async function GET(req: Request) {
       for (const target of allTargets) {
         if (target.lessonIds.some((id) => paidLessonIds.has(id))) {
           alreadyPaidPhones.add(target.phone);
+          console.log(`[CRON SKIP] 이번달 납부 완료 → 스킵: ${target.baseName}`);
         }
       }
     }
@@ -316,17 +436,25 @@ export async function GET(req: Request) {
         created_at: new Date().toISOString(),
       }));
       const { error: skipLogError } = await supabase.from("notification_log").insert(skipInserts);
-      if (skipLogError) console.error("납부 완료 스킵 로그 저장 실패:", skipLogError);
+      if (skipLogError) {
+        console.error("[CRON ERROR] 납부 완료 스킵 로그 저장 실패:", {
+          code: skipLogError.code,
+          message: skipLogError.message,
+        });
+      }
     }
 
     // 납부 완료 수강생 제외 후 이후 필터링 진행
     const activeTargets = allTargets.filter((t) => !alreadyPaidPhones.has(t.phone));
+    console.log(`[CRON PAID_SKIP] 납부완료 스킵: ${alreadyPaidTargets.length}명 | 발송 진행: ${activeTargets.length}명`);
 
     // ── 수강료 0원 이하 → 발송 제외 + DB 기록 ──────────────────────────
     // 0원 대상자를 로그에 남겨 관리자가 "발송 없음"의 원인을 파악할 수 있게 함.
-    // 테스트 발송 결과 알림창에서 "0원 제외: Y건"으로 표시됨.
     const zeroTuitionTargets = activeTargets.filter((t) => t.totalTuition <= 0);
     const targets = activeTargets.filter((t) => t.totalTuition > 0);
+    if (zeroTuitionTargets.length > 0) {
+      console.log(`[CRON SKIP] 수강료 0원 → 스킵: ${zeroTuitionTargets.map(t => t.baseName).join(", ")}`);
+    }
 
     // 0원 스킵 대상도 notification_log에 기록 (사유 추적용)
     if (zeroTuitionTargets.length > 0) {
@@ -347,6 +475,7 @@ export async function GET(req: Request) {
     }
 
     if (targets.length === 0) {
+      console.log(`[CRON DONE] 최종 발송 대상 없음 — 0원스킵=${zeroTuitionTargets.length} / 납부완료스킵=${alreadyPaidTargets.length}`);
       return NextResponse.json({
         message: `오전 10시 자동 발송 완료 — 발송 대상 없음`,
         sent: 0,
@@ -356,9 +485,19 @@ export async function GET(req: Request) {
       });
     }
 
+    console.log(`[CRON SOLAPI] 발송 시작: ${targets.length}명 → ${targets.map(t => t.baseName).join(", ")}`);
+
     // ── 10. Solapi SDK로 알림톡 발송 ─────────────────────────────────
-    const { SolapiMessageService } = await import("solapi");
-    const messageService = new SolapiMessageService(apiKey, apiSecret);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let solapiService: any = null;
+    try {
+      const { SolapiMessageService } = await import("solapi");
+      solapiService = new SolapiMessageService(apiKey, apiSecret);
+      console.log("[CRON SOLAPI] SDK 초기화 완료");
+    } catch (sdkErr) {
+      console.error("[CRON ERROR] Solapi SDK 로드 실패:", sdkErr);
+      return NextResponse.json({ error: "Solapi SDK 초기화 실패", detail: String(sdkErr) }, { status: 500 });
+    }
 
     let success = 0;
     let fail = 0;
@@ -367,15 +506,14 @@ export async function GET(req: Request) {
     for (const target of targets) {
       const phone = target.phone.replace(/[^0-9]/g, "");
       if (phone.length < 10) {
+        console.error(`[CRON ERROR] 전화번호 형식 오류 → 발송 불가: ${target.baseName} | phone="${target.phone}"`);
         fail++;
         logs.push({ phone, name: target.baseName, status: "invalid_phone", logDate: target.logDate });
         continue;
       }
 
       // ── 이중 방어막: 발송 직전 DB 재확인 ────────────────────────────────
-      // 배치 체크(8단계) 이후 동시 실행 또는 수동 발송이 끼어든 경우까지 차단.
-      // 수동 테스트 발송도 이 경로를 통과하므로 Bypass 불가.
-      const { data: doubleCheck } = await supabase
+      const { data: doubleCheck, error: doubleCheckError } = await supabase
         .from("notification_log")
         .select("id")
         .eq("phone", phone)
@@ -383,13 +521,21 @@ export async function GET(req: Request) {
         .in("status", ["success", "manual_success"])
         .limit(1);
 
+      if (doubleCheckError) {
+        console.error(`[CRON ERROR] 이중체크 DB 조회 실패 (${target.baseName}):`, {
+          code: doubleCheckError.code,
+          message: doubleCheckError.message,
+        });
+      }
+
       if (doubleCheck && doubleCheck.length > 0) {
-        // 이미 발송 완료 — 카운트 증가 없이 조용히 스킵 (로그 기록도 생략)
+        console.log(`[CRON DEDUP] 발송 직전 이중체크 — 이미 발송됨, 스킵: ${target.baseName}`);
         continue;
       }
 
       try {
-        await messageService.sendOne({
+        console.log(`[CRON SOLAPI] 발송 시도: ${target.baseName} | phone=${phone} | 수강료=${target.totalTuition} | 결제일=${target.actualPaymentDateStr}`);
+        await solapiService.sendOne({
           to: phone,
           from: senderPhone,
           kakaoOptions: {
@@ -398,16 +544,24 @@ export async function GET(req: Request) {
             variables: {
               "#{이름}": target.baseName,
               "#{수강료}": target.totalTuition.toLocaleString("ko-KR"),
-              // 금요일 선발송 시 실제 결제 예정일(토/일)을 표시
               "#{결제일}": target.actualPaymentDateStr,
             },
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
+        console.log(`[CRON SOLAPI] 발송 성공: ${target.baseName}`);
         success++;
         logs.push({ phone, name: target.baseName, status: "success", logDate: target.logDate });
       } catch (err) {
-        console.error(`알림톡 발송 실패 (${target.baseName}):`, err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        const errCode = (err as { code?: string })?.code ?? "UNKNOWN";
+        console.error(`[CRON ERROR] 알림톡 발송 실패 (${target.baseName}):`, {
+          code: errCode,
+          message: errMsg,
+          phone,
+          pfId,
+          templateId,
+        });
         fail++;
         logs.push({ phone, name: target.baseName, status: "fail", logDate: target.logDate });
       }
@@ -431,29 +585,36 @@ export async function GET(req: Request) {
         .insert(logInserts);
 
       if (logError) {
-        console.error("발송 로그 저장 실패:", logError);
+        console.error("[CRON ERROR] 발송 로그 저장 실패:", {
+          code: logError.code,
+          message: logError.message,
+          details: logError.details,
+        });
+      } else {
+        console.log(`[CRON LOG] notification_log 저장 완료: ${logInserts.length}건`);
       }
     }
 
     const isFridayPreSend = isFriday && (satDay !== null || sunDay !== null);
+    console.log(`[CRON DONE] 완료 — 성공=${success} / 실패=${fail} / 0원스킵=${zeroTuitionTargets.length} / 납부완료스킵=${alreadyPaidTargets.length}`);
     return NextResponse.json({
       message: isFridayPreSend
         ? `금요일 선발송 완료 (${todayStr} — 토:${satDateStr}, 일:${sunDateStr} 포함)`
         : `오전 10시 자동 발송 완료 (${todayStr})`,
       todayDay,
+      todayStr,
       dayOfWeek,
       isFridayPreSend,
       success,
       fail,
       total: targets.length,
-      // 0원 제외 건수 — 관리자 UI 테스트 발송 결과 알림창에 표시됨
       skippedZero: zeroTuitionTargets.length,
-      // 이번 달 납부 완료 수강생 제외 건수
       skippedAlreadyPaid: alreadyPaidTargets.length,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "알 수 없는 오류";
-    console.error("Cron 알림톡 오류:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const errMsg = err instanceof Error ? err.message : "알 수 없는 오류";
+    const errStack = err instanceof Error ? err.stack : undefined;
+    console.error("[CRON ERROR] 예기치 못한 오류:", { message: errMsg, stack: errStack });
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
