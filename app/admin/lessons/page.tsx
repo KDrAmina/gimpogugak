@@ -22,6 +22,7 @@ type Lesson = {
   payment_date: string | null;
   is_active: boolean;
   created_at: string;
+  is_test: boolean;
 };
 
 type UnassignedUser = {
@@ -163,7 +164,8 @@ export default function AdminLessonsPage() {
           profiles!inner (
             name,
             email,
-            role
+            role,
+            is_test
           )
         `)
         .eq("profiles.role", "user")
@@ -186,6 +188,7 @@ export default function AdminLessonsPage() {
         payment_date: lesson.payment_date,
         is_active: lesson.is_active !== false,
         created_at: lesson.created_at,
+        is_test: lesson.profiles?.is_test || false,
       }));
 
       setLessons(formattedLessons);
@@ -463,7 +466,8 @@ export default function AdminLessonsPage() {
   }
 
   async function handleSaveCategory(lessonId: string) {
-    if (categoryValue.length === 0) {
+    const targetLesson = lessons.find(l => l.id === lessonId);
+    if (categoryValue.length === 0 && !targetLesson?.is_test) {
       alert("최소 1개의 카테고리를 선택해주세요.");
       return;
     }
@@ -1109,7 +1113,7 @@ export default function AdminLessonsPage() {
                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
-              🟢 수업 중 ({lessons.filter(l => l.is_active).length})
+              🟢 수업 중 ({lessons.filter(l => l.is_active).reduce((s, l) => s + l.student_name.split(",").filter(n => n.trim()).length, 0)})
             </button>
             <button
               onClick={() => setActiveFilter("inactive")}
@@ -1119,7 +1123,7 @@ export default function AdminLessonsPage() {
                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
-              ⚫ 종료됨 ({lessons.filter(l => !l.is_active).length})
+              ⚫ 종료됨 ({lessons.filter(l => !l.is_active).reduce((s, l) => s + l.student_name.split(",").filter(n => n.trim()).length, 0)})
             </button>
           </div>
 
@@ -1283,6 +1287,7 @@ export default function AdminLessonsPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-400 w-10">No.</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">카테고리</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">결제 상태</th>
@@ -1292,11 +1297,14 @@ export default function AdminLessonsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredLessons.map((lesson) => {
+                  {filteredLessons.map((lesson, idx) => {
                     const isPaidThisMonth = !!paidThisMonthMap[lesson.id];
 
                     return (
                       <tr key={lesson.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-4 whitespace-nowrap text-center text-xs text-gray-400 font-medium">
+                          {idx + 1}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link href={`/admin/students/${lesson.user_id}`} className="text-sm font-medium text-blue-600 hover:underline">
                             {lesson.student_name}
@@ -1496,16 +1504,19 @@ export default function AdminLessonsPage() {
 
             {/* Mobile: Card View */}
             <div className="md:hidden divide-y divide-gray-200">
-              {filteredLessons.map((lesson) => {
+              {filteredLessons.map((lesson, idx) => {
                 const isPaidThisMonth = !!paidThisMonthMap[lesson.id];
 
                 return (
                   <div key={lesson.id} className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <Link href={`/admin/students/${lesson.user_id}`} className="font-bold text-blue-600 hover:underline">
-                          {lesson.student_name}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 font-medium w-5 shrink-0">{idx + 1}.</span>
+                          <Link href={`/admin/students/${lesson.user_id}`} className="font-bold text-blue-600 hover:underline">
+                            {lesson.student_name}
+                          </Link>
+                        </div>
                         {editingCategory === lesson.id ? (
                           <div className="mt-2 space-y-1">
                             {CATEGORIES.map(cat => (

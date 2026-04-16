@@ -376,7 +376,7 @@ export default function AdminStudentsPage() {
       alert("수업 정보를 찾을 수 없습니다.");
       return;
     }
-    if (editCategory.length === 0) {
+    if (editCategory.length === 0 && !editingStudent?.is_test) {
       alert("최소 1개의 카테고리를 선택해주세요.");
       return;
     }
@@ -442,7 +442,7 @@ export default function AdminStudentsPage() {
             수강생 관리
           </h1>
           <p className="text-gray-600 mb-4">
-            현재 {students.length}명의 수강생이 등록되어 있습니다.
+            현재 {students.reduce((sum, s) => sum + (s.name || "").split(",").filter(n => n.trim()).length, 0)}명의 수강생이 등록되어 있습니다.
           </p>
           {/* 이름 검색 */}
           <div className="relative max-w-sm">
@@ -481,6 +481,9 @@ export default function AdminStudentsPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-2 md:px-4 py-3 text-center text-xs font-medium text-gray-400 w-10">
+                        No.
+                      </th>
                       <th className="px-3 md:px-6 py-3 text-left">
                         <input
                           type="checkbox"
@@ -530,8 +533,11 @@ export default function AdminStudentsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {sortedStudents.map((student) => (
+                    {sortedStudents.map((student, idx) => (
                       <tr key={student.id} className="hover:bg-gray-50">
+                        <td className="px-2 md:px-4 py-4 whitespace-nowrap text-center text-xs text-gray-400 font-medium">
+                          {idx + 1}
+                        </td>
                         <td className="px-3 md:px-6 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
