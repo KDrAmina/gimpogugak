@@ -13,6 +13,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.6.3",
+    date: "2026-04-16",
+    changes: [
+      "[모니터링] 크론 에러 웹훅 알림 추가: ERROR_WEBHOOK_URL 환경변수 설정 시 [CRON ERROR] 발생마다 즉시 POST 전송 — 에러 시각·수강생 이름·에러 코드·메시지 포함, Slack/Discord/기타 웹훅 호환",
+      "[모니터링] 솔라피 발송 실패 건별 수집 후 일괄 웹훅 발송: 개별 발송 실패를 모아 루프 종료 후 한 번에 알림 — 건당 웹훅 과다 방지",
+      "[모니터링] cron_logs 테이블 DB 기록 추가: 크론 완료·에러·대상없음·주말 종료 시 실행시각/총시도/성공/실패/스킵/에러요약 INSERT — Vercel 로그 30분 만료 문제 해결",
+      "[DB] cron_logs 마이그레이션 SQL 추가: supabase/migrations/20260416_create_cron_logs.sql — RLS(관리자만 SELECT), 날짜·상태 인덱스 포함",
+    ],
+  },
+  {
     version: "5.6.2",
     date: "2026-04-16",
     changes: [

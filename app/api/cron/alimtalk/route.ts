@@ -9,16 +9,130 @@ import { createClient } from "@supabase/supabase-js";
  * 금요일 : 오늘(금) + 내일(토) + 모레(일) 결제일 수강생을 한 번에 선발송
  * 토~일 : 즉시 종료 (금요일에 이미 발송 완료)
  * ────────────────────────────────────────────────────────────────
+ *
+ * ── 모니터링 안전장치 ───────────────────────────────────────────────
+ * 1. ERROR_WEBHOOK_URL 환경변수가 설정된 경우, [CRON ERROR] 발생 즉시
+ *    POST 웹훅으로 오류 내용을 전송합니다 (Slack/Discord/기타 호환).
+ * 2. 실행 완료 또는 오류 종료 시 Supabase cron_logs 테이블에 결과를 기록합니다.
+ * ────────────────────────────────────────────────────────────────
  */
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Vercel Cron 인증 헤더 검증
+// ── 웹훅 알림 헬퍼 ─────────────────────────────────────────────────────────
+/**
+ * ERROR_WEBHOOK_URL 으로 오류 알림을 전송합니다.
+ *
+ * payload 포맷:
+ *   { "text": "...", "content": "..." }
+ *   → "text"   : Slack Incoming Webhook 호환
+ *   → "content": Discord Webhook 호환
+ *   → 기타 제네릭 HTTP Webhook 에서도 JSON body 로 수신 가능
+ *
+ * 웹훅 전송 자체의 실패는 console.error 로만 기록하며 크론 흐름을 중단하지 않습니다.
+ */
+async function sendErrorWebhook(
+  webhookUrl: string | undefined,
+  title: string,
+  details: {
+    time?: string;
+    name?: string;
+    errorCode?: string;
+    errorMessage?: string;
+    [key: string]: unknown;
+  }
+): Promise<void> {
+  if (!webhookUrl) return;
+
+  const time = details.time ?? new Date().toISOString();
+  const lines: string[] = [
+    `🚨 *[크론 알림톡 오류]* ${title}`,
+    `• 시간: ${time}`,
+  ];
+  if (details.name)         lines.push(`• 수강생: ${details.name}`);
+  if (details.errorCode)    lines.push(`• 오류 코드: ${details.errorCode}`);
+  if (details.errorMessage) lines.push(`• 오류 내용: ${details.errorMessage}`);
+
+  // 추가 필드 (DB hint 등)
+  const extraKeys = Object.keys(details).filter(
+    (k) => !["time", "name", "errorCode", "errorMessage"].includes(k)
+  );
+  for (const k of extraKeys) {
+    if (details[k] !== undefined && details[k] !== null) {
+      lines.push(`• ${k}: ${String(details[k])}`);
+    }
+  }
+
+  const message = lines.join("\n");
+
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: message,    // Slack 호환
+        content: message, // Discord 호환
+      }),
+    });
+  } catch (webhookErr) {
+    // 웹훅 전송 실패는 크론 동작에 영향 없음 — 조용히 기록만
+    console.error("[CRON WEBHOOK] 웹훅 전송 실패:", String(webhookErr));
+  }
+}
+
+// ── cron_logs DB 기록 헬퍼 ─────────────────────────────────────────────────
+/**
+ * cron_logs 테이블에 실행 결과를 INSERT 합니다.
+ * 테이블이 없는 경우(42P01) 조용히 무시하며 크론 흐름을 중단하지 않습니다.
+ *
+ * 테이블 생성 SQL → /supabase/migrations/create_cron_logs.sql 참조
+ */
+async function saveCronLog(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: ReturnType<typeof createClient<any>>,
+  log: {
+    run_at: string;
+    today_str: string;
+    total: number;
+    success: number;
+    fail: number;
+    skipped: number;
+    status: "completed" | "error" | "no_target" | "weekend";
+    error_summary?: string | null;
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase.from("cron_logs").insert({
+      run_at:        log.run_at,
+      today_str:     log.today_str,
+      total:         log.total,
+      success:       log.success,
+      fail:          log.fail,
+      skipped:       log.skipped,
+      status:        log.status,
+      error_summary: log.error_summary ?? null,
+    });
+    if (error) {
+      // 42P01: 테이블 미존재 — 마이그레이션 전 단계이므로 조용히 무시
+      if (error.code !== "42P01") {
+        console.error("[CRON LOG] cron_logs INSERT 실패:", {
+          code: error.code,
+          message: error.message,
+        });
+      }
+    } else {
+      console.log(`[CRON LOG] cron_logs 저장 완료: status=${log.status} | success=${log.success} | fail=${log.fail}`);
+    }
+  } catch (e) {
+    console.error("[CRON LOG] cron_logs INSERT 예외:", String(e));
+  }
+}
+
+// ── Vercel Cron 인증 헤더 검증 ─────────────────────────────────────────────
 function verifyCronAuth(req: Request): boolean {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  // CRON_SECRET 미설정 시 Vercel 환경에서는 항상 거부 (의도치 않은 공개 접근 차단)
   if (!cronSecret) return false;
   return authHeader === `Bearer ${cronSecret}`;
 }
@@ -57,41 +171,54 @@ export async function GET(req: Request) {
   }
 
   // ── 2. 환경변수 로드 ───────────────────────────────────────────────
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
+  const supabaseUrl      = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-  const apiKey = process.env.SOLAPI_API_KEY as string;
-  const apiSecret = process.env.SOLAPI_API_SECRET as string;
-  const pfId = process.env.SOLAPI_PF_ID as string;
-  const templateId = process.env.SOLAPI_TEMPLATE_ID as string;
-  const senderPhone = process.env.SOLAPI_SENDER_PHONE as string;
+  const apiKey           = process.env.SOLAPI_API_KEY as string;
+  const apiSecret        = process.env.SOLAPI_API_SECRET as string;
+  const pfId             = process.env.SOLAPI_PF_ID as string;
+  const templateId       = process.env.SOLAPI_TEMPLATE_ID as string;
+  const senderPhone      = process.env.SOLAPI_SENDER_PHONE as string;
+  const webhookUrl       = process.env.ERROR_WEBHOOK_URL; // 미설정 시 undefined → 웹훅 비활성
 
   console.log("크론 알림톡 환경변수 로드 상태:", {
     apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId,
     templateId: !!templateId, senderPhone: !!senderPhone,
     supabaseUrl: !!supabaseUrl, supabaseServiceKey: !!supabaseServiceKey,
+    webhookEnabled: !!webhookUrl,
   });
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ error: "Supabase 환경변수 누락" }, { status: 500 });
+    const errMsg = "Supabase 환경변수 누락";
+    console.error("[CRON ERROR]", errMsg);
+    await sendErrorWebhook(webhookUrl, errMsg, {
+      time: new Date().toISOString(),
+      errorMessage: "NEXT_PUBLIC_SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 미설정",
+    });
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 
   const missingSolapi: string[] = [];
-  if (!apiKey) missingSolapi.push("SOLAPI_API_KEY");
-  if (!apiSecret) missingSolapi.push("SOLAPI_API_SECRET");
-  if (!pfId) missingSolapi.push("SOLAPI_PF_ID");
-  if (!templateId) missingSolapi.push("SOLAPI_TEMPLATE_ID");
+  if (!apiKey)      missingSolapi.push("SOLAPI_API_KEY");
+  if (!apiSecret)   missingSolapi.push("SOLAPI_API_SECRET");
+  if (!pfId)        missingSolapi.push("SOLAPI_PF_ID");
+  if (!templateId)  missingSolapi.push("SOLAPI_TEMPLATE_ID");
   if (!senderPhone) missingSolapi.push("SOLAPI_SENDER_PHONE");
 
   if (missingSolapi.length > 0) {
-    console.error("Solapi 환경변수 누락:", missingSolapi.join(", "));
-    return NextResponse.json(
-      { error: `발송 오류: ${missingSolapi.join(", ")} 가 누락되었습니다.` },
-      { status: 500 }
-    );
+    const errMsg = `Solapi 환경변수 누락: ${missingSolapi.join(", ")}`;
+    console.error("[CRON ERROR]", errMsg);
+    await sendErrorWebhook(webhookUrl, "Solapi 환경변수 누락", {
+      time: new Date().toISOString(),
+      errorMessage: errMsg,
+    });
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 
   // Service Role 키로 RLS 우회 (Cron은 사용자 세션 없음)
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // 실행 시작 시각 (cron_logs.run_at 에 기록)
+  const runAt = new Date().toISOString();
 
   // ── 3. KST 기준 오늘 날짜·요일 계산 ──────────────────────────────
   /**
@@ -125,7 +252,7 @@ export async function GET(req: Request) {
    */
   function matchesPayDay(payDay: number, targetYear: number, targetMonth: number, targetDay: number): boolean {
     if (payDay === targetDay) return true;
-    const lastDay = new Date(targetYear, targetMonth, 0).getDate(); // targetMonth is 1-based; day=0 → 전달 말일
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate();
     if (payDay > lastDay && targetDay === lastDay) return true;
     return false;
   }
@@ -133,10 +260,6 @@ export async function GET(req: Request) {
   /**
    * payment_date 문자열("YYYY-MM-DD")에서 Day 숫자를 안전하게 추출합니다.
    * Date 객체 파싱을 사용하지 않으므로 타임존에 의한 날짜 오인식이 없습니다.
-   *
-   * 예) "2026-04-16" → 16
-   *     "2026-01-31" → 31
-   *     null / 빈 문자열 → 0 (필터링됨)
    */
   function extractPayDay(paymentDate: string | null): number {
     if (!paymentDate) return 0;
@@ -145,23 +268,21 @@ export async function GET(req: Request) {
     return isNaN(day) ? 0 : day;
   }
 
-  // ── 4. 토·일요일: 즉시 종료 (금요일 선발송으로 이미 처리됨) ────────
+  // ── 4. 토·일요일: 즉시 종료 ───────────────────────────────────────
   if (dayOfWeek === 0 || dayOfWeek === 6) {
     console.log(`[CRON SKIP] 주말(${todayStr}) — 금요일 선발송으로 이미 처리되었으므로 발송 없음`);
+    await saveCronLog(supabase, {
+      run_at: runAt, today_str: todayStr,
+      total: 0, success: 0, fail: 0, skipped: 0,
+      status: "weekend",
+    });
     return NextResponse.json({
       message: `주말(${todayStr}) 발송 없음 — 금요일에 선발송 완료`,
-      sent: 0,
-      skipped: true,
+      sent: 0, skipped: true,
     });
   }
 
   // ── 5. 금요일: 이번 주 토·일요일 날짜(Day) 사전 계산 ────────────────
-  /**
-   * 금요일 선발송 로직:
-   * 오늘(금), 내일(토), 모레(일) 결제일인 수강생 모두 포함.
-   *
-   * kstNow 에 24h / 48h 를 더한 뒤 getUTC* 로 읽으면 월 경계도 자동으로 처리됩니다.
-   */
   const isFriday = dayOfWeek === 5;
 
   let satYear: number | null = null;
@@ -193,7 +314,6 @@ export async function GET(req: Request) {
 
   try {
     // ── 6. 활성 수강생 조회 ───────────────────────────────────────────
-    // ⚠️ is_active=true 만 조회 → 과거 이력(is_active=false) 원천 차단
     const { data, error } = await supabase
       .from("lessons")
       .select(`
@@ -207,46 +327,38 @@ export async function GET(req: Request) {
       .eq("is_active", true);
 
     if (error) {
+      const errMsg = `DB 조회 오류: ${error.message}`;
       console.error("[CRON ERROR] DB 조회 오류:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
+        code: error.code, message: error.message,
+        details: error.details, hint: error.hint,
       });
+      await Promise.all([
+        sendErrorWebhook(webhookUrl, "활성 수강생 DB 조회 실패", {
+          time: now.toISOString(),
+          errorCode: error.code,
+          errorMessage: error.message,
+          hint: error.hint ?? undefined,
+        }),
+        saveCronLog(supabase, {
+          run_at: runAt, today_str: todayStr,
+          total: 0, success: 0, fail: 0, skipped: 0,
+          status: "error", error_summary: errMsg,
+        }),
+      ]);
       return NextResponse.json({ error: "DB 조회 실패", detail: error.message }, { status: 500 });
     }
 
     const rawRows = (data || []) as unknown as LessonRow[];
     console.log(`[CRON DB] 활성 lesson 조회 결과: ${rawRows.length}건`);
 
-    // lesson.id 기준 중복 제거 (Cartesian Product 방지)
     const uniqueLessonMap = new Map<string, LessonRow>();
     for (const row of rawRows) {
-      if (!uniqueLessonMap.has(row.id)) {
-        uniqueLessonMap.set(row.id, row);
-      }
+      if (!uniqueLessonMap.has(row.id)) uniqueLessonMap.set(row.id, row);
     }
     const rows = Array.from(uniqueLessonMap.values());
     console.log(`[CRON DB] 중복 제거 후: ${rows.length}건`);
 
-    // ── 7. 오늘(+금요일이면 토·일) 발송 대상 필터링 ───────────────────
-    /**
-     * [핵심 변경 사항]
-     * 기존: `new Date(payment_date + "T00:00:00").getDate()`
-     *   → Date 객체 생성 후 로컬 시간 기준 .getDate() 호출
-     *   → Vercel(UTC) 환경에서는 결과가 맞지만, 타임존 의존적이라 위험
-     *
-     * 개선: `extractPayDay(payment_date)` — YYYY-MM-DD 에서 DD를 직접 파싱
-     *   → Date 객체 파싱 없음 → 타임존 완전 독립
-     *
-     * [말일 보정]
-     * 기존: `payDay === todayDay` 단순 비교 → 말일 수강생 영구 미발송 버그
-     *   예) payment_date="2026-02-28", 3월 28일 → payDay=28, todayDay=28 → 발송 ✓
-     *   예) payment_date="2026-01-31", 4월 30일 → payDay=31, todayDay=30 → 미발송 ✗ (버그!)
-     *
-     * 개선: `matchesPayDay()` — alimtalk/page.tsx 와 동일한 말일 보정 로직 적용
-     *   예) payment_date="2026-01-31", 4월 30일 → payDay=31>30=lastDay → 발송 ✓
-     */
+    // ── 7. 발송 대상 필터링 (말일 보정 + 타임존 안전 추출) ──────────────
     type FilteredRow = LessonRow & { actualDateStr: string };
     const todayTargets: FilteredRow[] = [];
     let skippedNoPhone = 0, skippedInactive = 0, skippedDisabled = 0, skippedNoPayDay = 0, skippedNoMatch = 0;
@@ -275,7 +387,6 @@ export async function GET(req: Request) {
         continue;
       }
 
-      // ── 안전한 payDay 추출 (Date 파싱 없이 문자열에서 직접 추출) ──────
       const payDay = extractPayDay(r.payment_date);
       if (payDay === 0) {
         skippedNoPayDay++;
@@ -283,23 +394,20 @@ export async function GET(req: Request) {
         continue;
       }
 
-      // ── 말일 보정 포함 결제일 일치 검사 ─────────────────────────────
       const matchesToday = matchesPayDay(payDay, todayYear, todayMonth, todayDay);
       const matchesSat = isFriday && satYear !== null && satMonth !== null && satDay !== null
-        ? matchesPayDay(payDay, satYear, satMonth, satDay)
-        : false;
+        ? matchesPayDay(payDay, satYear, satMonth, satDay) : false;
       const matchesSun = isFriday && sunYear !== null && sunMonth !== null && sunDay !== null
-        ? matchesPayDay(payDay, sunYear, sunMonth, sunDay)
-        : false;
+        ? matchesPayDay(payDay, sunYear, sunMonth, sunDay) : false;
 
       if (matchesToday) {
         console.log(`[CRON MATCH] 오늘(${todayStr}) 결제일 일치 → 대상: ${name} | payDay=${payDay}`);
         todayTargets.push({ ...r, actualDateStr: todayStr });
       } else if (matchesSat) {
-        console.log(`[CRON MATCH] 토요일(${satDateStr}) 선발송 대상 → 포함: ${name} | payDay=${payDay}`);
+        console.log(`[CRON MATCH] 토요일(${satDateStr}) 선발송 → 포함: ${name} | payDay=${payDay}`);
         todayTargets.push({ ...r, actualDateStr: satDateStr! });
       } else if (matchesSun) {
-        console.log(`[CRON MATCH] 일요일(${sunDateStr}) 선발송 대상 → 포함: ${name} | payDay=${payDay}`);
+        console.log(`[CRON MATCH] 일요일(${sunDateStr}) 선발송 → 포함: ${name} | payDay=${payDay}`);
         todayTargets.push({ ...r, actualDateStr: sunDateStr! });
       } else {
         skippedNoMatch++;
@@ -313,18 +421,20 @@ export async function GET(req: Request) {
         ? `오늘(${todayStr})/토(${satDateStr})/일(${sunDateStr})`
         : `오늘(${todayStr})`;
       console.log(`[CRON DONE] 발송 대상 없음 — todayDay=${todayDay}`);
+      await saveCronLog(supabase, {
+        run_at: runAt, today_str: todayStr,
+        total: 0, success: 0, fail: 0,
+        skipped: skippedNoPayDay + skippedNoPhone + skippedInactive + skippedDisabled + skippedNoMatch,
+        status: "no_target",
+      });
       return NextResponse.json({
         message: `${coverageMsg} 발송 대상 없음`,
-        sent: 0,
-        todayDay,
+        sent: 0, todayDay,
         filterSummary: { total: rows.length, skippedNoPayDay, skippedNoPhone, skippedInactive, skippedDisabled, skippedNoMatch },
       });
     }
 
-    // ── 8. 중복 발송 방지: 오늘 이미 발송된 수강생 확인 ─────────────────
-    // ⚠️ type 필터 제거 — auto_cron·manual 구분 없이 성공 이력이 있으면 모두 차단
-    // (수동 발송 후 크론이 재발송하거나 크론 후 수동이 재발송하는 버그 원천 차단)
-    // KST todayStr로 비교하므로 UTC/KST 시차에 의한 날짜 오인식 없음
+    // ── 8. 중복 발송 방지 ─────────────────────────────────────────────
     const { data: sentToday, error: sentTodayError } = await supabase
       .from("notification_log")
       .select("phone")
@@ -333,8 +443,12 @@ export async function GET(req: Request) {
 
     if (sentTodayError) {
       console.error("[CRON ERROR] 발송 이력 조회 실패:", {
-        code: sentTodayError.code,
-        message: sentTodayError.message,
+        code: sentTodayError.code, message: sentTodayError.message,
+      });
+      await sendErrorWebhook(webhookUrl, "발송 이력 조회 실패", {
+        time: now.toISOString(),
+        errorCode: sentTodayError.code,
+        errorMessage: sentTodayError.message,
       });
     }
 
@@ -343,22 +457,20 @@ export async function GET(req: Request) {
     );
     console.log(`[CRON DEDUP] 오늘(${todayStr}) 이미 발송 완료: ${alreadySentPhones.size}명`);
 
-    // ── 9. 동일인물 그룹화 (이름 숫자 제거 + 연락처) ────────────────────
+    // ── 9. 동일인물 그룹화 ───────────────────────────────────────────
     const groupMap = new Map<string, GroupedTarget>();
 
     for (const row of todayTargets) {
-      const rawName = row.profiles.name || "";
+      const rawName  = row.profiles.name || "";
       const baseName = rawName.replace(/[0-9]/g, "").trim();
-      const phone = row.profiles.phone || "";
-      const key = `${baseName}__${phone}`;
+      const phone    = row.profiles.phone || "";
+      const key      = `${baseName}__${phone}`;
 
       if (alreadySentPhones.has(phone)) {
         console.log(`[CRON DEDUP] 이미 발송 완료 → 스킵: ${baseName}`);
         continue;
       }
 
-      // 실제 결제 예정 날짜 문자열 ("M월 D일" 형식)
-      // actualDateStr은 "YYYY-MM-DD" → 문자열에서 직접 파싱 (Date 객체 불필요)
       const [_actY, actM, actD] = row.actualDateStr.split("-").map(Number);
       const actualPaymentDateStr = `${actM}월 ${actD}일`;
 
@@ -369,19 +481,16 @@ export async function GET(req: Request) {
         if (row.category && !existing.categories.includes(row.category)) {
           existing.categories.push(row.category);
         }
-        // 복수 수업 시 가장 이른 actualDateStr 우선 (금요일에 금+토+일 혼합 그룹의 경우)
         if (row.actualDateStr < existing.logDate) {
           existing.logDate = row.actualDateStr;
           existing.actualPaymentDateStr = actualPaymentDateStr;
         }
       } else {
         groupMap.set(key, {
-          baseName,
-          phone,
+          baseName, phone,
           totalTuition: row.tuition_amount || 0,
           paymentDate: row.payment_date,
           actualPaymentDateStr,
-          // 금요일 선발송도 오늘 날짜로 기록 → UI의 발송완료 배지가 오늘 조회에서 정상 표시됨
           logDate: todayStr,
           categories: row.category ? [row.category] : [],
           lessonIds: [row.id],
@@ -389,9 +498,7 @@ export async function GET(req: Request) {
       }
     }
 
-    // ── 이번 달 이미 납부한 수강생 스마트 스킵 ────────────────────────────
-    // lesson_history에서 이번 달(YYYY-MM) 결제 완료 기록이 있으면 발송 제외.
-    // 결제일이 맞더라도 이미 선결제한 수강생에게 중복 알림 발송을 방지함.
+    // ── 이번 달 납부 완료 스킵 ─────────────────────────────────────────
     const allTargets = Array.from(groupMap.values());
     const currentMonthStart = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, "0")}-01`;
     const allLessonIds = allTargets.flatMap((t) => t.lessonIds);
@@ -407,15 +514,18 @@ export async function GET(req: Request) {
 
       if (paidCheckError) {
         console.error("[CRON ERROR] 이번달 납부 확인 조회 실패:", {
-          code: paidCheckError.code,
-          message: paidCheckError.message,
+          code: paidCheckError.code, message: paidCheckError.message,
+        });
+        await sendErrorWebhook(webhookUrl, "이번달 납부 확인 조회 실패", {
+          time: now.toISOString(),
+          errorCode: paidCheckError.code,
+          errorMessage: paidCheckError.message,
         });
       }
 
       const paidLessonIds = new Set(
         (paidThisMonth || []).map((r: { lesson_id: string }) => r.lesson_id)
       );
-
       for (const target of allTargets) {
         if (target.lessonIds.some((id) => paidLessonIds.has(id))) {
           alreadyPaidPhones.add(target.phone);
@@ -424,58 +534,52 @@ export async function GET(req: Request) {
       }
     }
 
-    // 이미 납부한 수강생 스킵 로그 기록
     const alreadyPaidTargets = allTargets.filter((t) => alreadyPaidPhones.has(t.phone));
     if (alreadyPaidTargets.length > 0) {
       const skipInserts = alreadyPaidTargets.map((t) => ({
-        phone: t.phone,
-        name: t.baseName,
-        status: "skipped_already_paid",
-        sent_date: todayStr,
-        type: "auto_cron",
-        created_at: new Date().toISOString(),
+        phone: t.phone, name: t.baseName,
+        status: "skipped_already_paid", sent_date: todayStr,
+        type: "auto_cron", created_at: new Date().toISOString(),
       }));
       const { error: skipLogError } = await supabase.from("notification_log").insert(skipInserts);
       if (skipLogError) {
         console.error("[CRON ERROR] 납부 완료 스킵 로그 저장 실패:", {
-          code: skipLogError.code,
-          message: skipLogError.message,
+          code: skipLogError.code, message: skipLogError.message,
         });
       }
     }
 
-    // 납부 완료 수강생 제외 후 이후 필터링 진행
     const activeTargets = allTargets.filter((t) => !alreadyPaidPhones.has(t.phone));
     console.log(`[CRON PAID_SKIP] 납부완료 스킵: ${alreadyPaidTargets.length}명 | 발송 진행: ${activeTargets.length}명`);
 
-    // ── 수강료 0원 이하 → 발송 제외 + DB 기록 ──────────────────────────
-    // 0원 대상자를 로그에 남겨 관리자가 "발송 없음"의 원인을 파악할 수 있게 함.
     const zeroTuitionTargets = activeTargets.filter((t) => t.totalTuition <= 0);
     const targets = activeTargets.filter((t) => t.totalTuition > 0);
     if (zeroTuitionTargets.length > 0) {
       console.log(`[CRON SKIP] 수강료 0원 → 스킵: ${zeroTuitionTargets.map(t => t.baseName).join(", ")}`);
     }
 
-    // 0원 스킵 대상도 notification_log에 기록 (사유 추적용)
     if (zeroTuitionTargets.length > 0) {
       const zeroInserts = zeroTuitionTargets.map((t) => ({
-        phone: t.phone,
-        name: t.baseName,
-        status: "skipped_zero_tuition",
-        sent_date: todayStr,
-        type: "auto_cron",
-        created_at: new Date().toISOString(),
+        phone: t.phone, name: t.baseName,
+        status: "skipped_zero_tuition", sent_date: todayStr,
+        type: "auto_cron", created_at: new Date().toISOString(),
       }));
-      const { error: zeroLogError } = await supabase
-        .from("notification_log")
-        .insert(zeroInserts);
+      const { error: zeroLogError } = await supabase.from("notification_log").insert(zeroInserts);
       if (zeroLogError) {
-        console.error("0원 스킵 로그 저장 실패:", zeroLogError);
+        console.error("[CRON ERROR] 0원 스킵 로그 저장 실패:", {
+          code: zeroLogError.code, message: zeroLogError.message,
+        });
       }
     }
 
     if (targets.length === 0) {
       console.log(`[CRON DONE] 최종 발송 대상 없음 — 0원스킵=${zeroTuitionTargets.length} / 납부완료스킵=${alreadyPaidTargets.length}`);
+      await saveCronLog(supabase, {
+        run_at: runAt, today_str: todayStr,
+        total: 0, success: 0, fail: 0,
+        skipped: alreadyPaidTargets.length + zeroTuitionTargets.length,
+        status: "no_target",
+      });
       return NextResponse.json({
         message: `오전 10시 자동 발송 완료 — 발송 대상 없음`,
         sent: 0,
@@ -487,7 +591,7 @@ export async function GET(req: Request) {
 
     console.log(`[CRON SOLAPI] 발송 시작: ${targets.length}명 → ${targets.map(t => t.baseName).join(", ")}`);
 
-    // ── 10. Solapi SDK로 알림톡 발송 ─────────────────────────────────
+    // ── 10. Solapi SDK 초기화 ─────────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let solapiService: any = null;
     try {
@@ -495,24 +599,41 @@ export async function GET(req: Request) {
       solapiService = new SolapiMessageService(apiKey, apiSecret);
       console.log("[CRON SOLAPI] SDK 초기화 완료");
     } catch (sdkErr) {
-      console.error("[CRON ERROR] Solapi SDK 로드 실패:", sdkErr);
+      const errMsg = `Solapi SDK 로드 실패: ${String(sdkErr)}`;
+      console.error("[CRON ERROR]", errMsg);
+      await Promise.all([
+        sendErrorWebhook(webhookUrl, "Solapi SDK 초기화 실패", {
+          time: now.toISOString(),
+          errorMessage: String(sdkErr),
+        }),
+        saveCronLog(supabase, {
+          run_at: runAt, today_str: todayStr,
+          total: targets.length, success: 0, fail: targets.length, skipped: 0,
+          status: "error", error_summary: errMsg,
+        }),
+      ]);
       return NextResponse.json({ error: "Solapi SDK 초기화 실패", detail: String(sdkErr) }, { status: 500 });
     }
 
+    // ── 11. 알림톡 발송 루프 ──────────────────────────────────────────
     let success = 0;
     let fail = 0;
     const logs: { phone: string; name: string; status: string; logDate: string }[] = [];
 
+    // 발송 중 발생한 에러를 모아 웹훅으로 일괄 전송 (건당 웹훅 과다 방지)
+    const sendErrors: { name: string; code: string; message: string }[] = [];
+
     for (const target of targets) {
       const phone = target.phone.replace(/[^0-9]/g, "");
       if (phone.length < 10) {
-        console.error(`[CRON ERROR] 전화번호 형식 오류 → 발송 불가: ${target.baseName} | phone="${target.phone}"`);
+        console.error(`[CRON ERROR] 전화번호 형식 오류: ${target.baseName} | phone="${target.phone}"`);
+        sendErrors.push({ name: target.baseName, code: "INVALID_PHONE", message: `전화번호 형식 오류: "${target.phone}"` });
         fail++;
         logs.push({ phone, name: target.baseName, status: "invalid_phone", logDate: target.logDate });
         continue;
       }
 
-      // ── 이중 방어막: 발송 직전 DB 재확인 ────────────────────────────────
+      // 이중 방어막: 발송 직전 DB 재확인
       const { data: doubleCheck, error: doubleCheckError } = await supabase
         .from("notification_log")
         .select("id")
@@ -523,11 +644,9 @@ export async function GET(req: Request) {
 
       if (doubleCheckError) {
         console.error(`[CRON ERROR] 이중체크 DB 조회 실패 (${target.baseName}):`, {
-          code: doubleCheckError.code,
-          message: doubleCheckError.message,
+          code: doubleCheckError.code, message: doubleCheckError.message,
         });
       }
-
       if (doubleCheck && doubleCheck.length > 0) {
         console.log(`[CRON DEDUP] 발송 직전 이중체크 — 이미 발송됨, 스킵: ${target.baseName}`);
         continue;
@@ -539,8 +658,7 @@ export async function GET(req: Request) {
           to: phone,
           from: senderPhone,
           kakaoOptions: {
-            pfId,
-            templateId,
+            pfId, templateId,
             variables: {
               "#{이름}": target.baseName,
               "#{수강료}": target.totalTuition.toLocaleString("ko-KR"),
@@ -553,68 +671,92 @@ export async function GET(req: Request) {
         success++;
         logs.push({ phone, name: target.baseName, status: "success", logDate: target.logDate });
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
+        const errMsg  = err instanceof Error ? err.message : String(err);
         const errCode = (err as { code?: string })?.code ?? "UNKNOWN";
         console.error(`[CRON ERROR] 알림톡 발송 실패 (${target.baseName}):`, {
-          code: errCode,
-          message: errMsg,
-          phone,
-          pfId,
-          templateId,
+          code: errCode, message: errMsg, phone, pfId, templateId,
         });
+        sendErrors.push({ name: target.baseName, code: errCode, message: errMsg });
         fail++;
         logs.push({ phone, name: target.baseName, status: "fail", logDate: target.logDate });
       }
     }
 
-    // ── 11. notification_log 기록 ─────────────────────────────────────
-    // 금요일 선발송도 sent_date = 오늘(금요일) 날짜로 통일 기록
-    // → UI 페이지의 발송완료 배지가 오늘 날짜 조회에서 정상 표시됨
+    // 발송 실패 건이 있으면 웹훅으로 일괄 알림
+    if (sendErrors.length > 0) {
+      const failSummary = sendErrors
+        .map((e) => `${e.name}(${e.code}: ${e.message})`)
+        .join(" / ");
+      await sendErrorWebhook(webhookUrl, `알림톡 발송 실패 ${sendErrors.length}건`, {
+        time: now.toISOString(),
+        errorMessage: failSummary,
+        성공: success,
+        실패: fail,
+        전체: targets.length,
+      });
+    }
+
+    // ── 12. notification_log 기록 ─────────────────────────────────────
     const logInserts = logs.map((l) => ({
-      phone: l.phone,
-      name: l.name,
-      status: l.status,
-      sent_date: todayStr, // 항상 오늘(발송 실행 날짜) 기록
-      type: "auto_cron",
+      phone: l.phone, name: l.name, status: l.status,
+      sent_date: todayStr, type: "auto_cron",
       created_at: new Date().toISOString(),
     }));
 
     if (logInserts.length > 0) {
-      const { error: logError } = await supabase
-        .from("notification_log")
-        .insert(logInserts);
-
+      const { error: logError } = await supabase.from("notification_log").insert(logInserts);
       if (logError) {
         console.error("[CRON ERROR] 발송 로그 저장 실패:", {
-          code: logError.code,
-          message: logError.message,
-          details: logError.details,
+          code: logError.code, message: logError.message, details: logError.details,
+        });
+        await sendErrorWebhook(webhookUrl, "notification_log INSERT 실패", {
+          time: now.toISOString(),
+          errorCode: logError.code,
+          errorMessage: logError.message,
         });
       } else {
         console.log(`[CRON LOG] notification_log 저장 완료: ${logInserts.length}건`);
       }
     }
 
+    // ── 13. cron_logs 실행 결과 저장 ─────────────────────────────────
     const isFridayPreSend = isFriday && (satDay !== null || sunDay !== null);
+    const finalSkipped = alreadyPaidTargets.length + zeroTuitionTargets.length;
+    await saveCronLog(supabase, {
+      run_at: runAt, today_str: todayStr,
+      total: targets.length, success, fail, skipped: finalSkipped,
+      status: fail === 0 ? "completed" : "error",
+      error_summary: sendErrors.length > 0
+        ? sendErrors.map((e) => `${e.name}: ${e.code}`).join(", ")
+        : null,
+    });
+
     console.log(`[CRON DONE] 완료 — 성공=${success} / 실패=${fail} / 0원스킵=${zeroTuitionTargets.length} / 납부완료스킵=${alreadyPaidTargets.length}`);
     return NextResponse.json({
       message: isFridayPreSend
         ? `금요일 선발송 완료 (${todayStr} — 토:${satDateStr}, 일:${sunDateStr} 포함)`
         : `오전 10시 자동 발송 완료 (${todayStr})`,
-      todayDay,
-      todayStr,
-      dayOfWeek,
-      isFridayPreSend,
-      success,
-      fail,
-      total: targets.length,
+      todayDay, todayStr, dayOfWeek, isFridayPreSend,
+      success, fail, total: targets.length,
       skippedZero: zeroTuitionTargets.length,
       skippedAlreadyPaid: alreadyPaidTargets.length,
     });
+
   } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : "알 수 없는 오류";
+    const errMsg   = err instanceof Error ? err.message : "알 수 없는 오류";
     const errStack = err instanceof Error ? err.stack : undefined;
     console.error("[CRON ERROR] 예기치 못한 오류:", { message: errMsg, stack: errStack });
+    await Promise.all([
+      sendErrorWebhook(webhookUrl, "크론 예기치 못한 오류", {
+        time: now.toISOString(),
+        errorMessage: errMsg,
+      }),
+      saveCronLog(supabase, {
+        run_at: runAt, today_str: todayStr,
+        total: 0, success: 0, fail: 0, skipped: 0,
+        status: "error", error_summary: errMsg,
+      }),
+    ]);
     return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
