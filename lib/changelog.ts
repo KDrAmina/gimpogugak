@@ -13,6 +13,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.6.4",
+    date: "2026-04-16",
+    changes: [
+      "[모니터링] 텔레그램 일일 브리핑 추가: 크론 완료 시 ✅ 발송 성공/스킵 수강생 이름 목록을 텔레그램으로 발송 (TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID 환경변수)",
+      "[모니터링] 텔레그램 에러 알림 추가: 솔라피 발송 실패 또는 크론 예외 발생 시 🚨 에러 내용·수강생 이름을 텔레그램으로 즉시 알림",
+      "[모니터링] 대상 없음 브리핑 추가: 오늘 결제일 수강생 없는 경우 ℹ️ 메시지로 정상 실행 확인 가능",
+      "[DB] cron_logs 컬럼명 변경: total→total_tried, success→success_count, fail→fail_count — 마이그레이션 SQL 및 route.ts 동기화",
+    ],
+  },
+  {
     version: "5.6.3",
     date: "2026-04-16",
     changes: [

@@ -18,13 +18,13 @@ CREATE TABLE IF NOT EXISTS public.cron_logs (
   today_str     TEXT         NOT NULL,
 
   -- 발송 시도 건수 (0원·납부완료 스킵 제외한 실제 발송 대상 수)
-  total         INT          NOT NULL DEFAULT 0,
+  total_tried   INT          NOT NULL DEFAULT 0,
 
   -- 솔라피 API 호출 성공 건수
-  success       INT          NOT NULL DEFAULT 0,
+  success_count INT          NOT NULL DEFAULT 0,
 
   -- 솔라피 API 호출 실패 건수 (invalid_phone 포함)
-  fail          INT          NOT NULL DEFAULT 0,
+  fail_count    INT          NOT NULL DEFAULT 0,
 
   -- 스킵 건수 (납부완료 + 0원 합산)
   skipped       INT          NOT NULL DEFAULT 0,
@@ -70,9 +70,9 @@ CREATE POLICY "관리자만 cron_logs 조회 가능"
 COMMENT ON TABLE  public.cron_logs                IS '알림톡 자동 발송 크론 실행 이력 (Vercel 함수 로그 30분 만료 보완)';
 COMMENT ON COLUMN public.cron_logs.run_at         IS '크론 실행 시작 시각 (UTC)';
 COMMENT ON COLUMN public.cron_logs.today_str      IS 'KST 기준 실행 날짜 YYYY-MM-DD';
-COMMENT ON COLUMN public.cron_logs.total          IS '실제 발송 시도 건수';
-COMMENT ON COLUMN public.cron_logs.success        IS '솔라피 발송 성공 건수';
-COMMENT ON COLUMN public.cron_logs.fail           IS '솔라피 발송 실패 건수';
+COMMENT ON COLUMN public.cron_logs.total_tried    IS '실제 발송 시도 건수';
+COMMENT ON COLUMN public.cron_logs.success_count  IS '솔라피 발송 성공 건수';
+COMMENT ON COLUMN public.cron_logs.fail_count     IS '솔라피 발송 실패 건수';
 COMMENT ON COLUMN public.cron_logs.skipped        IS '납부완료·0원 등 스킵 건수';
 COMMENT ON COLUMN public.cron_logs.status         IS 'completed | error | no_target | weekend';
 COMMENT ON COLUMN public.cron_logs.error_summary  IS '오류 요약 (정상 시 NULL)';
