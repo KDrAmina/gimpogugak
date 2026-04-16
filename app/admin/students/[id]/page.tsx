@@ -27,6 +27,7 @@ type StudentLesson = {
   tuition_amount: number;
   payment_date: string | null;
   is_active: boolean;
+  end_month: string | null;
   created_at: string;
   lesson_history: LessonHistoryDate[];
 };
@@ -57,6 +58,13 @@ export default function StudentDetailPage() {
   const [newCategories, setNewCategories] = useState<string[]>([]);
   const [newTuition, setNewTuition] = useState('');
   const [newSubjectSaving, setNewSubjectSaving] = useState(false);
+
+  // 종료월 입력 모달
+  const [showEndMonthModal, setShowEndMonthModal] = useState(false);
+  const [endMonthModalLessonId, setEndMonthModalLessonId] = useState<string | null>(null);
+  const [endMonthInput, setEndMonthInput] = useState('');
+  const [endMonthIsToggle, setEndMonthIsToggle] = useState(false);
+  const [endMonthSaving, setEndMonthSaving] = useState(false);
 
   // 타임머신 모달
   const [showTimeMachine, setShowTimeMachine] = useState(false);
@@ -111,7 +119,7 @@ export default function StudentDetailPage() {
   async function loadStudentData() {
     const [profileRes, lessonsRes] = await Promise.all([
       supabase.from("profiles").select("id, name, email, phone, created_at, is_test").eq("id", userId).single(),
-      supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, created_at, lesson_history(completed_date)").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, end_month, created_at, lesson_history(completed_date)").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
@@ -182,22 +190,72 @@ export default function StudentDetailPage() {
     setEditingMemo(false);
   }
 
+  // 마지막 결제월 + 1개월 = 기본 종료월 계산
+  function computeDefaultEndMonth(lessonId: string): string {
+    const lesson = lessons.find(l => l.id === lessonId);
+    const dates = (lesson?.lesson_history || []).map(h => h.completed_date).filter(Boolean).sort();
+    const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
+    if (lastDate) {
+      const [y, m] = lastDate.substring(0, 7).split('-').map(Number);
+      const nm = m >= 12 ? 1 : m + 1;
+      const ny = m >= 12 ? y + 1 : y;
+      return `${ny}-${String(nm).padStart(2, '0')}`;
+    }
+    return currentMonthStr;
+  }
+
   // 수업 상태 토글 핸들러 (진행중 ↔ 종료)
   async function handleToggleStatus(lessonId: string, currentActive: boolean) {
-    const newStatus = !currentActive;
-    const label = newStatus ? "진행중" : "종료";
-    if (!window.confirm(`이 수업을 "${label}" 상태로 변경하시겠습니까?`)) return;
+    if (currentActive) {
+      // 진행중 → 종료: 종료월 입력 모달
+      setEndMonthModalLessonId(lessonId);
+      setEndMonthInput(computeDefaultEndMonth(lessonId));
+      setEndMonthIsToggle(true);
+      setShowEndMonthModal(true);
+    } else {
+      // 종료 → 진행중: 단순 확인
+      if (!window.confirm('이 수업을 "진행중" 상태로 변경하시겠습니까?')) return;
+      try {
+        const { error } = await supabase
+          .from("lessons")
+          .update({ is_active: true, end_month: null })
+          .eq("id", lessonId);
+        if (error) throw error;
+        await loadStudentData();
+      } catch (err) {
+        console.error("Toggle status error:", err);
+        alert("상태 변경 중 오류가 발생했습니다.");
+      }
+    }
+  }
 
+  // 종료월 수정 핸들러 (이미 종료된 수업)
+  function handleEditEndMonth(lessonId: string, currentEndMonth: string | null) {
+    setEndMonthModalLessonId(lessonId);
+    setEndMonthInput(currentEndMonth || computeDefaultEndMonth(lessonId));
+    setEndMonthIsToggle(false);
+    setShowEndMonthModal(true);
+  }
+
+  // 종료월 모달 확인 처리
+  async function handleConfirmEndMonth() {
+    if (!endMonthModalLessonId || !endMonthInput) return;
+    setEndMonthSaving(true);
     try {
+      const updates: Record<string, unknown> = { end_month: endMonthInput };
+      if (endMonthIsToggle) updates.is_active = false;
       const { error } = await supabase
         .from("lessons")
-        .update({ is_active: newStatus })
-        .eq("id", lessonId);
+        .update(updates)
+        .eq("id", endMonthModalLessonId);
       if (error) throw error;
       await loadStudentData();
+      setShowEndMonthModal(false);
     } catch (err) {
-      console.error("Toggle status error:", err);
-      alert("상태 변경 중 오류가 발생했습니다.");
+      console.error("End month save error:", err);
+      alert("저장 중 오류가 발생했습니다.");
+    } finally {
+      setEndMonthSaving(false);
     }
   }
 
@@ -251,6 +309,12 @@ export default function StudentDetailPage() {
     setTmSaving(true);
     try {
       // 1. lessons 테이블에 '종료됨' 상태로 INSERT
+      // 종료월 = 타임머신 종료월 + 1개월 자동 계산
+      const [tmEY, tmEM] = tmEndMonth.split("-").map(Number);
+      const tmNextM = tmEM >= 12 ? 1 : tmEM + 1;
+      const tmNextY = tmEM >= 12 ? tmEY + 1 : tmEY;
+      const autoEndMonth = `${tmNextY}-${String(tmNextM).padStart(2, "0")}`;
+
       const { data: lessonData, error: lessonError } = await supabase
         .from("lessons")
         .insert({
@@ -259,6 +323,7 @@ export default function StudentDetailPage() {
           tuition_amount: tuition,
           is_active: false,
           current_session: 0,
+          end_month: autoEndMonth,
         })
         .select("id")
         .single();
@@ -572,7 +637,7 @@ export default function StudentDetailPage() {
               if (!bEnd) return -1;
               return bEnd.localeCompare(aEnd);
             }).map(lesson => (
-              <div key={lesson.id} className="py-3 flex items-center justify-between gap-4 text-sm">
+              <div key={lesson.id} className="py-3 flex items-start justify-between gap-4 text-sm">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <button
                     onClick={() => handleToggleStatus(lesson.id, lesson.is_active)}
@@ -583,23 +648,34 @@ export default function StudentDetailPage() {
                   </button>
                   <span className="font-medium text-gray-900 truncate">{lesson.category}</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-500 text-right shrink-0 text-xs">
-                  {lesson.tuition_amount > 0 && <span>₩{lesson.tuition_amount.toLocaleString()}</span>}
-                  <span>{(() => {
-                    const dates = (lesson.lesson_history || []).map(h => h.completed_date).filter(Boolean).sort();
-                    if (dates.length === 0) return "납부 이력 없음";
-                    const fmt = (d: string) => { const [y, m] = d.split("-"); return `${Number(y)}년 ${Number(m)}월`; };
-                    const start = fmt(dates[0]);
-                    if (lesson.is_active) return `${start} ~ 현재`;
-                    const end = fmt(dates[dates.length - 1]);
-                    return start === end ? start : `${start} ~ ${end}`;
-                  })()}</span>
-                  <button
-                    onClick={() => handleDeleteLesson(lesson.id, lesson.category)}
-                    className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 transition-colors"
-                  >
-                    삭제
-                  </button>
+                <div className="flex flex-col items-end gap-1 text-gray-500 shrink-0 text-xs">
+                  <div className="flex items-center gap-2">
+                    {lesson.tuition_amount > 0 && <span>₩{lesson.tuition_amount.toLocaleString()}</span>}
+                    <span>{(() => {
+                      const dates = (lesson.lesson_history || []).map(h => h.completed_date).filter(Boolean).sort();
+                      if (dates.length === 0) return "납부 이력 없음";
+                      const fmt = (d: string) => { const [y, m] = d.split("-"); return `${Number(y)}년 ${Number(m)}월`; };
+                      const start = fmt(dates[0]);
+                      if (lesson.is_active) return `${start} ~ 현재`;
+                      const end = fmt(dates[dates.length - 1]);
+                      return start === end ? start : `${start} ~ ${end}`;
+                    })()}</span>
+                    <button
+                      onClick={() => handleDeleteLesson(lesson.id, lesson.category)}
+                      className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                  {!lesson.is_active && (
+                    <button
+                      onClick={() => handleEditEndMonth(lesson.id, lesson.end_month)}
+                      className="text-orange-500 hover:text-orange-700 hover:underline"
+                      title="종료(이탈) 연월 수정"
+                    >
+                      이탈월: {lesson.end_month ?? '미설정'} ✎
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -650,6 +726,46 @@ export default function StudentDetailPage() {
               </button>
               <button
                 onClick={() => setShowNewSubject(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 종료월 입력 모달 */}
+      {showEndMonthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEndMonthModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              {endMonthIsToggle ? "수업 종료 처리" : "이탈월 수정"}
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              {endMonthIsToggle
+                ? "이탈(종료) 연월을 선택해주세요. 기본값은 마지막 결제월 + 1개월입니다."
+                : "이탈(종료)로 집계될 연월을 수정합니다."}
+            </p>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">종료(이탈) 연월</label>
+              <input
+                type="month"
+                value={endMonthInput}
+                onChange={(e) => setEndMonthInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={handleConfirmEndMonth}
+                disabled={endMonthSaving || !endMonthInput}
+                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 font-medium disabled:opacity-50"
+              >
+                {endMonthSaving ? "저장 중..." : "확인"}
+              </button>
+              <button
+                onClick={() => setShowEndMonthModal(false)}
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium"
               >
                 취소

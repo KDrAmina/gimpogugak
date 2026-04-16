@@ -21,7 +21,7 @@ const ExternalTrendChart  = nextDynamic(() => import("@/components/ExternalTrend
 const ChurnPaymentChart   = nextDynamic(() => import("@/components/ChurnPaymentChart"),   { ssr: false, loading: () => <Loader h={260} /> });
 
 interface ProfileInner  { name: string; phone: string | null; is_test?: boolean; }
-interface LessonInner   { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
+interface LessonInner   { tuition_amount: number; category: string; is_active?: boolean; end_month?: string | null; profiles: ProfileInner | null; }
 interface HistoryRow    { completed_date?: string; tuition_snapshot: number; prepaid_month: string | null; lessons: LessonInner | null; }
 interface ExternalRow   { income_date: string; amount: number; type: string; }
 interface ActiveLesson  { category: string; tuition_amount: number; }
@@ -160,7 +160,7 @@ export default function StatisticsPage() {
   async function fetchAll() {
     const [{ data: hist }, { data: ext }, { data: active }, { data: inflow }] = await Promise.all([
       supabase.from("lesson_history")
-        .select("completed_date,tuition_snapshot,prepaid_month,lessons!inner(tuition_amount,category,is_active,profiles!inner(name,phone,is_test))")
+        .select("completed_date,tuition_snapshot,prepaid_month,lessons!inner(tuition_amount,category,is_active,end_month,profiles!inner(name,phone,is_test))")
         .eq("status", "결제 완료").limit(10000),
       supabase.from("external_income").select("income_date,amount,type").limit(5000),
       // profiles!inner join으로 is_test=true 계정 클라이언트 필터링
@@ -344,7 +344,7 @@ export default function StatisticsPage() {
   }, [selectedYear, yoyMode, allHistory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const studentStats = useMemo(() => {
-    const map = new Map<string, { firstMonth: string; lastMonth: string; isActive: boolean; total: number; phone: string | null }>();
+    const map = new Map<string, { firstMonth: string; lastMonth: string; isActive: boolean; total: number; phone: string | null; endMonth: string | null }>();
     for (const row of allHistory) {
       const prof = row.lessons?.profiles;
       if (!prof?.name) continue;
@@ -352,16 +352,20 @@ export default function StatisticsPage() {
       const eff = getEff(row);
       if (!eff) continue;
       const isAct = row.lessons?.is_active ?? false;
+      // end_month from inactive lesson → churn month override
+      const rowEndMonth = (!isAct && row.lessons?.end_month) ? row.lessons.end_month : null;
       const prev  = map.get(name);
       if (!prev) {
-        map.set(name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: tuitionOf(row), phone: prof.phone });
+        map.set(name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: tuitionOf(row), phone: prof.phone, endMonth: rowEndMonth });
       } else {
+        const newEndMonth = rowEndMonth && (!prev.endMonth || rowEndMonth > prev.endMonth) ? rowEndMonth : prev.endMonth;
         map.set(name, {
           firstMonth: eff < prev.firstMonth ? eff : prev.firstMonth,
           lastMonth:  eff > prev.lastMonth  ? eff : prev.lastMonth,
           isActive:   isAct || prev.isActive,
           total:      prev.total + tuitionOf(row),
           phone:      prof.phone ?? prev.phone,
+          endMonth:   newEndMonth,
         });
       }
     }
@@ -389,7 +393,7 @@ export default function StatisticsPage() {
     // ① 수강생별 전체 통계 재계산 (studentStats 와 동일 구조, months Set 추가)
     const byStudent = new Map<string, {
       firstMonth: string; lastMonth: string; isActive: boolean;
-      total: number; months: Set<string>;
+      total: number; months: Set<string>; endMonth: string | null;
     }>();
     for (const row of allHistory) {
       const name = normalizeName(row.lessons?.profiles?.name ?? "");
@@ -398,23 +402,27 @@ export default function StatisticsPage() {
       if (!eff) continue;
       const isAct = row.lessons?.is_active ?? false;
       const amt   = tuitionOf(row);
+      const rowEndMonth = (!isAct && row.lessons?.end_month) ? row.lessons.end_month : null;
       const prev  = byStudent.get(name);
       if (!prev) {
-        byStudent.set(name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: amt, months: new Set([eff]) });
+        byStudent.set(name, { firstMonth: eff, lastMonth: eff, isActive: isAct, total: amt, months: new Set([eff]), endMonth: rowEndMonth });
       } else {
+        const newEndMonth = rowEndMonth && (!prev.endMonth || rowEndMonth > prev.endMonth) ? rowEndMonth : prev.endMonth;
         prev.firstMonth = eff < prev.firstMonth ? eff : prev.firstMonth;
         prev.lastMonth  = eff > prev.lastMonth  ? eff : prev.lastMonth;
         prev.isActive   = isAct || prev.isActive;
         prev.total     += amt;
         prev.months.add(eff);
+        prev.endMonth   = newEndMonth;
       }
     }
     const allStudArr = Array.from(byStudent.values());
 
-    // ② 이탈자 필터 (연도 기준: lastMonth 가 selectedYear 에 속하는지)
+    // ② 이탈자 필터 (연도 기준: endMonth ?? lastMonth 가 selectedYear 에 속하는지)
     const churned = allStudArr.filter(s => {
       if (s.isActive) return false;
-      return selectedYear === "all" || s.lastMonth.startsWith(selectedYear);
+      const churnMonth = s.endMonth ?? s.lastMonth;
+      return selectedYear === "all" || churnMonth.startsWith(selectedYear);
     });
 
     // ③ 평균 이탈 누적액 (해당 이탈자들의 생애 전체 결제액 평균)
@@ -461,7 +469,7 @@ export default function StatisticsPage() {
     for (const mo of periodMonths) {
       const activeThisMo = allStudArr.filter(s => s.firstMonth <= mo && s.lastMonth >= mo).length;
       if (activeThisMo === 0) continue;
-      const churnedThisMo = allStudArr.filter(s => !s.isActive && s.lastMonth === mo).length;
+      const churnedThisMo = allStudArr.filter(s => !s.isActive && (s.endMonth ?? s.lastMonth) === mo).length;
       monthlyRates.push((churnedThisMo / activeThisMo) * 100);
     }
     const avgMonthlyChurnRate = monthlyRates.length > 0
@@ -528,7 +536,9 @@ export default function StatisticsPage() {
     const churnMap = new Map<string, number>();
     for (const [, s] of studentStats) {
       const fp = periodType === "year" ? s.firstMonth.substring(0, 4) : s.firstMonth;
-      const lp = periodType === "year" ? s.lastMonth.substring(0, 4)  : s.lastMonth;
+      // 종료월(end_month) 우선, 없으면 마지막 결제월 기준
+      const churnMonthFull = s.endMonth ?? s.lastMonth;
+      const lp = periodType === "year" ? churnMonthFull.substring(0, 4) : churnMonthFull;
       if (periods.includes(fp)) newMap.set(fp, (newMap.get(fp) ?? 0) + 1);
       if (!s.isActive && periods.includes(lp)) churnMap.set(lp, (churnMap.get(lp) ?? 0) + 1);
     }
@@ -1218,7 +1228,7 @@ export default function StatisticsPage() {
           <p className="text-xs text-gray-300 mt-3">
             {yoyMode === "overlay"
               ? "※ 신규: 해당 월에 첫 결제한 학생 수 (연도별 비교)"
-              : "※ 신규: 첫 결제 학생 / 이탈: is_active=false의 마지막 결제 기준"}
+              : "※ 신규: 첫 결제 학생 / 이탈: 종료월(end_month) 기준 — 미설정 시 마지막 결제월 fallback"}
           </p>
         </div>
 
