@@ -13,6 +13,7 @@ type StudentProfile = {
   email: string | null;
   phone: string | null;
   created_at: string;
+  is_test?: boolean;
 };
 
 type LessonHistoryDate = {
@@ -109,7 +110,7 @@ export default function StudentDetailPage() {
 
   async function loadStudentData() {
     const [profileRes, lessonsRes] = await Promise.all([
-      supabase.from("profiles").select("id, name, email, phone, created_at").eq("id", userId).single(),
+      supabase.from("profiles").select("id, name, email, phone, created_at, is_test").eq("id", userId).single(),
       supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, created_at, lesson_history(completed_date)").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
 
@@ -351,8 +352,13 @@ export default function StudentDetailPage() {
           ← 수강생 목록
         </Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold text-gray-900">
+        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
           {profile?.name ?? "수강생"} 상세
+          {profile?.is_test && (
+            <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded leading-none">
+              테스트 계정
+            </span>
+          )}
         </h1>
       </div>
 

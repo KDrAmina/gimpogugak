@@ -13,6 +13,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.7.0",
+    date: "2026-04-16",
+    changes: [
+      "[DB] profiles 테이블에 is_test(boolean, 기본값 false) 컬럼 추가 — 테스트 계정 구분 플래그",
+      "[통계] 대시보드 전체 통계(KPI·카테고리·매출·트렌드) 집계에서 is_test=true 계정 완전 제외 — allHistory·activeLesson·inflowProfiles 쿼리 모두 적용",
+      "[UI] 수강생 목록 이름 옆에 테스트 계정 붉은 뱃지 표시 — 시각적 구분",
+      "[UI] 수강생 상세 페이지 헤더에도 테스트 계정 뱃지 표시",
+    ],
+  },
+  {
     version: "5.6.4",
     date: "2026-04-16",
     changes: [

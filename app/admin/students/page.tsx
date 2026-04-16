@@ -14,6 +14,7 @@ type ActiveStudent = {
   name: string | null;
   phone: string | null;
   created_at: string;
+  is_test?: boolean;
   lesson_status?: 'active' | 'ended' | 'none';
   lesson_id?: string;
   lesson_category?: string;
@@ -540,9 +541,16 @@ export default function AdminStudentsPage() {
                           />
                         </td>
                         <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                          <Link href={`/admin/students/${student.id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                            {student.name || "이름 미입력"}
-                          </Link>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Link href={`/admin/students/${student.id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                              {student.name || "이름 미입력"}
+                            </Link>
+                            {student.is_test && (
+                              <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded leading-none">
+                                테스트 계정
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">

@@ -20,7 +20,7 @@ const CategoryTrendChart  = nextDynamic(() => import("@/components/CategoryTrend
 const ExternalTrendChart  = nextDynamic(() => import("@/components/ExternalTrendChart"),  { ssr: false, loading: () => <Loader h={240} /> });
 const ChurnPaymentChart   = nextDynamic(() => import("@/components/ChurnPaymentChart"),   { ssr: false, loading: () => <Loader h={260} /> });
 
-interface ProfileInner  { name: string; phone: string | null; }
+interface ProfileInner  { name: string; phone: string | null; is_test?: boolean; }
 interface LessonInner   { tuition_amount: number; category: string; is_active?: boolean; profiles: ProfileInner | null; }
 interface HistoryRow    { completed_date?: string; tuition_snapshot: number; prepaid_month: string | null; lessons: LessonInner | null; }
 interface ExternalRow   { income_date: string; amount: number; type: string; }
@@ -160,15 +160,24 @@ export default function StatisticsPage() {
   async function fetchAll() {
     const [{ data: hist }, { data: ext }, { data: active }, { data: inflow }] = await Promise.all([
       supabase.from("lesson_history")
-        .select("completed_date,tuition_snapshot,prepaid_month,lessons!inner(tuition_amount,category,is_active,profiles!inner(name,phone))")
+        .select("completed_date,tuition_snapshot,prepaid_month,lessons!inner(tuition_amount,category,is_active,profiles!inner(name,phone,is_test))")
         .eq("status", "결제 완료").limit(10000),
       supabase.from("external_income").select("income_date,amount,type").limit(5000),
-      supabase.from("lessons").select("category,tuition_amount").eq("is_active", true).limit(500),
-      supabase.from("profiles").select("name,phone,inflow_route").limit(1000),
+      // profiles!inner join으로 is_test=true 계정 클라이언트 필터링
+      supabase.from("lessons").select("category,tuition_amount,profiles!inner(is_test)").eq("is_active", true).limit(500),
+      // is_test=true 제외
+      supabase.from("profiles").select("name,phone,inflow_route").eq("is_test", false).limit(1000),
     ]);
-    setAllHistory((hist as unknown as HistoryRow[]) ?? []);
+    // is_test=true 수강생 제외
+    const filteredHist = ((hist as unknown as HistoryRow[]) ?? [])
+      .filter((r) => !(r.lessons?.profiles?.is_test));
+    setAllHistory(filteredHist);
     setAllExternal((ext as unknown as ExternalRow[]) ?? []);
-    setActiveLesson((active as unknown as ActiveLesson[]) ?? []);
+    // activeLesson: is_test=true 수강생 제외 후 ActiveLesson 형태로 변환
+    const filteredActive = ((active as unknown as Array<ActiveLesson & { profiles?: { is_test?: boolean } }>) ?? [])
+      .filter((l) => !(l.profiles?.is_test))
+      .map(({ category, tuition_amount }) => ({ category, tuition_amount }));
+    setActiveLesson(filteredActive);
     setInflowProfiles((inflow as unknown as InflowProfile[]) ?? []);
     setLoading(false);
   }
