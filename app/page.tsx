@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { HomeBadges } from "@/components/home/HomeBadges";
 import { HomeConnect } from "@/components/home/HomeConnect";
+import { HeroCTA } from "@/components/home/HeroCTA";
 import PhoneCallLink from "@/components/PhoneCallLink";
 import { createClient } from "@/lib/supabase/server";
 import { getBlogPostPath } from "@/lib/blog-utils";
@@ -87,20 +88,7 @@ export default async function HomePage() {
           </p>
 
           {/* CTA 버튼 */}
-          <div className="mt-7 flex flex-wrap gap-3 lg:justify-center">
-            <Link
-              href="/contact"
-              className="bg-[#8a6f3e] hover:bg-[#7a5f2e] text-white px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-            >
-              편하게 상담받기
-            </Link>
-            <Link
-              href="/classes"
-              className="border border-[#8a6f3e] text-[#8a6f3e] hover:bg-[#fdf8f0] px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
-            >
-              프로그램 안내 보기
-            </Link>
-          </div>
+          <HeroCTA />
 
           {/* 신뢰 지표 */}
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-400 lg:justify-center">
