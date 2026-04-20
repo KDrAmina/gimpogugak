@@ -56,13 +56,16 @@ async function sendTelegram(
 /**
  * ✅ 일일 브리핑 메시지를 구성합니다.
  *
- * 오늘 대상자가 한 명도 없으면 ℹ️ 안내 메시지를 반환합니다.
+ * 오늘 결제 대상자 전체 명단을 먼저 보여주고, 발송 성공/제외/실패를 구분합니다.
  * 포맷 예시:
- *   ✅ [오늘의 알림톡 발송 브리핑]
- *   📅 2026-04-16 (목요일)
- *   - 발송 성공: 2건
- *   - 오늘 대상자: 임미경, 강서은
- *   - 스킵된 대상(이미 납부 등): 박상혜
+ *   ✅ [알림톡 발송 브리핑]
+ *   📅 2026-04-20 (월요일)
+ *
+ *   오늘 전체 결제 대상: 홍길동, 김철수, 이영희 (총 3명)
+ *
+ *   알림톡 발송 성공: 2건 (홍길동, 김철수)
+ *
+ *   발송 제외(이미 납부 등): 1건 (이영희)
  */
 function buildBriefingMessage({
   todayStr,
@@ -85,20 +88,26 @@ function buildBriefingMessage({
     ].join("\n");
   }
 
+  const allNames = [...successNames, ...failNames, ...skippedNames];
+  const totalCount = allNames.length;
+
   const lines: string[] = [
-    "✅ [오늘의 알림톡 발송 브리핑]",
+    "✅ [알림톡 발송 브리핑]",
     `📅 ${todayStr} (${dayLabel})`,
-    `- 발송 성공: ${successNames.length}건`,
+    "",
+    `오늘 전체 결제 대상: ${allNames.join(", ")} (총 ${totalCount}명)`,
+    "",
+    `알림톡 발송 성공: ${successNames.length}건${successNames.length > 0 ? ` (${successNames.join(", ")})` : ""}`,
   ];
 
-  if (successNames.length > 0) {
-    lines.push(`- 오늘 대상자: ${successNames.join(", ")}`);
-  }
   if (skippedNames.length > 0) {
-    lines.push(`- 스킵된 대상(이미 납부 등): ${skippedNames.join(", ")}`);
+    lines.push("");
+    lines.push(`발송 제외(이미 납부 등): ${skippedNames.length}건 (${skippedNames.join(", ")})`);
   }
+
   if (failNames.length > 0) {
-    lines.push(`⚠️ 발송 실패(${failNames.length}건): ${failNames.join(", ")}`);
+    lines.push("");
+    lines.push(`⚠️ 발송 실패: ${failNames.length}건 (${failNames.join(", ")})`);
   }
 
   return lines.join("\n");
