@@ -24,7 +24,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: "5.10.0",
     date: "2026-04-17",
     changes: [
-      "[메인] 히어로 CTA 버튼 텍스트 변경 — '편하게 상담받기' → '무료 체험 예약하기'",
+      "[메인] 히어로 CTA 버튼 텍스트 변경 — '편하게 상담받기' → '무료 체험 신청하기'",
       "[메인] CTA 버튼 링크를 네이버 예약 페이지(새 창)로 변경",
       "[마케팅] CTA 버튼 클릭 시 Google Ads 전환 추적 및 커스텀 이벤트(click_free_trial_booking) 발송",
     ],

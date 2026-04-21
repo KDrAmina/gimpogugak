@@ -23,11 +23,11 @@ export function HeroCTA() {
         onClick={handleBookingClick}
         className="bg-[#8a6f3e] hover:bg-[#7a5f2e] text-white px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
       >
-        무료 체험 예약하기
+        무료 체험 신청하기
       </a>
       <Link
         href="/classes"
-        className="border border-[#8a6f3e] text-[#8a6f3e] hover:bg-[#fdf8f0] px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
+        className="border border-[#03C75A] text-[#8a6f3e] hover:bg-[#fdf8f0] px-6 py-3 rounded-lg font-medium transition-colors text-sm sm:text-base"
       >
         프로그램 안내 보기
       </Link>
