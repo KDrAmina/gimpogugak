@@ -14,7 +14,12 @@ type StudentProfile = {
   phone: string | null;
   created_at: string;
   is_test?: boolean;
+  inflow_route: string | null;
 };
+
+const INFLOW_ROUTE_OPTIONS = [
+  '네이버', '지인소개', '배너광고', '체험전환', '당근', '농협', '인스타', '블로그', '요양보호센터',
+] as const;
 
 type LessonHistoryDate = {
   completed_date: string;
@@ -65,6 +70,11 @@ export default function StudentDetailPage() {
   const [endMonthInput, setEndMonthInput] = useState('');
   const [endMonthIsToggle, setEndMonthIsToggle] = useState(false);
   const [endMonthSaving, setEndMonthSaving] = useState(false);
+
+  // 유입 경로 수정
+  const [editingInflowRoute, setEditingInflowRoute] = useState(false);
+  const [inflowRouteInput, setInflowRouteInput] = useState('');
+  const [inflowRouteSaving, setInflowRouteSaving] = useState(false);
 
   // 타임머신 모달
   const [showTimeMachine, setShowTimeMachine] = useState(false);
@@ -118,7 +128,7 @@ export default function StudentDetailPage() {
 
   async function loadStudentData() {
     const [profileRes, lessonsRes] = await Promise.all([
-      supabase.from("profiles").select("id, name, email, phone, created_at, is_test").eq("id", userId).single(),
+      supabase.from("profiles").select("id, name, email, phone, created_at, is_test, inflow_route").eq("id", userId).single(),
       supabase.from("lessons").select("id, category, current_session, tuition_amount, payment_date, is_active, end_month, created_at, lesson_history(completed_date)").eq("user_id", userId).order("created_at", { ascending: false }),
     ]);
 
@@ -188,6 +198,25 @@ export default function StudentDetailPage() {
   function cancelMemo() {
     setMemoText(memo);
     setEditingMemo(false);
+  }
+
+  async function handleSaveInflowRoute() {
+    setInflowRouteSaving(true);
+    try {
+      const value = inflowRouteInput.trim() || null;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ inflow_route: value })
+        .eq("id", userId);
+      if (error) throw error;
+      setProfile(prev => prev ? { ...prev, inflow_route: value } : prev);
+      setEditingInflowRoute(false);
+    } catch (err) {
+      console.error("Inflow route save error:", err);
+      alert("저장 중 오류가 발생했습니다.");
+    } finally {
+      setInflowRouteSaving(false);
+    }
   }
 
   // 마지막 결제월 + 1개월 = 기본 종료월 계산
@@ -483,6 +512,55 @@ export default function StudentDetailPage() {
             <div className="flex gap-2">
               <dt className="text-gray-400 w-16 shrink-0">이메일</dt>
               <dd className="font-medium text-gray-900 truncate">{profile?.email ?? "—"}</dd>
+            </div>
+            <div className="flex gap-2 items-start">
+              <dt className="text-gray-400 w-16 shrink-0 pt-0.5">유입 경로</dt>
+              <dd className="flex-1 min-w-0">
+                {editingInflowRoute ? (
+                  <div className="flex flex-col gap-2">
+                    <select
+                      value={inflowRouteInput}
+                      onChange={(e) => setInflowRouteInput(e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">미설정</option>
+                      {INFLOW_ROUTE_OPTIONS.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveInflowRoute}
+                        disabled={inflowRouteSaving}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 font-medium disabled:opacity-50"
+                      >
+                        {inflowRouteSaving ? "저장 중..." : "저장"}
+                      </button>
+                      <button
+                        onClick={() => setEditingInflowRoute(false)}
+                        className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 font-medium"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      {profile?.inflow_route || <span className="text-gray-400">-</span>}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setInflowRouteInput(profile?.inflow_route ?? '');
+                        setEditingInflowRoute(true);
+                      }}
+                      className="text-xs text-blue-600 hover:underline shrink-0"
+                    >
+                      수정
+                    </button>
+                  </div>
+                )}
+              </dd>
             </div>
           </dl>
         </div>
