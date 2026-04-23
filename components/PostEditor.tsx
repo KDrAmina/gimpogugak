@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeHtml } from "@/lib/html-utils";
 import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
@@ -83,9 +83,9 @@ export type PostForEdit = {
   published_at: string | null;
 };
 
-type Props = { editingPost?: PostForEdit | null; returnPage?: number };
+type Props = { editingPost?: PostForEdit | null };
 
-export default function PostEditor({ editingPost = null, returnPage = 1 }: Props) {
+export default function PostEditor({ editingPost = null }: Props) {
   const [title, setTitle] = useState(editingPost?.title ?? "");
   const [postCategory, setPostCategory] = useState<BlogCategory>(
     BLOG_CATEGORIES.includes(editingPost?.category as BlogCategory)
@@ -106,6 +106,8 @@ export default function PostEditor({ editingPost = null, returnPage = 1 }: Props
   );
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const returnPage = Number(searchParams.get("page") ?? "1") || 1;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);

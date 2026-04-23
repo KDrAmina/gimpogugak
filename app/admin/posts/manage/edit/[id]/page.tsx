@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PostEditor, { type PostForEdit } from "@/components/PostEditor";
 
 export default function AdminEditPostPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const returnPage = Number(searchParams.get("page") ?? "1") || 1;
   const supabase = createClient();
   const [post, setPost] = useState<PostForEdit | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +60,7 @@ export default function AdminEditPostPage() {
           게시글을 수정합니다.
         </p>
       </div>
-      <PostEditor editingPost={post} returnPage={returnPage} />
+      <PostEditor editingPost={post} />
     </div>
   );
 }
