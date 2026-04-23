@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 import { formatDateKST, formatDateTimeKST } from "@/lib/date-utils";
@@ -23,42 +23,43 @@ type Post = {
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 15, 30, 50, 100] as const;
 
-export default function AdminPostsManagePage() {
+// ─── 실제 콘텐츠 (useSearchParams 사용 → Suspense 필수) ──────────────────────
+function PostsManageInner() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   const router = useRouter();
   const supabase = createClient();
 
-  // Search & pagination state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-  const [currentPage, setCurrentPage] = useState(1);
+  // ✅ Single Source of Truth: currentPage는 URL의 ?page= 값에서만 읽음
+  const searchParams = useSearchParams();
+  const currentPage = Math.max(1, Number(searchParams.get("page")) || 1);
 
   useEffect(() => {
-    // 마운트 시 URL의 ?page= 를 읽어 초기 페이지 설정
-    const p = Number(new URLSearchParams(window.location.search).get("page"));
-    if (p >= 1) setCurrentPage(p);
     checkAdminAccess();
   }, []);
 
-  // Reset to page 1 whenever search term or page size changes
+  // 검색어·페이지당 개수 변경 시 1페이지로 이동 (최초 마운트는 건너뜀)
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    goToPage(1);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    router.push("/admin/posts/manage?page=1", { scroll: false });
   }, [searchTerm, itemsPerPage]);
 
+  // ✅ 페이지 이동 = URL 업데이트 → useSearchParams가 반응 → currentPage 자동 갱신
   function goToPage(page: number) {
-    setCurrentPage(page);
-    router.replace(`/admin/posts/manage?page=${page}`, { scroll: false });
+    router.push(`/admin/posts/manage?page=${page}`, { scroll: false });
   }
 
   async function checkAdminAccess() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/admin/login");
-        return;
-      }
+      if (!user) { router.push("/admin/login"); return; }
       const { data: profile } = await supabase
         .from("profiles")
         .select("role, status")
@@ -85,7 +86,6 @@ export default function AdminPostsManagePage() {
         .in("category", ["소식", "음악교실", "국악원소식"])
         .order("is_notice", { ascending: false })
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       setPosts(data ?? []);
     } catch (error) {
@@ -95,32 +95,19 @@ export default function AdminPostsManagePage() {
   }
 
   async function handleDelete(post: Post) {
-    if (!confirm(`"${post.title}" 게시글을 삭제하시겠습니까?\n\n⚠️ 삭제된 데이터는 복구할 수 없습니다.`)) {
-      return;
-    }
+    if (!confirm(`"${post.title}" 게시글을 삭제하시겠습니까?\n\n⚠️ 삭제된 데이터는 복구할 수 없습니다.`)) return;
     try {
       const { data: fullPost } = await supabase
         .from("posts")
         .select("content, thumbnail_url")
         .eq("id", post.id)
         .single();
-
-      if (fullPost) {
-        await deletePostStorageFiles(supabase, fullPost.thumbnail_url, fullPost.content);
-      }
-
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", post.id);
-
+      if (fullPost) await deletePostStorageFiles(supabase, fullPost.thumbnail_url, fullPost.content);
+      const { error } = await supabase.from("posts").delete().eq("id", post.id);
       if (error) throw error;
-
-      // On-Demand Revalidation: 삭제 즉시 ISR 캐시 갱신
       const deletedPath = getBlogPostPath(post.slug ?? null, post.id);
       await revalidateBlogList();
       await revalidateBlogPost(deletedPath);
-
       await loadPosts();
       alert("✅ 게시글이 삭제되었습니다.");
     } catch (error) {
@@ -132,15 +119,9 @@ export default function AdminPostsManagePage() {
   async function toggleNotice(post: Post) {
     const newValue = !post.is_notice;
     try {
-      const { error } = await supabase
-        .from("posts")
-        .update({ is_notice: newValue })
-        .eq("id", post.id);
+      const { error } = await supabase.from("posts").update({ is_notice: newValue }).eq("id", post.id);
       if (error) throw error;
-      setPosts((prev) =>
-        prev.map((p) => (p.id === post.id ? { ...p, is_notice: newValue } : p))
-      );
-      // On-Demand Revalidation: 공지 설정 변경 시 블로그 목록 갱신
+      setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, is_notice: newValue } : p)));
       await revalidateBlogList();
     } catch (error) {
       console.error("Toggle notice error:", error);
@@ -148,33 +129,24 @@ export default function AdminPostsManagePage() {
     }
   }
 
-  // Derived: filtered posts by search term (title or content)
   const filteredPosts = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     if (!term) return posts;
     return posts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(term) ||
-        p.content.toLowerCase().includes(term)
+      (p) => p.title.toLowerCase().includes(term) || p.content.toLowerCase().includes(term)
     );
   }, [posts, searchTerm]);
 
-  // Derived: pagination
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedPosts = filteredPosts.slice(
-    (safePage - 1) * itemsPerPage,
-    safePage * itemsPerPage
-  );
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedPosts = filteredPosts.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
-  // Build visible page numbers (max 5 around current, always include 1 and last)
   function getPageNumbers(total: number, current: number): (number | "…")[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
     const pages: (number | "…")[] = [];
     const delta = 2;
     const left = Math.max(2, current - delta);
     const right = Math.min(total - 1, current + delta);
-
     pages.push(1);
     if (left > 2) pages.push("…");
     for (let i = left; i <= right; i++) pages.push(i);
@@ -198,9 +170,7 @@ export default function AdminPostsManagePage() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">소식 관리</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            국악원 소식(블로그) 게시글을 관리합니다.
-          </p>
+          <p className="text-sm text-gray-600 mt-1">국악원 소식(블로그) 게시글을 관리합니다.</p>
         </div>
         <Link
           href="/admin/posts/manage/new"
@@ -210,7 +180,7 @@ export default function AdminPostsManagePage() {
         </Link>
       </div>
 
-      {/* Search & items-per-page controls */}
+      {/* 검색 & 페이지당 개수 */}
       <div className="mb-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <input
           type="text"
@@ -220,9 +190,7 @@ export default function AdminPostsManagePage() {
           className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <div className="flex items-center gap-2 shrink-0">
-          <label htmlFor="itemsPerPage" className="text-sm text-gray-600 whitespace-nowrap">
-            페이지당
-          </label>
+          <label htmlFor="itemsPerPage" className="text-sm text-gray-600 whitespace-nowrap">페이지당</label>
           <select
             id="itemsPerPage"
             value={itemsPerPage}
@@ -241,10 +209,7 @@ export default function AdminPostsManagePage() {
           {posts.length === 0 ? (
             <>
               <p className="text-gray-500 mb-2">등록된 소식이 없습니다.</p>
-              <Link
-                href="/admin/posts/manage/new"
-                className="text-blue-600 hover:underline text-sm font-medium"
-              >
+              <Link href="/admin/posts/manage/new" className="text-blue-600 hover:underline text-sm font-medium">
                 새 글 작성하기
               </Link>
             </>
@@ -265,7 +230,7 @@ export default function AdminPostsManagePage() {
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">카테고리</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">작성일</th>
                     <th className="text-right px-4 py-3 font-semibold text-gray-700">조회수</th>
-                    <th className="text-right px-4 py-3 font-semibold text-gray-700">삭제</th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-700">관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,9 +255,7 @@ export default function AdminPostsManagePage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {post.is_notice && (
-                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded leading-none">
-                                공지
-                              </span>
+                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded leading-none">공지</span>
                             )}
                             <Link
                               href={`/blog/${getBlogPostPath(post.slug ?? null, post.id)}`}
@@ -311,9 +274,7 @@ export default function AdminPostsManagePage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            post.category === "음악교실"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-green-100 text-green-700"
+                            post.category === "음악교실" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
                           }`}>
                             {post.category === "음악교실" ? "음악교실" : "국악원소식"}
                           </span>
@@ -344,7 +305,7 @@ export default function AdminPostsManagePage() {
             </div>
           </div>
 
-          {/* Pagination */}
+          {/* 페이지네이션 */}
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between text-sm">
               <p className="text-gray-500">
@@ -361,9 +322,7 @@ export default function AdminPostsManagePage() {
                 </button>
                 {pageNumbers.map((page, idx) =>
                   page === "…" ? (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none">
-                      …
-                    </span>
+                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none">…</span>
                   ) : (
                     <button
                       key={page}
@@ -391,5 +350,18 @@ export default function AdminPostsManagePage() {
         </>
       )}
     </div>
+  );
+}
+
+// ─── 기본 export: Suspense로 감싸야 useSearchParams가 안정적으로 동작 ─────────
+export default function AdminPostsManagePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">로딩 중...</p>
+      </div>
+    }>
+      <PostsManageInner />
+    </Suspense>
   );
 }

@@ -13,6 +13,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.14.0",
+    date: "2026-04-23",
+    changes: [
+      "[UI] 소식 관리 목록 페이지네이션 구조 전면 개편 — useState 제거, useSearchParams + Suspense를 Single Source of Truth로 사용",
+      "[UI] 페이지 번호 클릭 시 URL(router.push ?page=N) 업데이트 → 수정 후 복귀 시 URL 기반으로 정확한 페이지 복원",
+      "[UI] 수정 완료 후 항상 1페이지로 튕기던 버그 완전 해결",
+    ],
+  },
+  {
     version: "5.13.0",
     date: "2026-04-23",
     changes: [
