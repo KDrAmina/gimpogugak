@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 import { formatDateKST, formatDateTimeKST } from "@/lib/date-utils";
@@ -28,18 +28,17 @@ export default function AdminPostsManagePage() {
   const [loading, setLoading] = useState(true);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Search & pagination state — URL의 ?page= 로 초기화
-  const [searchTerm, setSearchTerm] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-  const [currentPage, setCurrentPage] = useState(() => {
-    const p = Number(searchParams.get("page") ?? "1");
-    return p >= 1 ? p : 1;
-  });
   const supabase = createClient();
 
+  // Search & pagination state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
+    // 마운트 시 URL의 ?page= 를 읽어 초기 페이지 설정
+    const p = Number(new URLSearchParams(window.location.search).get("page"));
+    if (p >= 1) setCurrentPage(p);
     checkAdminAccess();
   }, []);
 
