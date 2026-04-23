@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { deletePostStorageFiles } from "@/lib/storage-cleanup";
 import { formatDateKST, formatDateTimeKST } from "@/lib/date-utils";
@@ -27,12 +27,16 @@ export default function AdminPostsManagePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search & pagination state
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Search & pagination state — URL의 ?page= 로 초기화
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(() => {
+    const p = Number(searchParams.get("page") ?? "1");
+    return p >= 1 ? p : 1;
+  });
   const supabase = createClient();
 
   useEffect(() => {
@@ -41,8 +45,13 @@ export default function AdminPostsManagePage() {
 
   // Reset to page 1 whenever search term or page size changes
   useEffect(() => {
-    setCurrentPage(1);
+    goToPage(1);
   }, [searchTerm, itemsPerPage]);
+
+  function goToPage(page: number) {
+    setCurrentPage(page);
+    router.replace(`/admin/posts/manage?page=${page}`, { scroll: false });
+  }
 
   async function checkAdminAccess() {
     try {
@@ -345,7 +354,7 @@ export default function AdminPostsManagePage() {
               </p>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  onClick={() => goToPage(Math.max(1, safePage - 1))}
                   disabled={safePage === 1}
                   className="px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
@@ -359,7 +368,7 @@ export default function AdminPostsManagePage() {
                   ) : (
                     <button
                       key={page}
-                      onClick={() => setCurrentPage(page)}
+                      onClick={() => goToPage(page as number)}
                       className={`px-3 py-1.5 rounded border transition-colors ${
                         page === safePage
                           ? "bg-blue-600 border-blue-600 text-white font-semibold"
@@ -371,7 +380,7 @@ export default function AdminPostsManagePage() {
                   )
                 )}
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => goToPage(Math.min(totalPages, safePage + 1))}
                   disabled={safePage === totalPages}
                   className="px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >

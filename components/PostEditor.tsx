@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeHtml } from "@/lib/html-utils";
 import { uploadBlogImage, normalizeImage } from "@/lib/upload-image";
@@ -106,8 +106,6 @@ export default function PostEditor({ editingPost = null }: Props) {
   );
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-  const returnPage = Number(searchParams.get("page") ?? "1") || 1;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
@@ -215,6 +213,8 @@ export default function PostEditor({ editingPost = null }: Props) {
       }
 
       if (editingPost) {
+        const pageParam = new URLSearchParams(window.location.search).get("page");
+        const returnPage = Number(pageParam) || 1;
         setToast("수정이 완료되었습니다. 목록으로 돌아갑니다.");
         setTimeout(() => {
           router.replace(`/admin/posts/manage?page=${returnPage}`);
