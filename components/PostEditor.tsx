@@ -83,9 +83,9 @@ export type PostForEdit = {
   published_at: string | null;
 };
 
-type Props = { editingPost?: PostForEdit | null };
+type Props = { editingPost?: PostForEdit | null; returnPage?: number };
 
-export default function PostEditor({ editingPost = null }: Props) {
+export default function PostEditor({ editingPost = null, returnPage = 1 }: Props) {
   const [title, setTitle] = useState(editingPost?.title ?? "");
   const [postCategory, setPostCategory] = useState<BlogCategory>(
     BLOG_CATEGORIES.includes(editingPost?.category as BlogCategory)
@@ -105,6 +105,7 @@ export default function PostEditor({ editingPost = null }: Props) {
     toDatetimeLocalKST(editingPost?.published_at ?? new Date().toISOString())
   );
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
@@ -196,7 +197,6 @@ export default function PostEditor({ editingPost = null }: Props) {
         const { error } = await supabase.from("posts").update(payload).eq("id", editingPost.id);
         if (error) throw new Error(error.message);
         postPath = getBlogPostPath(payload.slug, editingPost.id);
-        alert("✅ 게시글이 수정되었습니다.");
       } else {
         const { data, error } = await supabase.from("posts").insert(payload).select("id").single();
         if (error) throw new Error(error.message);
@@ -211,7 +211,15 @@ export default function PostEditor({ editingPost = null }: Props) {
       if (publishedAtValue && new Date(publishedAtValue) <= new Date()) {
         fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
       }
-      router.replace(`/blog/${postPath}`);
+
+      if (editingPost) {
+        setToast("수정이 완료되었습니다. 목록으로 돌아갑니다.");
+        setTimeout(() => {
+          router.replace(`/admin/posts/manage?page=${returnPage}`);
+        }, 1500);
+      } else {
+        router.replace(`/blog/${postPath}`);
+      }
     } catch (err: unknown) {
       alert(`저장 오류: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -221,6 +229,13 @@ export default function PostEditor({ editingPost = null }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
+      {/* 저장 완료 토스트 */}
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-green-600 text-white text-sm font-medium rounded-xl shadow-lg animate-fade-in">
+          ✅ {toast}
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">

@@ -315,7 +315,7 @@ export default function AdminPostsManagePage() {
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
                             <Link
-                              href={`/admin/posts/manage/edit/${post.id}`}
+                              href={`/admin/posts/manage/edit/${post.id}?page=${safePage}`}
                               className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-xs font-medium"
                             >
                               수정
