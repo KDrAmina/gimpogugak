@@ -44,15 +44,34 @@ export async function POST(req: NextRequest) {
   const { error, status, supabase } = await verifyAdmin();
   if (error || !supabase) return NextResponse.json({ error }, { status });
 
-  const { key, value } = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "잘못된 요청 형식입니다." }, { status: 400 });
+  }
+
+  const { key, value } = body as { key?: unknown; value?: unknown };
   if (!key || typeof key !== "string") {
-    return NextResponse.json({ error: "key 필수" }, { status: 400 });
+    return NextResponse.json({ error: "저장할 항목의 key가 누락되었습니다." }, { status: 400 });
   }
 
   const { error: dbErr } = await supabase
     .from("settings")
-    .upsert({ key, value: value ?? "", updated_at: new Date().toISOString() });
+    .upsert(
+      { key, value: typeof value === "string" ? value : "", updated_at: new Date().toISOString() },
+      { onConflict: "key" }   // PRIMARY KEY 충돌 시 UPDATE로 처리
+    );
 
-  if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+  if (dbErr) {
+    console.error("[SETTINGS] upsert 실패:", { code: dbErr.code, message: dbErr.message });
+    const friendlyMsg =
+      dbErr.code === "42P01" ? "settings 테이블이 존재하지 않습니다. 마이그레이션을 먼저 실행해 주세요." :
+      dbErr.code === "23505" ? "이미 존재하는 설정입니다. 잠시 후 다시 시도해 주세요." :
+      dbErr.code === "42501" ? "권한이 없습니다. 관리자 계정으로 로그인되어 있는지 확인해 주세요." :
+      `저장 중 오류가 발생했습니다. (${dbErr.code ?? "알 수 없는 오류"})`;
+    return NextResponse.json({ error: friendlyMsg }, { status: 500 });
+  }
+
   return NextResponse.json({ success: true });
 }
