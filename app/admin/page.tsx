@@ -434,6 +434,57 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
+      {/* Management Shortcuts */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 회원 관리 */}
+        <button
+          type="button"
+          onClick={() => router.push("/admin/students")}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all text-left cursor-pointer w-full group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-600">회원 관리</h3>
+            <div className="text-3xl">👥</div>
+          </div>
+          <p className="text-base font-semibold text-gray-900">수강생 전체 리스트</p>
+          <p className="mt-2 text-xs text-blue-600 font-medium group-hover:underline">
+            클릭하여 회원 관리 →
+          </p>
+        </button>
+
+        {/* 미납 관리 */}
+        <button
+          type="button"
+          onClick={() => router.push("/admin/billing/unpaid")}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-red-300 transition-all text-left cursor-pointer w-full group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-600">미납 관리</h3>
+            <div className="text-3xl">💸</div>
+          </div>
+          <p className="text-base font-semibold text-gray-900">당월 미납자 확인</p>
+          <p className="mt-2 text-xs text-red-600 font-medium group-hover:underline">
+            클릭하여 독촉 알림톡 발송 →
+          </p>
+        </button>
+
+        {/* 설정 */}
+        <button
+          type="button"
+          onClick={() => router.push("/admin/settings")}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-slate-400 transition-all text-left cursor-pointer w-full group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-600">설정</h3>
+            <div className="text-3xl">⚙️</div>
+          </div>
+          <p className="text-base font-semibold text-gray-900">학원 기본 정보</p>
+          <p className="mt-2 text-xs text-slate-600 font-medium group-hover:underline">
+            계좌번호 등 기본 설정 →
+          </p>
+        </button>
+      </div>
+
       {/* Tuition Payment Due */}
       {tuitionDueList.length > 0 && (
         <div className="mt-6 bg-amber-50 rounded-xl shadow-sm border border-amber-200 p-6">
