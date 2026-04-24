@@ -86,7 +86,9 @@ export async function middleware(request: NextRequest) {
     // Not logged in
     // Redirect to login if trying to access protected routes
     if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      const loginUrl = new URL("/admin/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     if (pathname === "/waiting") {

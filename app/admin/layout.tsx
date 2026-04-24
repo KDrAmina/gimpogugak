@@ -24,8 +24,12 @@ export default function AdminLayout({
   const supabase = createClient();
 
   useEffect(() => {
-    checkAdminAccess();
-  }, []);
+    if (pathname !== "/admin/login") {
+      checkAdminAccess();
+    } else {
+      setLoading(false);
+    }
+  }, [pathname]);
 
   async function checkAdminAccess() {
     try {
@@ -63,6 +67,11 @@ export default function AdminLayout({
     router.push("/");
   }
 
+  // Login page bypasses auth check entirely
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -73,11 +82,6 @@ export default function AdminLayout({
 
   if (!isAdmin) {
     return null;
-  }
-
-  // Skip header for login page
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
   }
 
   return (
