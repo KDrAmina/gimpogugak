@@ -29,7 +29,8 @@
       "Bash(npm ls:*)",
       "Bash(npx supabase:*)",
       "Bash(cron\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(xargs ls *)"
     ]
   }
 }
