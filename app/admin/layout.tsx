@@ -13,6 +13,8 @@ const ADMIN_NAV = [
   { href: "/admin/income", label: "외부수입" },
   { href: "/admin/posts/manage", label: "소식관리" },
   { href: "/admin/images", label: "이미지" },
+  { href: "/admin/billing/unpaid", label: "미납관리" },
+  { href: "/admin/settings", label: "설정" },
 ];
 
 export default function AdminLayout({

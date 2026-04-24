@@ -10,11 +10,16 @@ import { createClient } from "@supabase/supabase-js";
  * 토~일 : 즉시 종료 (금요일에 이미 발송 완료)
  * ────────────────────────────────────────────────────────────────
  *
+ * ── 말일 특별 처리 ───────────────────────────────────────────────
+ * 매월 말일 : 이번 달 미납자 요약을 텔레그램으로 발송 (미납자 관리 페이지 인라인 버튼 포함)
+ * ────────────────────────────────────────────────────────────────
+ *
  * ── 모니터링 안전장치 ───────────────────────────────────────────────
  * 1. TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID 설정 시:
  *    - 정상 완료 → ✅ 일일 브리핑 (발송 성공 명단, 스킵 명단)
  *    - 오늘 대상 없음 → ℹ️ 안내 메시지
  *    - 에러 발생 → 🚨 즉각 알림
+ *    - 말일 → 💸 미납자 요약 브리핑 (인라인 버튼)
  * 2. 실행 완료·중단 시 Supabase cron_logs 테이블에 결과를 영구 기록합니다.
  *    (Vercel 함수 로그 30분 만료 대응)
  * ────────────────────────────────────────────────────────────────
@@ -23,6 +28,10 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+// Solapi 기본 설정 (환경변수 우선, 없으면 하드코딩 값 사용)
+const DEFAULT_PF_ID           = "KA01PF260331040320508LV0zMRKw5rq";
+const DEFAULT_TEMPLATE_REGULAR = "KA01TP260401151429848dunorzB8OgO";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 텔레그램 헬퍼
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,19 +39,26 @@ export const maxDuration = 60;
 /**
  * Telegram Bot API로 메시지를 전송합니다.
  * 토큰이나 채팅 ID 가 미설정이면 조용히 무시합니다.
- * 전송 실패는 console.error 로만 기록하며 크론 흐름을 중단하지 않습니다.
+ * inlineButton 지정 시 인라인 키보드 버튼을 함께 전송합니다.
  */
 async function sendTelegram(
   token: string | undefined,
   chatId: string | undefined,
-  text: string
+  text: string,
+  inlineButton?: { label: string; url: string }
 ): Promise<void> {
   if (!token || !chatId) return;
   try {
+    const payload: Record<string, unknown> = { chat_id: chatId, text };
+    if (inlineButton) {
+      payload.reply_markup = {
+        inline_keyboard: [[{ text: inlineButton.label, url: inlineButton.url }]],
+      };
+    }
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "(body 없음)");
@@ -188,6 +204,106 @@ async function saveCronLog(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 말일 미납자 텔레그램 브리핑
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 매월 말일 실행 — 이번 달 결제 완료 기록이 없는 수강생 목록을 텔레그램으로 발송.
+ * 메시지 하단에 미납자 관리 페이지 인라인 버튼을 첨부합니다.
+ */
+async function sendUnpaidBriefing(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: ReturnType<typeof createClient<any>>,
+  tgToken: string | undefined,
+  tgChatId: string | undefined,
+  year: number,
+  month: number,
+  todayStr: string,
+  appUrl: string,
+): Promise<void> {
+  if (!tgToken || !tgChatId) return;
+
+  try {
+    const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+
+    // 활성 수강생 전체 조회
+    const { data: lessons, error: lessonsErr } = await supabase
+      .from("lessons")
+      .select("id, user_id, tuition_amount, profiles!inner(name, phone, status)")
+      .eq("is_active", true);
+
+    if (lessonsErr || !lessons) {
+      console.error("[CRON UNPAID] lessons 조회 실패:", lessonsErr?.message);
+      return;
+    }
+
+    const allIds = lessons.map((l: { id: string }) => l.id);
+
+    // 이번 달 납부 완료 lesson_id
+    const paidIds = new Set<string>();
+    if (allIds.length > 0) {
+      const { data: paid } = await supabase
+        .from("lesson_history").select("lesson_id")
+        .in("lesson_id", allIds).eq("status", "결제 완료").gte("completed_date", monthStart);
+      (paid ?? []).forEach((r: { lesson_id: string }) => paidIds.add(r.lesson_id));
+    }
+
+    // user별 미납 집계
+    const userMap = new Map<string, { name: string; tuition: number; anyPaid: boolean }>();
+    for (const l of lessons) {
+      const p = l.profiles as unknown as { name: string; status: string };
+      if (p?.status !== "active") continue;
+      const uid = l.user_id;
+      if (!userMap.has(uid)) {
+        userMap.set(uid, { name: p.name, tuition: 0, anyPaid: false });
+      }
+      const entry = userMap.get(uid)!;
+      entry.tuition += l.tuition_amount ?? 0;
+      if (paidIds.has(l.id)) entry.anyPaid = true;
+    }
+
+    const unpaid = Array.from(userMap.values())
+      .filter(u => !u.anyPaid && u.tuition > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+    const monthLabel = `${year}년 ${month}월`;
+
+    let text: string;
+    if (unpaid.length === 0) {
+      text = [
+        "💸 [말일 미납자 브리핑]",
+        `📅 ${todayStr} (${monthLabel} 마지막 날)`,
+        "",
+        "✅ 이번 달 미납자 없음 — 전원 납부 완료!",
+      ].join("\n");
+    } else {
+      const totalUnpaid = unpaid.reduce((s, u) => s + u.tuition, 0);
+      const nameList = unpaid
+        .map(u => `  • ${u.name.replace(/[0-9]/g, "").trim()} (${u.tuition.toLocaleString("ko-KR")}원)`)
+        .join("\n");
+      text = [
+        "💸 [말일 미납자 브리핑]",
+        `📅 ${todayStr} (${monthLabel} 마지막 날)`,
+        "",
+        `미납 인원: ${unpaid.length}명 / 미납 합계: ${totalUnpaid.toLocaleString("ko-KR")}원`,
+        "",
+        nameList,
+      ].join("\n");
+    }
+
+    const unpaidPageUrl = `${appUrl}/admin/billing/unpaid`;
+    await sendTelegram(tgToken, tgChatId, text, {
+      label: "📋 미납자 관리 페이지 열기",
+      url: unpaidPageUrl,
+    });
+
+    console.log(`[CRON UNPAID] 말일 브리핑 발송 완료 — 미납 ${unpaid.length}명`);
+  } catch (e) {
+    console.error("[CRON UNPAID] 말일 브리핑 예외:", String(e));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Vercel Cron 인증
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -243,11 +359,13 @@ export async function GET(req: Request) {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
   const apiKey             = process.env.SOLAPI_API_KEY as string;
   const apiSecret          = process.env.SOLAPI_API_SECRET as string;
-  const pfId               = process.env.SOLAPI_PF_ID as string;
-  const templateId         = process.env.SOLAPI_TEMPLATE_ID as string;
+  const pfId               = process.env.SOLAPI_PF_ID ?? DEFAULT_PF_ID;
+  const templateId         = process.env.SOLAPI_TEMPLATE_ID ?? DEFAULT_TEMPLATE_REGULAR;
   const senderPhone        = process.env.SOLAPI_SENDER_PHONE as string;
   const tgToken            = process.env.TELEGRAM_BOT_TOKEN;   // 미설정 시 알림 비활성
   const tgChatId           = process.env.TELEGRAM_CHAT_ID;     // 미설정 시 알림 비활성
+  const appUrl             = process.env.NEXT_PUBLIC_APP_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
   console.log("크론 알림톡 환경변수 로드 상태:", {
     apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId,
@@ -268,8 +386,6 @@ export async function GET(req: Request) {
   const missingSolapi: string[] = [];
   if (!apiKey)      missingSolapi.push("SOLAPI_API_KEY");
   if (!apiSecret)   missingSolapi.push("SOLAPI_API_SECRET");
-  if (!pfId)        missingSolapi.push("SOLAPI_PF_ID");
-  if (!templateId)  missingSolapi.push("SOLAPI_TEMPLATE_ID");
   if (!senderPhone) missingSolapi.push("SOLAPI_SENDER_PHONE");
 
   if (missingSolapi.length > 0) {
@@ -279,7 +395,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
+  // 계좌번호 조회 (settings 테이블)
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  let bankAccount = "";
+  try {
+    const { data: setting } = await supabase
+      .from("settings").select("value").eq("key", "bank_account").single();
+    bankAccount = setting?.value ?? "";
+  } catch {
+    // settings 테이블 미존재 시 무시
+  }
 
   // ── 3. KST 기준 오늘 날짜·요일 계산 ──────────────────────────────
   /**
@@ -298,7 +423,11 @@ export async function GET(req: Request) {
   const DAY_LABELS = ["일요일","월요일","화요일","수요일","목요일","금요일","토요일"];
   const dayLabel   = DAY_LABELS[dayOfWeek];
 
-  console.log(`[CRON START] KST: ${todayStr} (${dayLabel}) | UTC: ${now.toISOString()}`);
+  // 말일 여부 (이번 달의 마지막 날인지 확인)
+  const lastDayOfMonth     = new Date(todayYear, todayMonth, 0).getDate();
+  const isLastDayOfMonth   = todayDay === lastDayOfMonth;
+
+  console.log(`[CRON START] KST: ${todayStr} (${dayLabel}) | UTC: ${now.toISOString()} | 말일=${isLastDayOfMonth}`);
 
   // ── 날짜 헬퍼 함수 ────────────────────────────────────────────────
 
@@ -607,9 +736,10 @@ export async function GET(req: Request) {
           kakaoOptions: {
             pfId, templateId,
             variables: {
-              "#{이름}": target.baseName,
-              "#{수강료}": target.totalTuition.toLocaleString("ko-KR"),
-              "#{결제일}": target.actualPaymentDateStr,
+              "#{이름}":    target.baseName,
+              "#{수강료}":  target.totalTuition.toLocaleString("ko-KR"),
+              "#{결제일}":  target.actualPaymentDateStr,
+              "#{계좌번호}": bankAccount,
             },
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -664,6 +794,11 @@ export async function GET(req: Request) {
     const errorSummary = failNames.length > 0
       ? `발송 실패(${failNames.length}건): ${failNames.join(", ")}`
       : null;
+
+    // ── 16. 말일: 미납자 요약 텔레그램 브리핑 ─────────────────────────
+    if (isLastDayOfMonth) {
+      await sendUnpaidBriefing(supabase, tgToken, tgChatId, todayYear, todayMonth, todayStr, appUrl);
+    }
 
     await Promise.all([
       sendTelegram(tgToken, tgChatId, briefing),

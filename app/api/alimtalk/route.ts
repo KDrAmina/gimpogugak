@@ -32,20 +32,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
   }
 
+  // 당월 결제 안내 (일반) 기본값
+  const DEFAULT_PF_ID       = "KA01PF260331040320508LV0zMRKw5rq";
+  const DEFAULT_TEMPLATE_ID = "KA01TP260401151429848dunorzB8OgO";
+
   // 환경변수 런타임 로드 (함수 내부에서만 접근)
-  const apiKey = process.env.SOLAPI_API_KEY as string;
-  const apiSecret = process.env.SOLAPI_API_SECRET as string;
-  const pfId = process.env.SOLAPI_PF_ID as string;
-  const templateId = process.env.SOLAPI_TEMPLATE_ID as string;
+  const apiKey      = process.env.SOLAPI_API_KEY as string;
+  const apiSecret   = process.env.SOLAPI_API_SECRET as string;
+  const pfId        = process.env.SOLAPI_PF_ID ?? DEFAULT_PF_ID;
+  const templateId  = process.env.SOLAPI_TEMPLATE_ID ?? DEFAULT_TEMPLATE_ID;
   const senderPhone = process.env.SOLAPI_SENDER_PHONE as string;
+
+  // 계좌번호 조회
+  let bankAccount = "";
+  try {
+    const { data: setting } = await supabase
+      .from("settings").select("value").eq("key", "bank_account").single();
+    bankAccount = setting?.value ?? "";
+  } catch {
+    // settings 테이블 미존재 시 무시
+  }
 
   console.log("알림톡 환경변수 로드 상태:", { apiKey: !!apiKey, apiSecret: !!apiSecret, pfId: !!pfId, templateId: !!templateId, senderPhone: !!senderPhone });
 
   const missing: string[] = [];
-  if (!apiKey) missing.push("SOLAPI_API_KEY");
-  if (!apiSecret) missing.push("SOLAPI_API_SECRET");
-  if (!pfId) missing.push("SOLAPI_PF_ID");
-  if (!templateId) missing.push("SOLAPI_TEMPLATE_ID");
+  if (!apiKey)      missing.push("SOLAPI_API_KEY");
+  if (!apiSecret)   missing.push("SOLAPI_API_SECRET");
   if (!senderPhone) missing.push("SOLAPI_SENDER_PHONE");
 
   if (missing.length > 0) {
@@ -175,9 +187,10 @@ export async function POST(req: NextRequest) {
           pfId,
           templateId,
           variables: {
-            "#{이름}": target.name,
-            "#{수강료}": target.tuition.toLocaleString("ko-KR"),
-            "#{결제일}": paymentDateStr,
+            "#{이름}":    target.name,
+            "#{수강료}":  target.tuition.toLocaleString("ko-KR"),
+            "#{결제일}":  paymentDateStr,
+            "#{계좌번호}": bankAccount,
           },
         },
       };
