@@ -32,7 +32,7 @@ export default function BlogContactSection() {
         <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
           김포민요 · 민요 취미 · 전공반 · 어르신 프로그램 · 학생 체험
         </p>
-        <p className="text-xs sm:text-sm text-[#2d6a2d] font-semibold tracking-tight">
+        <p className="text-sm sm:text-base text-gray-700 font-semibold tracking-tight">
           무형문화재 제3호 &lsquo;놀량사거리&rsquo; 공식 전승 기관
         </p>
       </div>
