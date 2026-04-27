@@ -10,6 +10,9 @@ function sendGtag(eventName: string) {
   w?.gtag?.("event", eventName, { event_category: "contact" });
 }
 
+const FREE_TRIAL_URL =
+  "https://talk.naver.com/w41epc?frm=pblog&ref=https%3A%2F%2Fblog.naver.com%2Fgimpogugak%2F224252907293#nafullscreen";
+
 export default function BlogContactSection() {
   const addressQuery = "경기도 김포시 모담공원로 170-14";
   const encodedAddress = encodeURIComponent(addressQuery);
@@ -19,6 +22,41 @@ export default function BlogContactSection() {
 
   return (
     <div className="mt-16 pt-12 border-t border-gray-200">
+
+      {/* 브랜딩 텍스트 섹션 */}
+      <div className="mb-6 text-center space-y-1.5">
+        <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+          <span className="font-semibold text-gray-900">김포국악원</span>
+          {" "}|{" "}경기도 김포시{" "}|{" "}경기민요 · 서도민요 · 국악 레슨
+        </p>
+        <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+          김포민요 · 민요 취미 · 전공반 · 어르신 프로그램 · 학생 체험
+        </p>
+        <p className="text-xs sm:text-sm text-[#2d6a2d] font-semibold tracking-tight">
+          무형문화재 제3호 &lsquo;놀량사거리&rsquo; 공식 전승 기관
+        </p>
+      </div>
+
+      {/* 무료체험 신청 배너 버튼 */}
+      <div className="mb-8">
+        <a
+          href={FREE_TRIAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => sendGtag("click_free_trial")}
+          className="relative block w-full rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow active:scale-[0.99]"
+        >
+          <Image
+            src="/free-trial-banner.png"
+            alt="1회 무료체험 신청하기!"
+            width={800}
+            height={200}
+            className="w-full h-auto"
+            sizes="(max-width: 768px) 100vw, 896px"
+          />
+        </a>
+      </div>
+
       <div className="mb-4">
         <a
           href={naverMapLink}
