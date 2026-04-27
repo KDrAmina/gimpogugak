@@ -205,10 +205,17 @@ export default function PostEditor({ editingPost = null }: Props) {
       }
 
       // On-Demand Revalidation: DB 저장 즉시 ISR 캐시 갱신
-      await revalidateBlogList();
-      await revalidateBlogPost(postPath);
+      const isScheduled = publishedAtValue ? new Date(publishedAtValue) > new Date() : false;
 
-      if (publishedAtValue && new Date(publishedAtValue) <= new Date()) {
+      await revalidateBlogList();
+      // 예약 발행 신규 글은 재검증 생략 — 지금 revalidatePath를 호출하면
+      // published_at 조건 미충족으로 404가 렌더·캐시되어 예약 시간 이후에도 404가 남음.
+      // cron/blog-publish 가 발행 시점에 자동으로 재검증한다.
+      if (editingPost || !isScheduled) {
+        await revalidateBlogPost(postPath);
+      }
+
+      if (publishedAtValue && !isScheduled) {
         fetch(`/api/indexnow?path=${encodeURIComponent(postPath)}`).catch(() => {});
       }
 
@@ -219,6 +226,14 @@ export default function PostEditor({ editingPost = null }: Props) {
         setTimeout(() => {
           router.replace(`/admin/posts/manage?page=${returnPage}`);
         }, 1500);
+      } else if (isScheduled) {
+        // 예약글은 상세 URL로 이동하지 않음 — 이동하면 404가 캐시되어 발행 후에도 접근 불가
+        const scheduledLabel = new Date(publishedAtValue!).toLocaleString("ko-KR", {
+          year: "numeric", month: "long", day: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        });
+        alert(`✅ 예약 발행으로 등록되었습니다.\n발행 예정: ${scheduledLabel}\n\n발행 시간이 되면 자동으로 페이지가 생성됩니다.`);
+        router.replace("/admin/posts/manage");
       } else {
         router.replace(`/blog/${postPath}`);
       }

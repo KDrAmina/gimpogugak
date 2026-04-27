@@ -13,6 +13,17 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.17.0",
+    date: "2026-04-27",
+    changes: [
+      "[버그수정] 예약 발행 글 상세 페이지 404 오류 수정 — 저장 시 즉시 상세 URL 이동이 미래 날짜 글을 404로 캐시하던 문제 해결",
+      "[버그수정] PostEditor: 예약 발행 신규 글은 저장 후 상세 URL로 이동하지 않고 관리 목록으로 복귀 (404 캐시 원천 차단)",
+      "[버그수정] PostEditor: 예약 발행 신규 글 저장 시 revalidateBlogPost 호출 생략 — published_at 조건 미충족 시 404가 ISR 캐시에 저장되는 현상 방지",
+      "[기능] Cron API 추가(/api/cron/blog-publish): 10분마다 새로 published_at에 도달한 글을 감지해 ISR 캐시 자동 재검증",
+      "[설정] vercel.json에 blog-publish 크론 스케줄 등록 (*/10 * * * *)",
+    ],
+  },
+  {
     version: "5.16.1",
     date: "2026-04-24",
     changes: [
