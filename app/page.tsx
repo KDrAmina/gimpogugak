@@ -64,7 +64,7 @@ export default async function HomePage() {
         {/* ══════════════════════════════════════════════════════════
             [구역 1] 메인 텍스트
             모바일: 좌정렬, 위에서 아래로 자연스럽게 흐름
-            데스크탑: 정중앙 배치 (text-center, max-w-3xl, mx-auto)
+            데스크탑: 정중앙 배치 (text-center, max-w-3xl, mx-auto) 
             ══════════════════════════════════════════════════════════ */}
         <div className="mb-8 lg:mb-10 lg:text-center lg:max-w-3xl lg:mx-auto">
 
