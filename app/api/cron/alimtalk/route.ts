@@ -448,6 +448,9 @@ export async function GET(req: Request) {
   // ── 4. 토·일요일: 즉시 종료 ───────────────────────────────────────
   if (dayOfWeek === 0 || dayOfWeek === 6) {
     console.log(`[CRON SKIP] 주말(${todayStr}) — 금요일 선발송으로 이미 처리됨`);
+    if (isLastDayOfMonth) {
+      await sendUnpaidBriefing(supabase, tgToken, tgChatId, todayYear, todayMonth, todayStr, appUrl);
+    }
     await saveCronLog(supabase, { today_str: todayStr, total_tried: 0, success_count: 0, fail_count: 0 });
     return NextResponse.json({ message: `주말(${todayStr}) 발송 없음`, sent: 0, skipped: true });
   }
@@ -547,6 +550,9 @@ export async function GET(req: Request) {
     if (todayTargets.length === 0) {
       const coverageMsg = isFriday ? `오늘(${todayStr})/토(${satDateStr})/일(${sunDateStr})` : `오늘(${todayStr})`;
       console.log(`[CRON DONE] 발송 대상 없음 — todayDay=${todayDay}`);
+      if (isLastDayOfMonth) {
+        await sendUnpaidBriefing(supabase, tgToken, tgChatId, todayYear, todayMonth, todayStr, appUrl);
+      }
       await Promise.all([
         // 오늘 결제일 수강생이 없음 → ℹ️ 브리핑
         sendTelegram(tgToken, tgChatId, buildBriefingMessage({
@@ -670,6 +676,9 @@ export async function GET(req: Request) {
     if (targets.length === 0) {
       console.log(`[CRON DONE] 최종 발송 대상 없음 — 0원스킵=${zeroTuitionTargets.length} 납부완료스킵=${alreadyPaidTargets.length}`);
       const skippedNames = [...skippedPaidNames, ...skippedZeroNames];
+      if (isLastDayOfMonth) {
+        await sendUnpaidBriefing(supabase, tgToken, tgChatId, todayYear, todayMonth, todayStr, appUrl);
+      }
       await Promise.all([
         sendTelegram(tgToken, tgChatId, buildBriefingMessage({
           todayStr, dayLabel, successNames: [], failNames: [], skippedNames,
