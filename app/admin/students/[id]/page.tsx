@@ -84,6 +84,16 @@ export default function StudentDetailPage() {
   const [tmEndMonth, setTmEndMonth] = useState('');
   const [tmSaving, setTmSaving] = useState(false);
 
+  // 등록일 수정
+  const [editingRegDate, setEditingRegDate] = useState(false);
+  const [regDateInput, setRegDateInput] = useState('');
+  const [regDateSaving, setRegDateSaving] = useState(false);
+
+  // 결제 이력 날짜 수정
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editPaymentDate, setEditPaymentDate] = useState('');
+  const [editPaymentSaving, setEditPaymentSaving] = useState(false);
+
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
@@ -216,6 +226,46 @@ export default function StudentDetailPage() {
       alert("저장 중 오류가 발생했습니다.");
     } finally {
       setInflowRouteSaving(false);
+    }
+  }
+
+  async function handleSaveRegDate() {
+    if (!regDateInput) return;
+    setRegDateSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ created_at: regDateInput })
+        .eq("id", userId);
+      if (error) throw error;
+      setProfile(prev => prev ? { ...prev, created_at: regDateInput } : prev);
+      setEditingRegDate(false);
+    } catch (err) {
+      console.error("RegDate save error:", err);
+      alert("저장 중 오류가 발생했습니다.");
+    } finally {
+      setRegDateSaving(false);
+    }
+  }
+
+  async function handleSavePaymentDate() {
+    if (!editingPaymentId || !editPaymentDate) return;
+    setEditPaymentSaving(true);
+    try {
+      const { error } = await supabase
+        .from("lesson_history")
+        .update({ completed_date: editPaymentDate })
+        .eq("id", editingPaymentId);
+      if (error) throw error;
+      setHistory(prev => prev.map(h =>
+        h.id === editingPaymentId ? { ...h, completed_date: editPaymentDate } : h
+      ));
+      setEditingPaymentId(null);
+    } catch (err) {
+      console.error("Payment date save error:", err);
+      alert("저장 중 오류가 발생했습니다.");
+    } finally {
+      setEditPaymentSaving(false);
     }
   }
 
@@ -482,11 +532,26 @@ export default function StudentDetailPage() {
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-xs text-gray-500 mb-1">등록일</p>
-          <p className="text-sm font-bold text-gray-700">
-            {profile?.created_at
-              ? new Date(profile.created_at).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" })
-              : "—"}
-          </p>
+          <div className="flex items-center justify-center gap-1">
+            <p className="text-sm font-bold text-gray-700">
+              {profile?.created_at
+                ? new Date(profile.created_at).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" })
+                : "—"}
+            </p>
+            <button
+              onClick={() => {
+                const d = profile?.created_at
+                  ? new Date(profile.created_at).toISOString().substring(0, 10)
+                  : '';
+                setRegDateInput(d);
+                setEditingRegDate(true);
+              }}
+              className="text-gray-300 hover:text-blue-500 transition-colors leading-none"
+              title="등록일 수정"
+            >
+              ✏️
+            </button>
+          </div>
         </div>
       </div>
 
@@ -659,7 +724,19 @@ export default function StudentDetailPage() {
           <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
             {paymentHistory.map(h => (
               <div key={h.id} className="py-2 flex items-center justify-between text-sm gap-2">
-                <span className="text-gray-500 w-24 shrink-0 tabular-nums">{h.completed_date}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-gray-500 tabular-nums">{h.completed_date}</span>
+                  <button
+                    onClick={() => {
+                      setEditingPaymentId(h.id);
+                      setEditPaymentDate(h.completed_date);
+                    }}
+                    className="text-gray-300 hover:text-blue-500 transition-colors leading-none"
+                    title="결제일 수정"
+                  >
+                    ✏️
+                  </button>
+                </div>
                 <span className="text-gray-700 flex-1 truncate">{h.category}</span>
                 {h.tuition_amount > 0 && (
                   <span className="text-xs text-gray-500 shrink-0 tabular-nums">
@@ -926,6 +1003,73 @@ export default function StudentDetailPage() {
               </button>
               <button
                 onClick={() => setShowTimeMachine(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 등록일 수정 모달 */}
+      {editingRegDate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingRegDate(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">등록일 수정</h3>
+            <p className="text-xs text-gray-500 mb-4">선결제 등 실제 등록 시작일이 다를 경우 직접 수정하세요.</p>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">등록일</label>
+              <input
+                type="date"
+                value={regDateInput}
+                onChange={(e) => setRegDateInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={handleSaveRegDate}
+                disabled={regDateSaving || !regDateInput}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium disabled:opacity-50"
+              >
+                {regDateSaving ? "저장 중..." : "저장"}
+              </button>
+              <button
+                onClick={() => setEditingRegDate(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 결제일 수정 모달 */}
+      {editingPaymentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingPaymentId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">결제일 수정</h3>
+            <p className="text-xs text-gray-500 mb-4">선결제 등 실제 결제일이 다를 경우 직접 수정하세요.</p>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">결제일</label>
+              <input
+                type="date"
+                value={editPaymentDate}
+                onChange={(e) => setEditPaymentDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={handleSavePaymentDate}
+                disabled={editPaymentSaving || !editPaymentDate}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium disabled:opacity-50"
+              >
+                {editPaymentSaving ? "저장 중..." : "저장"}
+              </button>
+              <button
+                onClick={() => setEditingPaymentId(null)}
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 font-medium"
               >
                 취소
