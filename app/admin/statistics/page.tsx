@@ -429,14 +429,22 @@ export default function StatisticsPage() {
     const avgPayment = churned.length > 0
       ? Math.round(churned.reduce((a, s) => a + s.total, 0) / churned.length) : 0;
 
-    // ④ 누적 결제액 구간별 분포
-    const bins = [0, 0, 0, 0, 0];
+    // ④ 누적 결제액 구간별 분포 (50만 단위 → 200만↑ 구간은 100만 단위로 세분화)
+    const bins = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     for (const s of churned) {
-      if      (s.total <   500_000) bins[0]++;
+      if      (s.total <  500_000)  bins[0]++;
       else if (s.total < 1_000_000) bins[1]++;
       else if (s.total < 1_500_000) bins[2]++;
       else if (s.total < 2_000_000) bins[3]++;
-      else                          bins[4]++;
+      else if (s.total < 3_000_000) bins[4]++;
+      else if (s.total < 4_000_000) bins[5]++;
+      else if (s.total < 5_000_000) bins[6]++;
+      else if (s.total < 6_000_000) bins[7]++;
+      else if (s.total < 7_000_000) bins[8]++;
+      else if (s.total < 8_000_000) bins[9]++;
+      else if (s.total < 9_000_000) bins[10]++;
+      else if (s.total < 10_000_000) bins[11]++;
+      else                           bins[12]++;
     }
 
     // ⑤ 최근 3개월 유지율 (신규 등록 → 3개월↑ or 50만원↑)
@@ -488,11 +496,19 @@ export default function StatisticsPage() {
       totalChurned: churned.length,
       avgPayment,
       binData: [
-        { label: "50만 미만",  count: bins[0] },
-        { label: "50~100만",  count: bins[1] },
-        { label: "100~150만", count: bins[2] },
-        { label: "150~200만", count: bins[3] },
-        { label: "200만 이상", count: bins[4] },
+        { label: "~50",      count: bins[0]  },
+        { label: "50~100",   count: bins[1]  },
+        { label: "100~150",  count: bins[2]  },
+        { label: "150~200",  count: bins[3]  },
+        { label: "200~300",  count: bins[4]  },
+        { label: "300~400",  count: bins[5]  },
+        { label: "400~500",  count: bins[6]  },
+        { label: "500~600",  count: bins[7]  },
+        { label: "600~700",  count: bins[8]  },
+        { label: "700~800",  count: bins[9]  },
+        { label: "800~900",  count: bins[10] },
+        { label: "900~1천",  count: bins[11] },
+        { label: "1천↑",     count: bins[12] },
       ],
       retentionRate,
       newStudentsCount: newStudents.length,
@@ -731,8 +747,13 @@ export default function StatisticsPage() {
   const periodExtTotal = periodChartData.reduce((s, d) => s + d.external, 0);
   const periodTotal    = periodTuition + periodExtTotal;
 
-  const AVG_DENOM: Record<string, number> = { "2023": 7, "2024": 12, "2025": 12, "2026": 4, "all": 35 };
-  const periodAvgDenom = AVG_DENOM[selectedYear] ?? periodChartData.length;
+  const _curYear = new Date().getFullYear();
+  const _curMonth = new Date().getMonth() + 1;
+  const periodAvgDenom = selectedYear === "all"
+    ? 35
+    : Number(selectedYear) === _curYear
+      ? _curMonth
+      : 12;
   const periodAvg      = periodAvgDenom > 0 ? Math.round(periodTotal / periodAvgDenom) : 0;
   const avgSubLabel    = selectedYear === "all" ? "전체 35개월 평균" : selectedYear + "년 ÷ " + periodAvgDenom + "개월";
   const totalNewPeriod = periodStudentFlow.reduce((s, d) => s + d.new, 0);
@@ -1486,7 +1507,7 @@ export default function StatisticsPage() {
             </div>
           )}
           <p className="text-xs text-gray-300 mt-2 text-center">
-            X축: 누적 결제 금액 구간 / Y축: 이탈 수강생 수
+            X축: 누적 결제 금액 구간 (단위: 만원) / Y축: 이탈 수강생 수
           </p>
         </div>
       </div>
