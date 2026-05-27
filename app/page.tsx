@@ -38,6 +38,8 @@ export const metadata: Metadata = {
   },
 };
 
+// 테스트5
+
 export default async function HomePage() {
   const supabase = await createClient();
 
