@@ -22,6 +22,8 @@ const NAVER_MAP_HREF =
 
 export const revalidate = 60;
 
+// 테스트3
+
 export const metadata: Metadata = {
   title: "김포국악원 | 민요·성악·발성 전문 교육",
   description:
