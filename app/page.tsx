@@ -20,6 +20,8 @@ const NAVER_MAP_HREF =
   "https://map.naver.com/v5/search/" +
   encodeURIComponent("경기도 김포시 모담공원로 170-14");
 
+// 테스트4
+
 export const revalidate = 60;
 
 // 테스트3
