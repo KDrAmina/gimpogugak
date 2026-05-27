@@ -14,6 +14,8 @@ import { formatDateKST } from "@/lib/date-utils";
 
 const HERO_IMAGE = "/main_image.webp";
 
+// 테스트2
+
 const NAVER_MAP_HREF =
   "https://map.naver.com/v5/search/" +
   encodeURIComponent("경기도 김포시 모담공원로 170-14");
