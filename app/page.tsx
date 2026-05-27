@@ -43,6 +43,8 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const supabase = await createClient();
 
+  // 테스트6
+
   const [{ data: photos }, { data: posts }] = await Promise.all([
     supabase
       .from("gallery")
