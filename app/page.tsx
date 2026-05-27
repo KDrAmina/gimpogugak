@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getBlogPostPath } from "@/lib/blog-utils";
 import { formatDateKST } from "@/lib/date-utils";
 
+// 테스트
+
 const HERO_IMAGE = "/main_image.webp";
 
 const NAVER_MAP_HREF =
