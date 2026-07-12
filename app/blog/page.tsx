@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import BlogListClient from "@/components/BlogListClient";
 
 export const dynamic = "force-static";
-// On-Demand Revalidation으로 관리 — 타이머 자동 갱신 비활성화
-export const revalidate = false;
+// ISR 60초 — 예약 발행 글이 발행 시각 이후 최대 1분 내 목록에 자동 노출되도록 시간 기반 재검증 사용.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "김포 대표 민요·국악학원 | 김포국악원",

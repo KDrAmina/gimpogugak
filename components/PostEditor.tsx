@@ -209,8 +209,9 @@ export default function PostEditor({ editingPost = null }: Props) {
 
       await revalidateBlogList();
       // 예약 발행 신규 글은 재검증 생략 — 지금 revalidatePath를 호출하면
-      // published_at 조건 미충족으로 404가 렌더·캐시되어 예약 시간 이후에도 404가 남음.
-      // cron/blog-publish 가 발행 시점에 자동으로 재검증한다.
+      // published_at 조건 미충족으로 404가 렌더·캐시된다.
+      // 발행 시각 이후에는 상세 페이지 ISR(revalidate=60)이 자동으로 글을 노출하고,
+      // 하루 1회 cron/blog-publish 가 백스톱으로 재검증 + IndexNow 색인을 수행한다.
       if (editingPost || !isScheduled) {
         await revalidateBlogPost(postPath);
       }

@@ -13,8 +13,9 @@ import BlogContent from "@/components/BlogContent";
 import ViewTracker from "@/components/ViewTracker";
 import BlogContactSection from "@/components/BlogContactSection";
 
-// On-Demand Revalidation으로 관리 — 타이머 자동 갱신 비활성화
-export const revalidate = false;
+// ISR 60초 — 예약 발행 글의 404 캐시가 발행 시각 이후 자동으로 풀리도록 시간 기반 재검증 사용.
+// (revalidate=false였을 때는 예약글 404가 영구 캐시되어, 하루 1회 크론이나 수동 수정 전까지 노출 불가)
+export const revalidate = 60;
 export const dynamicParams = true;
 
 const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords, category";

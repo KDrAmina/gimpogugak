@@ -2,19 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { getBlogPostPath } from "@/lib/blog-utils";
+import { notifyIndexNow } from "@/lib/indexnow";
 
 /**
- * Vercel Cron: 10분마다 실행 (vercel.json schedule: "* /10 * * * *")
+ * Vercel Cron: 하루 1회 00:00 UTC 실행 (vercel.json schedule: "0 0 * * *" — Hobby 플랜 제약)
  *
- * 예약 발행 블로그 글의 ISR 캐시 자동 재검증.
- *
- * 문제 상황:
- *   예약 발행 글을 저장할 때 revalidatePath를 호출하면, published_at 조건 미충족으로
- *   404가 렌더·캐시된다. revalidate=false 환경에서는 이 404가 영구 지속된다.
- *
- * 해결 방식:
- *   이 크론이 10분마다 실행되어, 방금 published_at에 도달한 글들을 감지하고
- *   revalidatePath로 ISR 캐시를 무효화한다. 다음 방문 시 정상 렌더된다.
+ * 예약 발행 글의 즉시 노출은 블로그 목록/상세 페이지의 ISR(revalidate=60)이 담당한다.
+ * 이 크론은 백스톱 역할:
+ *   1. 지난 하루 동안 발행된 예약글 페이지를 선제 재생성 (첫 방문자도 stale 404를 안 보게)
+ *   2. 예약글은 저장 시점에 IndexNow 색인 요청이 생략되므로, 발행 후 여기서 색인 요청
  */
 
 export const dynamic = "force-dynamic";
@@ -42,9 +38,9 @@ export async function GET(req: Request) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const now = new Date().toISOString();
-  // 직전 11분 범위로 published_at이 설정된 글을 조회
-  // (10분 주기 크론 + 1분 여유 — Vercel 실행 지연 대비)
-  const windowStart = new Date(Date.now() - 11 * 60 * 1000).toISOString();
+  // 직전 25시간 범위로 published_at이 설정된 글을 조회
+  // (하루 1회 크론 + 1시간 여유 — Vercel 실행 지연 대비)
+  const windowStart = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
 
   const { data: posts, error } = await supabase
     .from("posts")
@@ -69,6 +65,7 @@ export async function GET(req: Request) {
   for (const post of posts) {
     const postPath = getBlogPostPath(post.slug ?? null, String(post.id));
     revalidatePath(`/blog/${postPath}`);
+    await notifyIndexNow(postPath);
     revalidatedPaths.push(postPath);
     console.log(`[CRON BLOG-PUBLISH] 재검증: /blog/${postPath}`);
   }
