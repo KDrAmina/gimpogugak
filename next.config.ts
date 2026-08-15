@@ -26,7 +26,11 @@ const nextConfig: NextConfig = {
   
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    inlineCss: true,
+    // inlineCss는 CSS가 작을 때만 이득이다. 이 프로젝트에서는 인라인된 CSS가
+    // <style> 블록과 RSC flight payload에 각각 한 번씩, 즉 문서마다 2배로
+    // 직렬화되며 외부 stylesheet가 0개가 되어 페이지 이동·재방문 때마다
+    // 전량 재전송된다. 외부 CSS로 되돌려 immutable 캐시를 회복한다.
+    inlineCss: false,
   },
 
   async headers() {

@@ -11,7 +11,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-pretendard)', 'system-ui', 'sans-serif'],
+        // 'Pretendard Variable' = public/fonts/pretendard-1.3.9/ 자체 호스팅 dynamic subset
+        sans: ['"Pretendard Variable"', 'Pretendard', 'system-ui', 'sans-serif'],
       },
     },
   },

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { Nanum_Myeongjo } from "next/font/google";
 import { Suspense } from "react";
 import { createClientForBuild } from "@/lib/supabase/build";
 import { notFound } from "next/navigation";
@@ -17,6 +18,17 @@ import BlogContactSection from "@/components/BlogContactSection";
 // (revalidate=false였을 때는 예약글 404가 영구 캐시되어, 하루 1회 크론이나 수동 수정 전까지 노출 불가)
 export const revalidate = 60;
 export const dynamicParams = true;
+
+// Nanum Myeongjo는 globals.css의 `.blog-content h1~h3`에서만 쓰인다.
+// 루트 레이아웃에 선언하면 @font-face 184개(92 KB)가 모든 라우트의 CSS에 실리므로,
+// 유일한 사용처인 이 라우트에서만 선언해 다른 페이지의 폰트 CSS를 0으로 만든다.
+const nanumMyeongjo = Nanum_Myeongjo({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-nanum-myeongjo",
+  display: "swap",
+  preload: false,
+});
 
 const selectCols = "id, title, content, slug, created_at, published_at, thumbnail_url, meta_title, meta_description, meta_keywords, category";
 
@@ -145,7 +157,7 @@ export default async function BlogDetailPage({ params }: Props) {
   const nextPost = nextPosts?.[0] ?? null;
 
   return (
-    <article className="blog-detail-article mx-auto max-w-4xl px-6 py-12">
+    <article className={`${nanumMyeongjo.variable} blog-detail-article mx-auto max-w-4xl px-6 py-12`}>
       <ViewTracker postId={String(post.id)} />
       <header className="mb-8">
         <div className="mb-3">

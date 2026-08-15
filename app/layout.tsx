@@ -1,63 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
-import { Noto_Serif_KR, Noto_Sans_KR, Gowun_Dodum, Nanum_Myeongjo, Nanum_Gothic } from "next/font/google";
 import Script from "next/script";
 import GoogleAnalyticsWrapper from "../components/GoogleAnalyticsWrapper";
 import "./globals.css";
 import { Navbar } from "../components/layout/Navbar";
 import { AnalyticsSpeedInsights } from "../components/AnalyticsSpeedInsights";
 
-const pretendard = localFont({
-  src: "../public/fonts/PretendardVariable.woff2",
-  display: "swap",
-  weight: "100 900",
-  variable: "--font-pretendard",
-});
-
-const notoSerif = Noto_Serif_KR({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-noto-serif",
-  display: "swap",
-  preload: true,
-});
-
-const notoSans = Noto_Sans_KR({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-noto-sans",
-  display: "swap",
-  preload: true,
-});
-
-const gowunDodum = Gowun_Dodum({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-gowun-dodum",
-  display: "swap",
-  // preload: false — this font is only used inside the TinyMCE editor / blog
-  // viewer, not on public pages. Skipping the <link rel="preload"> removes
-  // a bandwidth competitor that delayed the hero-image LCP fetch.
-  preload: false,
-});
-
-const nanumMyeongjo = Nanum_Myeongjo({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-nanum-myeongjo",
-  display: "swap",
-  // preload: false — same rationale as gowunDodum above.
-  preload: false,
-});
-
-const nanumGothic = Nanum_Gothic({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-nanum-gothic",
-  display: "swap",
-  // preload: false — editor/blog only, not on public critical path.
-  preload: false,
-});
+// Pretendard는 자체 호스팅 "variable dynamic subset"으로 제공한다.
+// (Pretendard v1.3.9 공식 배포본 — public/fonts/pretendard-1.3.9/)
+//
+// 왜 next/font/local 이 아닌가:
+//   next/font/local + 통짜 PretendardVariable.woff2(2,057,688 B)는 unicode-range가
+//   없어 "가" 한 글자를 그리려고 2 MB 전체를 받아야 했고, next/font가 이를
+//   HTTP `Link: rel=preload` 최고 우선순위로 걸어 LCP 이미지와 대역폭을 다퉜다.
+//   dynamic subset은 unicode-range로 92조각으로 쪼개져 있어 실제 쓰인 글자가 속한
+//   조각만 내려받는다. 또한 외부 stylesheet이므로 inlineCss로 HTML·RSC에
+//   중복 직렬화되지 않고 immutable 캐시로 전 페이지에서 재사용된다.
+const PRETENDARD_CSS = "/fonts/pretendard-1.3.9/pretendard-variable-dynamic-subset.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gimpogugak.com";
 
@@ -168,8 +126,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${pretendard.variable} ${notoSerif.variable} ${notoSans.variable} ${gowunDodum.variable} ${nanumMyeongjo.variable} ${nanumGothic.variable}`}>
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        <link rel="stylesheet" href={PRETENDARD_CSS} />
         {/* Google Ads 전체 사이트 태그 (AW-17945851352) — lazyOnload로 LCP 차단 방지 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-17945851352"
@@ -184,7 +143,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${pretendard.className} min-h-screen bg-[#ffffff] text-[#111111] antialiased`}>
+      <body className="font-sans min-h-screen bg-[#ffffff] text-[#111111] antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

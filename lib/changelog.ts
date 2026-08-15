@@ -13,6 +13,17 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.24.0",
+    date: "2026-08-15",
+    changes: [
+      "[성능] Pretendard 폰트 전달 방식 교체 — 2.0 MB 통짜 PretendardVariable.woff2(unicode-range 없음, next/font가 최고 우선순위로 preload) 제거 후 공식 v1.3.9 variable dynamic subset(92조각) 자체 호스팅으로 전환. 실제 쓰인 글자가 속한 조각만 내려받으므로 홈 기준 폰트 전송량 2,057,688 B → 430,632 B (-79%), 초기 강제 preload 0 B",
+      "[성능] 루트 레이아웃의 미사용 한글 웹폰트 4종 제거 (Noto Serif KR·Noto Sans KR·Gowun Dodum·Nanum Gothic) — CSS 변수 소비처가 한 곳도 없는데 @font-face 1,023개를 전 페이지에 싣고 Noto 2종은 preload까지 하고 있었음 (60,816 B 순수 낭비 포함)",
+      "[성능] Nanum Myeongjo를 유일한 사용처인 블로그 상세 라우트로 국소화 — 다른 모든 라우트의 @font-face가 0개가 됨",
+      "[성능] experimental.inlineCss를 false로 전환 — 인라인 CSS가 <style> 블록과 RSC flight payload에 2중 직렬화되고 외부 stylesheet가 0개가 되어 페이지 이동·재방문마다 전량 재전송되던 구조 해소. 문서 크기 /intro 기준 1,569,762 B → 28,216 B",
+      "[안정성] scripts/check-font-regression.mjs 추가 및 prebuild 연결 — 통짜 폰트 재도입, 루트 레이아웃 next/font 선언, inlineCss:true 재도입을 빌드 단계에서 차단",
+    ],
+  },
+  {
     version: "5.23.0",
     date: "2026-07-12",
     changes: [

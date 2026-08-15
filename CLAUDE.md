@@ -22,10 +22,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 These rules MUST be followed to maintain PageSpeed scores and avoid regressions.
 
-### Fonts
+### Fonts (2026-08-15 개정 — Phase 1 성능 회귀 수정)
 - **NEVER** use `@import` for heavy web fonts in `globals.css`.
-- **ONLY** use `next/font/google` for global fonts (Noto Sans KR, Noto Serif KR).
-- Heavy fonts (Gowun Dodum, Nanum Myeongjo, etc.) live in `lib/fonts.ts` and are imported **only** where needed (e.g., PostModal, blog detail viewer).
+- **NEVER** declare `next/font/google` or `next/font/local` in `app/layout.tsx`.
+  한글 웹폰트 1종이 `@font-face` 92~372개를 **모든 라우트**의 CSS에 싣는다.
+  실측: 5종 선언 시 `@font-face` 1,214개 / 683 KB.
+- **NEVER** commit a whole (non-subset) Korean font such as `PretendardVariable.woff2` (2.0 MB).
+  `unicode-range`가 없어 한 글자를 그리려고 전체를 받아야 하고, `next/font`가 최고 우선순위
+  `Link: rel=preload`를 걸어 LCP 이미지와 대역폭을 다툰다.
+- **Pretendard**: `public/fonts/pretendard-1.3.9/` 자체 호스팅 **variable dynamic subset**
+  (공식 v1.3.9 배포본, 92 조각). `app/layout.tsx`가 `<link rel="stylesheet">`로 로드하며
+  패밀리명은 `'Pretendard Variable'`. Tailwind `fontFamily.sans`가 이를 가리킨다.
+- **라우트 전용 폰트**는 그 라우트에서만 선언한다. 예: Nanum Myeongjo → `app/blog/[id]/page.tsx`.
+- **에디터 폰트**는 `PostEditor.tsx` / `PostModal.tsx`의 `content_css`로 iframe 내부에만 주입한다.
+- 이 규칙들은 `scripts/check-font-regression.mjs`가 `prebuild`에서 강제한다.
 
 ### React-Quill & Lazy Loading
 - `React-Quill` and `quill.snow.css` **MUST** be lazy-loaded via `next/dynamic` with `ssr: false`.
@@ -49,8 +59,12 @@ These rules MUST be followed to maintain PageSpeed scores and avoid regressions.
 ### Viewport & Accessibility
 - Do **NOT** set `userScalable: false` or `maximumScale: 1` in viewport config (breaks Accessibility score).
 
-### CSS Inlining
-- `next.config.ts` must have `experimental.inlineCss: true` to reduce render-blocking CSS.
+### CSS Inlining (2026-08-15 개정 — 규칙 반전)
+- `next.config.ts`는 `experimental.inlineCss: **false**` 여야 한다.
+- 이유: 인라인 CSS는 `<style>` 블록과 RSC flight payload에 **각각 한 번씩 2중 직렬화**되고
+  외부 stylesheet를 0개로 만들어, 페이지 이동·재방문마다 전량 재전송·재파싱된다.
+  실측(`/intro` 문서): `true` 162,451 B → `false` **28,216 B**.
+- CSS가 수 KB 수준으로 줄어들면 재검토할 수 있으나, 그때도 반드시 문서 크기를 실측할 것.
 
 ---
 
