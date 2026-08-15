@@ -13,6 +13,14 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.25.0",
+    date: "2026-08-15",
+    changes: [
+      "[성능] 메인 히어로(LCP) 이미지의 unoptimized 강제 적용 해제 — 2026-03-30 커밋 64ec14e가 붙인 설정 탓에 원본 WebP 175,424 B가 뷰포트와 무관하게 항상 그대로 전달되고 srcset·AVIF 변환이 전부 무력화돼 있었음. 해제 후 모바일 기준 /_next/image AVIF 28,486 B로 −83.8%",
+      "[성능] 히어로 preload 중복 제거 — 수동 <link rel=preload>와 <Image priority>의 자동 preload가 함께 나가 preload 태그가 2개였고, 수동 쪽은 imagesrcset 없이 imageSizes만 있어 명세상 무시되는 무효 속성이었음. Image가 생성하는 preload 1개로 단일화해 실제 렌더 후보와 정확히 일치시킴",
+    ],
+  },
+  {
     version: "5.24.0",
     date: "2026-08-15",
     changes: [

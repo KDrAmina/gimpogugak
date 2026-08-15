@@ -63,8 +63,9 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-head-element */}
-      <link rel="preload" as="image" href={HERO_IMAGE} fetchPriority="high" imageSizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 800px" />
+      {/* 히어로 preload는 아래 <Image priority /> 가 자동 생성한다.
+          수동 <link rel=preload> 는 최적화 전 원본(/main_image.webp)을 가리켜
+          실제로 렌더되는 /_next/image 후보와 어긋나므로 두지 않는다. */}
 
       {/* ============================================================
           외부 래퍼
@@ -124,7 +125,6 @@ export default async function HomePage() {
                 alt="김포문화원 앞마당에서 열린 국악 공연, 김포국악원"
                 priority
                 fetchPriority="high"
-                unoptimized
                 width={1200}
                 height={600}
                 className="w-full object-cover"
