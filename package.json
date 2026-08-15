@@ -1,10 +1,10 @@
 {
   "name": "gimpo-gugak",
-  "version": "5.25.0",
+  "version": "5.26.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prebuild": "node scripts/check-font-regression.mjs",
+    "prebuild": "node scripts/check-font-regression.mjs && node scripts/check-middleware-regression.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

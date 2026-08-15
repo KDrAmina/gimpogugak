@@ -13,6 +13,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   // ⚠️ 앞으로 코드 수정 시 반드시 이 파일에 버전을 올리고 내역을 기록할 것
   // ────────────────────────────────────────────────────────────────────────
   {
+    version: "5.26.0",
+    date: "2026-08-15",
+    changes: [
+      "[성능] 공개 라우트에서 middleware의 불필요한 인증 왕복 제거 — `/`, `/intro`, `/blog`, `/classes` 등은 middleware가 auth.getUser() 결과를 소비하는 분기가 하나도 없는데도 요청마다 Supabase Auth를 호출하고 있었음. 인증 판단이 실제로 필요한 라우트(/admin, 회원 전용 4종, /waiting, /api)에서만 인증 경로를 타도록 게이트 추가. 로그인 세션이 있는 사용자의 공개 페이지 응답 실측 중앙값 26.5ms → 6.6ms (/intro), 28.7ms → 7.8ms (/blog)",
+      "[성능] middleware matcher가 정적 에셋을 제외하도록 수정 — Pretendard dynamic subset(CSS 1개 + woff2 92개)과 robots.txt·ads.txt가 전부 middleware를 통과하고 있었음. 로그인 사용자 기준 폰트 CSS 요청 실측 중앙값 28.0ms → 6.0ms. 확장자 예외는 실제로 서빙되는 파일만 추가(css/woff2/woff/ttf/otf/txt/ico)하고, 실제 앱 라우트인 /sitemap.xml이 걸리지 않도록 xml은 제외하지 않음",
+      "[안정성] scripts/check-middleware-regression.mjs 추가 및 prebuild 연결 — 보호 라우트를 추가하면서 인증 게이트 목록에 넣지 않아 검사가 조용히 사라지는 경우, matcher가 보호 라우트를 우회하는 경우, 정적 에셋 제외가 되돌아가는 경우를 빌드 단계에서 차단",
+      "[정리] middleware에서 사용되지 않던 publicRoutes 변수 제거 — 선언만 있고 참조가 없어 실제 공개 라우트 정책과 무관했음",
+    ],
+  },
+  {
     version: "5.25.0",
     date: "2026-08-15",
     changes: [
