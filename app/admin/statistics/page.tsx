@@ -2,9 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useMemo, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import nextDynamic from "next/dynamic";
+import LineStyleKey from "@/components/LineStyleKey";
+import { seriesKey, type LineStyle } from "@/lib/yoy-chart";
 import type { MonthlyChartData } from "@/components/StatsChart";
 import type { PieData } from "@/components/StatsDonut";
 import type { LineData } from "@/components/StatsLine";
@@ -19,7 +21,7 @@ const InflowTrendChart    = nextDynamic(() => import("@/components/InflowTrendCh
 const CategoryTrendChart  = nextDynamic(() => import("@/components/CategoryTrendChart"),  { ssr: false, loading: () => <Loader h={260} /> });
 const ExternalTrendChart  = nextDynamic(() => import("@/components/ExternalTrendChart"),  { ssr: false, loading: () => <Loader h={240} /> });
 const ChurnPaymentChart   = nextDynamic(() => import("@/components/ChurnPaymentChart"),   { ssr: false, loading: () => <Loader h={260} /> });
-const YoyFlowChart        = nextDynamic(() => import("@/components/YoyFlowChart"),        { ssr: false, loading: () => <Loader h={260} /> });
+const YoyMatrixChart      = nextDynamic(() => import("@/components/YoyMatrixChart"),      { ssr: false, loading: () => <Loader h={260} /> });
 
 interface ProfileInner  { name: string; phone: string | null; is_test?: boolean; }
 interface LessonInner   { tuition_amount: number; category: string; is_active?: boolean; end_month?: string | null; profiles: ProfileInner | null; }
@@ -79,19 +81,45 @@ const YEARS_YOY = ["2023", "2024", "2025", "2026"];
 const YEAR_COLORS: Record<string, string> = { "2023": "#6366f1", "2024": "#10b981", "2025": "#f59e0b", "2026": "#ef4444" };
 const YEAR_LABELS: Record<string, string> = { "2023": "2023년", "2024": "2024년", "2025": "2025년", "2026": "2026년" };
 
-/** 연도별 겹쳐보기 연도 토글 칩 — 카테고리·유입경로 범례 칩과 동일한 스타일 (채움 = 표시 / 외곽선·취소선 = 숨김) */
-function YearToggleChips({ hidden, onToggle }: { hidden: Set<string>; onToggle: (year: string) => void }) {
+// ── YoY 겹쳐보기 지표(선 스타일 축) ──────────────────────────────────────
+// 색상 = 연도, 선 스타일 = 지표. 지표 칩은 색이 연도 몫이므로 무채색 + 선 스타일 아이콘으로 표시
+const NEUTRAL_COLOR = "#6b7280";
+const REVENUE_METRICS = ["tuition", "external"];
+const REVENUE_METRIC_LABELS: Record<string, string> = { tuition: "수강료", external: "외부수입" };
+const REVENUE_METRIC_STYLES: Record<string, LineStyle> = { tuition: {}, external: { dash: "6 3", dot: "hollow" } };
+const FLOW_METRICS = ["new", "churned"];
+const FLOW_METRIC_LABELS: Record<string, string> = { new: "신규", churned: "이탈" };
+const FLOW_METRIC_STYLES: Record<string, LineStyle> = { new: {}, churned: { dash: "6 3", dot: "hollow" } };
+const EXT_METRICS = ["external"];
+const EXT_METRIC_LABELS: Record<string, string> = { external: "외부수입" };
+const EXT_METRIC_STYLES: Record<string, LineStyle> = { external: {} };
+// 유입경로 겹쳐보기는 색상 = 유입경로(기존 색 유지)이므로 연도를 선 패턴으로 구분 (올해 = 실선)
+const INFLOW_YEAR_STYLES: Record<string, LineStyle> = {
+  "2023": { dash: "10 3 2 3", dot: "none" }, "2024": { dash: "2 3", dot: "none" },
+  "2025": { dash: "6 3", dot: "none" },      "2026": { dot: "none" },
+};
+
+/** 토글 칩 한 개의 정의. line이 있으면 선 스타일 아이콘을 함께 표시 */
+type ChipItem = { key: string; label: string; color: string; line?: LineStyle };
+const YEAR_CHIPS: ChipItem[] = YEARS_YOY.map((yr) => ({ key: yr, label: YEAR_LABELS[yr], color: YEAR_COLORS[yr] }));
+const INFLOW_YEAR_CHIPS: ChipItem[] = YEARS_YOY.map((yr) => ({ key: yr, label: YEAR_LABELS[yr], color: NEUTRAL_COLOR, line: INFLOW_YEAR_STYLES[yr] }));
+const metricChips = (keys: string[], labels: Record<string, string>, styles: Record<string, LineStyle>): ChipItem[] =>
+  keys.map((k) => ({ key: k, label: labels[k], color: NEUTRAL_COLOR, line: styles[k] }));
+const REVENUE_METRIC_CHIPS = metricChips(REVENUE_METRICS, REVENUE_METRIC_LABELS, REVENUE_METRIC_STYLES);
+const FLOW_METRIC_CHIPS    = metricChips(FLOW_METRICS, FLOW_METRIC_LABELS, FLOW_METRIC_STYLES);
+
+/** 범례 겸 토글 칩 — 카테고리·유입경로 범례 칩과 동일한 스타일 (채움 = 표시 / 외곽선·취소선·흐림 = 숨김) */
+function ToggleChips({ items, hidden, onToggle }: { items: ChipItem[]; hidden: Set<string>; onToggle: (key: string) => void }) {
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
-      {YEARS_YOY.map((yr) => {
-        const isHidden = hidden.has(yr);
-        const color = YEAR_COLORS[yr];
+    <div className="flex flex-wrap gap-2">
+      {items.map(({ key, label, color, line }) => {
+        const isHidden = hidden.has(key);
         return (
           <button
-            key={yr}
+            key={key}
             type="button"
-            onClick={() => onToggle(yr)}
-            title={isHidden ? `${YEAR_LABELS[yr]} 표시` : `${YEAR_LABELS[yr]} 숨기기`}
+            onClick={() => onToggle(key)}
+            title={isHidden ? `${label} 표시` : `${label} 숨기기`}
             aria-pressed={!isHidden}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border"
             style={{
@@ -102,7 +130,8 @@ function YearToggleChips({ hidden, onToggle }: { hidden: Set<string>; onToggle: 
               textDecoration: isHidden ? "line-through" : "none",
             }}
           >
-            {YEAR_LABELS[yr]}
+            {line && <LineStyleKey {...line} color={isHidden ? color : "white"} bg={isHidden ? "white" : color} />}
+            {label}
           </button>
         );
       })}
@@ -110,15 +139,12 @@ function YearToggleChips({ hidden, onToggle }: { hidden: Set<string>; onToggle: 
   );
 }
 
-/** 신규/이탈 선 스타일 범례 (YoyFlowChart와 동일: 실선·채운 점 = 신규 / 점선·빈 점 = 이탈) */
-function FlowLineKey({ dashed }: { dashed?: boolean }) {
-  return (
-    <svg width="22" height="8" aria-hidden="true" className="shrink-0">
-      <line x1="1" y1="4" x2="21" y2="4" stroke="#6b7280" strokeWidth="2" strokeDasharray={dashed ? "4 2" : undefined} />
-      <circle cx="11" cy="4" r="3" fill={dashed ? "#fff" : "#6b7280"} stroke="#6b7280" strokeWidth={dashed ? 1.5 : 0} />
-    </svg>
-  );
-}
+/** 겹쳐보기 토글 그룹 (차트 × 축) */
+type YoyToggleGroup =
+  | "categoryYears" | "revenueYears" | "revenueMetrics" | "extYears"
+  | "flowYears" | "flowMetrics" | "inflowYears";
+/** 읽기 전용으로만 쓰는 빈 숨김 Set */
+const NO_HIDDEN: Set<string> = new Set();
 
 export default function StatisticsPage() {
   const supabase = createClient();
@@ -134,9 +160,9 @@ export default function StatisticsPage() {
   // ── 범례 토글 상태 (유입경로 / 카테고리) ─────────────────────────────
   const [inflowHiddenRoutes, setInflowHiddenRoutes] = useState<Set<string>>(new Set());
   const [categoryHiddenKeys, setCategoryHiddenKeys] = useState<Set<string>>(new Set());
-  // ── 연도별 겹쳐보기 연도 토글 상태 (매출 추이 / 신규 유입 vs 이탈) ─────
-  const [revenueHiddenYears, setRevenueHiddenYears] = useState<Set<string>>(new Set());
-  const [flowHiddenYears, setFlowHiddenYears]       = useState<Set<string>>(new Set());
+  // ── 연도별 겹쳐보기 토글 상태 — 차트·축별 숨김 Set (예: "revenueMetrics" → {"external"}) ──
+  const [yoyHidden, setYoyHidden] = useState<Partial<Record<YoyToggleGroup, Set<string>>>>({});
+  const yoyHiddenOf = (group: YoyToggleGroup) => yoyHidden[group] ?? NO_HIDDEN;
 
   // ── 수입 목표 달성률 편집 상태 ────────────────────────────────────────
   const [goalAmount, setGoalAmount]     = useState<number>(DEFAULT_GOAL_ALL);
@@ -165,8 +191,7 @@ export default function StatisticsPage() {
   useEffect(() => {
     setInflowHiddenRoutes(new Set());
     setCategoryHiddenKeys(new Set());
-    setRevenueHiddenYears(new Set());
-    setFlowHiddenYears(new Set());
+    setYoyHidden({});
   }, [selectedYear, yoyMode]);
 
   /**
@@ -204,13 +229,14 @@ export default function StatisticsPage() {
     });
   }
 
-  function toggleYoyYear(setHidden: Dispatch<SetStateAction<Set<string>>>, year: string) {
-    setHidden((prev) => {
-      const next = new Set(prev);
-      if (next.has(year)) { next.delete(year); return next; }
-      if (YEARS_YOY.length - next.size <= 1) return prev; // 마지막 1개 보호
-      next.add(year);
-      return next;
+  /** 겹쳐보기 연도·지표 토글 — 기존 범례 토글과 동일하게 마지막 1개 보호 (total = 해당 축의 항목 수) */
+  function toggleYoy(group: YoyToggleGroup, key: string, total: number) {
+    setYoyHidden((prev) => {
+      const next = new Set(prev[group] ?? NO_HIDDEN);
+      if (next.has(key)) next.delete(key);
+      else if (total - next.size <= 1) return prev; // 마지막 1개 보호
+      else next.add(key);
+      return { ...prev, [group]: next };
     });
   }
 
@@ -306,7 +332,10 @@ export default function StatisticsPage() {
   }, [periods, periodType, allExternal]);
 
   // ── [YoY] 연도별 겹쳐보기 — 1월~12월 X축, 연도별 선 ─────────────────────
-  /** 총매출(수강료+외부수입)을 월×연도 행렬로 계산 */
+  /**
+   * 총매출(수강료+외부수입)을 월×연도 행렬로 계산 — 두 구성요소를 합치지 않고 각각 series로 보관
+   * (YoyMatrixChart 형식: seriesKey(연도, "tuition" | "external")). 합계는 툴팁에서 표시
+   */
   const yoyRevenueData = useMemo((): Array<Record<string, string | number>> => {
     if (selectedYear !== "all" || yoyMode !== "overlay") return [];
     return Array.from({ length: 12 }, (_, i) => {
@@ -322,7 +351,8 @@ export default function StatisticsPage() {
         const external = allExternal
           .filter((r) => r.income_date >= start && r.income_date < end)
           .reduce((s, r) => s + r.amount, 0);
-        point[yr] = tuition + external;
+        point[seriesKey(yr, "tuition")]  = tuition;
+        point[seriesKey(yr, "external")] = external;
       }
       return point;
     });
@@ -338,7 +368,7 @@ export default function StatisticsPage() {
         const start = yr + "-" + m + "-01";
         const nextM = i + 2;
         const end = nextM > 12 ? String(parseInt(yr) + 1) + "-01-01" : yr + "-" + String(nextM).padStart(2, "0") + "-01";
-        point[yr] = allExternal
+        point[seriesKey(yr, "external")] = allExternal
           .filter((r) => r.income_date >= start && r.income_date < end)
           .reduce((s, r) => s + r.amount, 0);
       }
@@ -402,7 +432,7 @@ export default function StatisticsPage() {
   }, [allHistory]);
 
   /**
-   * 신규 유입·이탈 수를 월×연도 행렬로 계산 (YoyFlowChart 형식: `${연도}_new` / `${연도}_churned`)
+   * 신규 유입·이탈 수를 월×연도 행렬로 계산 (YoyMatrixChart 형식: seriesKey(연도, "new" | "churned"))
    * 이탈 기준은 누적 보기(periodStudentFlow)와 동일 — 비활성 수강생의 종료월(end_month), 없으면 마지막 결제월
    */
   const yoyFlowData = useMemo((): Array<Record<string, string | number>> => {
@@ -432,8 +462,8 @@ export default function StatisticsPage() {
       const m = String(i + 1).padStart(2, "0");
       const point: Record<string, string | number> = { month: (i + 1) + "월" };
       for (const yr of YEARS_YOY) {
-        point[yr + "_new"]     = newMap.get(yr + "-" + m) ?? 0;
-        point[yr + "_churned"] = churnMap.get(yr + "-" + m) ?? 0;
+        point[seriesKey(yr, "new")]     = newMap.get(yr + "-" + m) ?? 0;
+        point[seriesKey(yr, "churned")] = churnMap.get(yr + "-" + m) ?? 0;
       }
       return point;
     });
@@ -748,6 +778,8 @@ export default function StatisticsPage() {
         nameToFirstYear.set(name, stats.firstMonth.substring(0, 4));
       }
       const countMap = new Map<string, Map<string, number>>();
+      // 겹쳐보기용: 위와 같은 수강생 집합을 첫 결제 "월"로 나눈 것 ("YYYY-MM" → route → count)
+      const monthCountMap = new Map<string, Map<string, number>>();
       const allRoutes = new Set<string>();
       for (const p of inflowProfiles) {
         if (!isValidRoute(p.inflow_route)) continue;
@@ -759,6 +791,10 @@ export default function StatisticsPage() {
         if (!countMap.has(firstYear)) countMap.set(firstYear, new Map());
         const yrMap = countMap.get(firstYear)!;
         yrMap.set(route, (yrMap.get(route) ?? 0) + 1);
+        const firstMonth = studentStats.get(normalizedName)!.firstMonth;
+        if (!monthCountMap.has(firstMonth)) monthCountMap.set(firstMonth, new Map());
+        const moMap = monthCountMap.get(firstMonth)!;
+        moMap.set(route, (moMap.get(route) ?? 0) + 1);
       }
       const routes = Array.from(allRoutes).sort((a, b) => {
         const aTotal = YEARS.reduce((s, y) => s + (countMap.get(y)?.get(a) ?? 0), 0);
@@ -771,7 +807,17 @@ export default function StatisticsPage() {
         for (const route of routes) point[route] = yrMap.get(route) ?? 0;
         return point;
       });
-      return { data, routes, colors: INFLOW_COLORS, validCount };
+      // 겹쳐보기: X축 1~12월, series = seriesKey(유입경로, 연도)
+      const yoyData = Array.from({ length: 12 }, (_, i) => {
+        const m = String(i + 1).padStart(2, "0");
+        const point: Record<string, string | number> = { month: (i + 1) + "월" };
+        for (const year of YEARS) {
+          const moMap = monthCountMap.get(year + "-" + m);
+          for (const route of routes) point[seriesKey(route, year)] = moMap?.get(route) ?? 0;
+        }
+        return point;
+      });
+      return { data, routes, colors: INFLOW_COLORS, validCount, yoyData };
     } else {
       const nameToFirstMonth = new Map<string, string>();
       for (const [name, stats] of studentStats) {
@@ -803,7 +849,7 @@ export default function StatisticsPage() {
         for (const route of routes) point[route] = mMap.get(route) ?? 0;
         return point;
       });
-      return { data, routes, colors: INFLOW_COLORS, validCount };
+      return { data, routes, colors: INFLOW_COLORS, validCount, yoyData: [] as Array<Record<string, string | number>> };
     }
   }, [inflowProfiles, studentStats, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1149,8 +1195,13 @@ export default function StatisticsPage() {
           colors={yoyMode === "overlay" ? YEAR_COLORS : CATEGORY_COLORS}
           labels={yoyMode === "overlay" ? YEAR_LABELS : CATEGORY_LABELS}
           syncId={chartSyncId}
-          hiddenKeys={yoyMode !== "overlay" ? categoryHiddenKeys : undefined}
+          hiddenKeys={yoyMode === "overlay" ? yoyHiddenOf("categoryYears") : categoryHiddenKeys}
         />
+        {yoyMode === "overlay" && (
+          <div className="mt-4">
+            <ToggleChips items={YEAR_CHIPS} hidden={yoyHiddenOf("categoryYears")} onToggle={(k) => toggleYoy("categoryYears", k, YEARS_YOY.length)} />
+          </div>
+        )}
         {/* 카테고리별 인원/비중 요약 바 — YoY 겹쳐보기 모드에서는 숨김 */}
         {yoyMode !== "overlay" && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-100">
@@ -1188,7 +1239,7 @@ export default function StatisticsPage() {
               <h2 className="text-base font-bold text-gray-900">매출 추이</h2>
               <p className="text-xs text-gray-400 mt-0.5">
                 {yoyMode === "overlay"
-                  ? "월별 연도간 총매출 비교 (YoY)"
+                  ? "월별 연도간 수강료 · 외부수입 비교 (YoY)"
                   : chartSubtitle}
               </p>
             </div>
@@ -1199,15 +1250,20 @@ export default function StatisticsPage() {
           </div>
           {yoyMode === "overlay" ? (
             <>
-              <CategoryTrendChart
+              <YoyMatrixChart
                 data={yoyRevenueData}
-                categories={YEARS_YOY}
-                colors={YEAR_COLORS}
-                labels={YEAR_LABELS}
+                rows={YEARS_YOY} rowColors={YEAR_COLORS} rowLabels={YEAR_LABELS}
+                cols={REVENUE_METRICS} colLabels={REVENUE_METRIC_LABELS} colStyles={REVENUE_METRIC_STYLES}
+                hiddenRows={yoyHiddenOf("revenueYears")}
+                hiddenCols={yoyHiddenOf("revenueMetrics")}
+                unit="won"
+                showTotal
                 syncId={chartSyncId}
-                hiddenKeys={revenueHiddenYears}
               />
-              <YearToggleChips hidden={revenueHiddenYears} onToggle={(yr) => toggleYoyYear(setRevenueHiddenYears, yr)} />
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                <ToggleChips items={YEAR_CHIPS} hidden={yoyHiddenOf("revenueYears")} onToggle={(k) => toggleYoy("revenueYears", k, YEARS_YOY.length)} />
+                <ToggleChips items={REVENUE_METRIC_CHIPS} hidden={yoyHiddenOf("revenueMetrics")} onToggle={(k) => toggleYoy("revenueMetrics", k, REVENUE_METRICS.length)} />
+              </div>
             </>
           ) : (
             <StatsArea data={periodChartData} syncId={chartSyncId} />
@@ -1237,12 +1293,20 @@ export default function StatisticsPage() {
             {yoyMode !== "overlay" && <span className="ml-2 text-gray-300">· 체험비 / 강사수수료 / 기타</span>}
           </p>
           {yoyMode === "overlay" ? (
-            <ExternalTrendChart
-              data={yoyExtData}
-              types={YEARS_YOY}
-              colors={YEAR_COLORS}
-              syncId={chartSyncId}
-            />
+            <>
+              <YoyMatrixChart
+                data={yoyExtData}
+                rows={YEARS_YOY} rowColors={YEAR_COLORS} rowLabels={YEAR_LABELS}
+                cols={EXT_METRICS} colLabels={EXT_METRIC_LABELS} colStyles={EXT_METRIC_STYLES}
+                hiddenRows={yoyHiddenOf("extYears")}
+                unit="won"
+                syncId={chartSyncId}
+                height={240}
+              />
+              <div className="mt-4">
+                <ToggleChips items={YEAR_CHIPS} hidden={yoyHiddenOf("extYears")} onToggle={(k) => toggleYoy("extYears", k, YEARS_YOY.length)} />
+              </div>
+            </>
           ) : (
             <ExternalTrendChart
               data={extTrendData}
@@ -1300,13 +1364,8 @@ export default function StatisticsPage() {
                   : (selectedYear === "all" ? "연도별" : selectedYear + "년 월별") + " 학생 변동"}
               </p>
             </div>
-            {yoyMode === "overlay" ? (
-              // 겹쳐보기: 색상은 연도(아래 칩), 선 스타일은 지표 — 그래서 여기서는 무채색으로 선 스타일만 표시
-              <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
-                <span className="flex items-center gap-1.5"><FlowLineKey />신규</span>
-                <span className="flex items-center gap-1.5"><FlowLineKey dashed />이탈</span>
-              </div>
-            ) : (
+            {/* 겹쳐보기에서는 신규/이탈 범례가 차트 아래 지표 토글 칩(선 스타일 아이콘)으로 대체됨 */}
+            {yoyMode !== "overlay" && (
               <div className="flex gap-4 text-xs text-gray-400 shrink-0 mt-0.5">
                 <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-blue-500 inline-block" />신규</span>
                 <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-rose-400 inline-block" />이탈</span>
@@ -1315,15 +1374,19 @@ export default function StatisticsPage() {
           </div>
           {yoyMode === "overlay" ? (
             <>
-              <YoyFlowChart
+              <YoyMatrixChart
                 data={yoyFlowData}
-                years={YEARS_YOY}
-                colors={YEAR_COLORS}
-                labels={YEAR_LABELS}
+                rows={YEARS_YOY} rowColors={YEAR_COLORS} rowLabels={YEAR_LABELS}
+                cols={FLOW_METRICS} colLabels={FLOW_METRIC_LABELS} colStyles={FLOW_METRIC_STYLES}
+                hiddenRows={yoyHiddenOf("flowYears")}
+                hiddenCols={yoyHiddenOf("flowMetrics")}
+                unit="person"
                 syncId={chartSyncId}
-                hiddenYears={flowHiddenYears}
               />
-              <YearToggleChips hidden={flowHiddenYears} onToggle={(yr) => toggleYoyYear(setFlowHiddenYears, yr)} />
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                <ToggleChips items={YEAR_CHIPS} hidden={yoyHiddenOf("flowYears")} onToggle={(k) => toggleYoy("flowYears", k, YEARS_YOY.length)} />
+                <ToggleChips items={FLOW_METRIC_CHIPS} hidden={yoyHiddenOf("flowMetrics")} onToggle={(k) => toggleYoy("flowMetrics", k, FLOW_METRICS.length)} />
+              </div>
             </>
           ) : (
             <StatsLine data={periodStudentFlow} syncId={chartSyncId} />
@@ -1336,22 +1399,40 @@ export default function StatisticsPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-base font-bold text-gray-900 mb-1">
-            {selectedYear === "all" ? "연도별" : selectedYear + "년 월별"} 유입경로 트렌드
-          </h2>
+          <h2 className="text-base font-bold text-gray-900 mb-1">유입경로 트렌드</h2>
           <p className="text-xs text-gray-400 mb-1">
-            경로 확인된 수강생 {inflowTrendData.validCount}명 기준 (NULL·없음 제외)
+            {yoyMode === "overlay"
+              ? "월별 연도간 유입경로 비교 (YoY)"
+              : selectedYear === "all" ? "연도별 합산" : selectedYear + "년 월별"}
+            {" · "}경로 확인된 수강생 {inflowTrendData.validCount}명 기준 (NULL·없음 제외)
           </p>
           <p className="text-xs text-gray-300 mb-4">
-            X축: {selectedYear === "all" ? "첫 결제 연도" : selectedYear + "년 첫 결제 월"} 기준 / Y축: 유입 수강생 수
+            X축: {yoyMode === "overlay" ? "첫 결제 월 (1~12월, 연도별 겹쳐보기)" : selectedYear === "all" ? "첫 결제 연도" : selectedYear + "년 첫 결제 월"} 기준 / Y축: 유입 수강생 수
           </p>
-          <InflowTrendChart
-            data={inflowTrendData.data}
-            routes={inflowTrendData.routes}
-            colors={inflowTrendData.colors}
-            syncId={chartSyncId}
-            hiddenRoutes={inflowHiddenRoutes}
-          />
+          {yoyMode === "overlay" && inflowTrendData.routes.length > 0 ? (
+            <>
+              <YoyMatrixChart
+                data={inflowTrendData.yoyData}
+                rows={inflowTrendData.routes} rowColors={inflowTrendData.colors} rowLabels={{}}
+                cols={YEARS_YOY} colLabels={YEAR_LABELS} colStyles={INFLOW_YEAR_STYLES}
+                hiddenRows={inflowHiddenRoutes}
+                hiddenCols={yoyHiddenOf("inflowYears")}
+                unit="person"
+                syncId={chartSyncId}
+              />
+              <div className="mt-4">
+                <ToggleChips items={INFLOW_YEAR_CHIPS} hidden={yoyHiddenOf("inflowYears")} onToggle={(k) => toggleYoy("inflowYears", k, YEARS_YOY.length)} />
+              </div>
+            </>
+          ) : (
+            <InflowTrendChart
+              data={inflowTrendData.data}
+              routes={inflowTrendData.routes}
+              colors={inflowTrendData.colors}
+              syncId={chartSyncId}
+              hiddenRoutes={inflowHiddenRoutes}
+            />
+          )}
           {inflowTrendData.routes.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {inflowTrendData.routes.map((route) => {
