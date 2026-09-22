@@ -41,11 +41,13 @@ function CustomTooltip({ active, payload, label }: TTooltipProps) {
 export default function StatsArea({ data, syncId }: { data: MonthlyChartData[]; syncId?: string }) {
   const fmtY = (v: number) => {
     if (v === 0) return "0";
-    return Math.round(v / 10000) + "만";
+    if (v >= 100_000_000) return +(v / 100_000_000).toFixed(2) + "억";
+    return Math.round(v / 10000).toLocaleString() + "만";
   };
+  // left 음수 margin은 Y축을 SVG 밖으로 밀어내 "6,000만"의 앞자리가 잘리므로 0 유지
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data} syncId={syncId} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+      <AreaChart data={data} syncId={syncId} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="gtTuition" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.2} />
@@ -68,7 +70,7 @@ export default function StatsArea({ data, syncId }: { data: MonthlyChartData[]; 
           tick={{ fontSize: 11, fill: "#94a3b8" }}
           axisLine={false}
           tickLine={false}
-          width={44}
+          width={56}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }} />
         <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12, color: "#94a3b8" }} />
